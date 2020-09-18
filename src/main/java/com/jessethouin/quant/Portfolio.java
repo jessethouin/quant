@@ -1,10 +1,12 @@
 package com.jessethouin.quant;
 
+import com.jessethouin.quant.conf.Config;
 import com.jessethouin.quant.exceptions.CashException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -73,5 +75,9 @@ public class Portfolio {
         AtomicReference<BigDecimal> holdings = new AtomicReference<>(BigDecimal.ZERO);
         securities.forEach(security -> security.positions.forEach((p, q) -> holdings.updateAndGet(v -> v.add(p.multiply(q)))));
         return getCash().add(holdings.get());
+    }
+
+    public BigDecimal getBudget(BigDecimal price) {
+        return getCash().multiply(Config.getAllowance()).divide(price, 0, RoundingMode.HALF_UP);
     }
 }

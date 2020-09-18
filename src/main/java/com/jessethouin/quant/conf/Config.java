@@ -3,11 +3,22 @@ package com.jessethouin.quant.conf;
 import java.math.BigDecimal;
 
 public class Config {
+    private static BigDecimal initialCash = BigDecimal.valueOf(25000);
+
     private static int shortPeriod = 8;
     private static int longPeriod = 20;
-    private static BigDecimal initialCash = BigDecimal.valueOf(25000);
     private static BigDecimal highRisk = BigDecimal.valueOf(.09);
     private static BigDecimal lowRisk = BigDecimal.valueOf(.10);
+
+    public static BigDecimal getAllowance() {
+        return allowance;
+    }
+
+    public static void setAllowance(BigDecimal allowance) {
+        Config.allowance = allowance;
+    }
+
+    private static BigDecimal allowance = BigDecimal.valueOf(.10);
 
     public static BigDecimal getInitialCash() {
         return initialCash;
