@@ -71,11 +71,7 @@ public class Portfolio {
 
     public BigDecimal getPortfolioValue() {
         AtomicReference<BigDecimal> holdings = new AtomicReference<>(BigDecimal.ZERO);
-        securities.forEach(security -> {
-            security.positions.forEach((p, q) -> {
-                holdings.updateAndGet(v -> v.add(p.multiply(q)));
-            });
-        });
+        securities.forEach(security -> security.positions.forEach((p, q) -> holdings.updateAndGet(v -> v.add(p.multiply(q)))));
         return getCash().add(holdings.get());
     }
 }

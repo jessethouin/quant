@@ -6,8 +6,8 @@ public class Config {
     private static int shortPeriod = 8;
     private static int longPeriod = 20;
     private static BigDecimal initialCash = BigDecimal.valueOf(25000);
-    private static BigDecimal highRisk = BigDecimal.valueOf(.1);
-    private static BigDecimal lowRisk = BigDecimal.valueOf(.1);
+    private static BigDecimal highRisk = BigDecimal.valueOf(.09);
+    private static BigDecimal lowRisk = BigDecimal.valueOf(.10);
 
     public static BigDecimal getInitialCash() {
         return initialCash;
