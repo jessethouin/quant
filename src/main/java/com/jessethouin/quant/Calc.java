@@ -3,20 +3,22 @@ package com.jessethouin.quant;
 import com.jessethouin.quant.conf.Config;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.List;
 
 class Calc {
     private final Security security;
 
     private BigDecimal price;
-    private BigDecimal dema1;
-    private BigDecimal dema2;
+    private BigDecimal ma1;
+    private BigDecimal ma2;
     private BigDecimal high;
     private BigDecimal low;
     private BigDecimal spread;
     private boolean buy;
     private BigDecimal qty;
+
+    public Calc(Security security, BigDecimal price) {
+        this(security, price, price, price, BigDecimal.ZERO, true);
+    }
 
     public Calc(Security security, BigDecimal price, BigDecimal high, BigDecimal low, BigDecimal spread, boolean buy) {
         this.security = security;
@@ -47,20 +49,20 @@ class Calc {
         this.price = price;
     }
 
-    public BigDecimal getDema1() {
-        return dema1;
+    public BigDecimal getMa1() {
+        return ma1;
     }
 
-    public void setDema1(BigDecimal dema1) {
-        this.dema1 = dema1;
+    public void setMa1(BigDecimal ma1) {
+        this.ma1 = ma1;
     }
 
-    public BigDecimal getDema2() {
-        return dema2;
+    public BigDecimal getMa2() {
+        return ma2;
     }
 
-    public void setDema2(BigDecimal dema2) {
-        this.dema2 = dema2;
+    public void setMa2(BigDecimal ma2) {
+        this.ma2 = ma2;
     }
 
     public BigDecimal getHigh() {
@@ -98,35 +100,58 @@ class Calc {
     public BigDecimal decide() {
         BigDecimal proceeds = BigDecimal.ZERO;
 
-        if (price.compareTo(high) > 0) {
-            high = price;
-        } else if (price.compareTo(low) < 0) {
-            low = price;
-            high = price;
-            spread = high.subtract(low);
-            buy = true;
+        if (getPrice().compareTo(getHigh()) > 0) {
+            setHigh(getPrice());
+        } else if (getPrice().compareTo(getLow()) < 0) {
+            setLow(getPrice());
+            setHigh(getPrice());
+            setSpread(getHigh().subtract(getLow()));
+            setBuy(true);
             return proceeds;
         }
 
-        spread = high.subtract(low);
+        setSpread(getHigh().subtract(getLow()));
 
-        if (dema1.signum() == 0 || dema2.signum() == 0) return proceeds;
+        if (getMa1().signum() == 0 || getMa2().signum() == 0) return proceeds;
 
-        if (dema1.compareTo(dema2) > 0 && dema1.compareTo(low.add(spread.multiply(Config.getLowRisk()))) > 0 && dema1.compareTo(high.subtract(spread.multiply(Config.getHighRisk()))) < 0 && buy) {
-            proceeds = security.buySecurity(qty, price).negate();
-            buy = false;
-        } else if (dema1.compareTo(dema2) < 0 && price.compareTo(high.subtract(spread.multiply(Config.getHighRisk()))) < 0) {
-            proceeds = security.sellSecurity(price);
-            buy = true;
+        if (buy1()) {
+            proceeds = getSecurity().buySecurity(getQty(), getPrice()).negate();
+            setBuy(false);
+        } else if (sell2()) {
+            proceeds = getSecurity().sellSecurity(getPrice());
+            setBuy(true);
         }
 
         return proceeds;
     }
 
+    private boolean buy1() {
+        return getMa1().compareTo(getMa2()) > 0 &&
+                getMa1().compareTo(getLow().add(getSpread().multiply(Config.getLowRisk()))) > 0 &&
+                getMa1().compareTo(getHigh().subtract(getSpread().multiply(Config.getHighRisk()))) < 0 &&
+                isBuy();
+    }
+
+    public boolean sell1() {
+        return getMa1().compareTo(getMa2()) < 0 &&
+                getPrice().compareTo(getHigh().subtract(getSpread().multiply(Config.getHighRisk()))) < 0;
+    }
+
+    public boolean buy2() {
+        return getPrice().compareTo(getLow().add(getSpread().multiply(Config.getLowRisk()))) > 0 &&
+                getPrice().compareTo(getLow().add(getSpread().multiply(Config.getLowRisk().multiply(BigDecimal.valueOf(3))))) < 0 &&
+                getPrice().compareTo(getHigh().subtract(getSpread().multiply(Config.getHighRisk()))) < 0 &&
+                isBuy();
+    }
+
+    public boolean sell2() {
+        return getPrice().compareTo(getHigh().subtract(getSpread().multiply(Config.getLowRisk()))) < 0;
+    }
+
     public void updateCalc(BigDecimal price, BigDecimal ma1, BigDecimal ma2, Portfolio portfolio) {
         setPrice(price);
         setQty(portfolio.getBudget(price));
-        setDema1(ma1);
-        setDema2(ma2);
+        setMa1(ma1);
+        setMa2(ma2);
     }
 }

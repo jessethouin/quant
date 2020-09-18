@@ -39,17 +39,16 @@ public class Main {
             LOG.error(e.getMessage());
         }
 
-        List<BigDecimal> shortOutput = MA.ma(intradayPrices, Config.getShortPeriod(), MATypes.DEMA);
-        List<BigDecimal> longOutput = MA.ma(intradayPrices, Config.getLongPeriod(), MATypes.DEMA);
-
         Portfolio portfolio = new Portfolio();
         portfolio.addCash(Config.getInitialCash());
 
         Security aapl = new Security("AAPL");
         portfolio.getSecurities().add(aapl);
 
-        BigDecimal beginningPrice = intradayPrices.get(0);
-        Calc c = new Calc(aapl, beginningPrice, beginningPrice, beginningPrice, BigDecimal.ZERO, true);
+        Calc c = new Calc(aapl, intradayPrices.get(0));
+
+        List<BigDecimal> shortOutput = MA.ma(intradayPrices, Config.getShortPeriod(), MATypes.DEMA);
+        List<BigDecimal> longOutput = MA.ma(intradayPrices, Config.getLongPeriod(), MATypes.DEMA);
 
         for (int i = 0; i < intradayPrices.size(); i++) {
             LOG.debug(i + ": " + shortOutput.get(i) + " : " + longOutput.get(i) + " : " + intradayPrices.get(i) + " : " + portfolio.getCash());
