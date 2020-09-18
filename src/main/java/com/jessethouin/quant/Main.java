@@ -9,16 +9,20 @@ import org.apache.logging.log4j.Logger;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.InputMismatchException;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
 
 public class Main {
     private static final Logger LOG = LogManager.getLogger(Main.class);
 
     public static void main(String[] args) throws CashException {
+        Portfolio portfolio = new Portfolio();
+        portfolio.addCash(Config.getInitialCash());
+
+        Security aapl = new Security("AAPL");
+//        Security goog = new Security("GOOG"); // TODO: ability to work with multiple securities
+
+        portfolio.setSecurities(new ArrayList<>(Collections.singletonList(aapl)));
+
         List<BigDecimal> intradayPrices = new ArrayList<>();
 
         try (Scanner scanner = new Scanner(new File("./AAPL.csv"))) {
@@ -38,12 +42,6 @@ public class Main {
         } catch (FileNotFoundException e) {
             LOG.error(e.getMessage());
         }
-
-        Portfolio portfolio = new Portfolio();
-        portfolio.addCash(Config.getInitialCash());
-
-        Security aapl = new Security("AAPL");
-        portfolio.getSecurities().add(aapl);
 
         Calc c = new Calc(aapl, intradayPrices.get(0));
 
