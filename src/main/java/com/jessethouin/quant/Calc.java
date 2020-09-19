@@ -105,7 +105,7 @@ class Calc {
         } else if (getPrice().compareTo(getLow()) < 0) {
             setLow(getPrice());
             setHigh(getPrice());
-            setSpread(getHigh().subtract(getLow()));
+            setSpread(BigDecimal.ZERO);
             setBuy(true);
             return proceeds;
         }

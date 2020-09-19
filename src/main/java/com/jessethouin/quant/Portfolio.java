@@ -27,6 +27,10 @@ public class Portfolio {
         return cash;
     }
 
+    public void setCash(BigDecimal cash) {
+        this.cash = cash;
+    }
+
     public void addCash(BigDecimal cash) throws CashException {
         if (cash.signum() < 0) {
             deductCash(cash.abs());
@@ -78,6 +82,6 @@ public class Portfolio {
     }
 
     public BigDecimal getBudget(BigDecimal price) {
-        return getCash().multiply(Config.getAllowance()).divide(price, 0, RoundingMode.HALF_UP);
+        return getCash().multiply(Config.getAllowance()).divide(price, 0, RoundingMode.FLOOR);
     }
 }
