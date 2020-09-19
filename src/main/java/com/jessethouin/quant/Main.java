@@ -1,6 +1,5 @@
 package com.jessethouin.quant;
 
-import com.image.charts.ImageCharts;
 import com.jessethouin.quant.calculators.*;
 import com.jessethouin.quant.conf.Config;
 import com.jessethouin.quant.exceptions.CashException;
@@ -8,8 +7,7 @@ import org.apache.commons.lang3.time.StopWatch;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -31,22 +29,18 @@ public class Main {
 
         List<BigDecimal> intradayPrices = new ArrayList<>();
 
-        try (Scanner scanner = new Scanner(new File("./AAPL.csv"))) {
+        InputStream aapl_csv = Thread.currentThread().getContextClassLoader().getResourceAsStream("AAPL.csv");
+        if (aapl_csv == null) throw new NullPointerException("aapl_csv was null for some reason. Perhaps the file didn't exist, or we didn't have permissions to read it.");
+        try (Scanner scanner = new Scanner(aapl_csv)) {
             while (scanner.hasNextLine()) {
                 try (Scanner rowScanner = new Scanner(scanner.nextLine())) {
                     rowScanner.useDelimiter(",");
                     while (rowScanner.hasNext()) {
-                        try {
-                            rowScanner.next();
-                            intradayPrices.add(rowScanner.nextBigDecimal());
-                        } catch (InputMismatchException ime) {
-                            LOG.error("Hit InputMismatchException: " + ime.getLocalizedMessage());
-                        }
+                        rowScanner.next();
+                        intradayPrices.add(rowScanner.nextBigDecimal());
                     }
                 }
             }
-        } catch (FileNotFoundException e) {
-            LOG.error(e.getMessage());
         }
 
 
@@ -60,7 +54,7 @@ public class Main {
 
         int s;
         int l = 0;
-        int max = 10;
+        int max = 200;
         while (l < max) {
             loopWatch.start();
             Config.setLongPeriod(l++);
@@ -69,11 +63,11 @@ public class Main {
                 Config.setShortPeriod(s++);
                 rh = BigDecimal.ZERO;
                 while (rh.compareTo(rmax) < 0) {
-                    rh = rh.add(BigDecimal.valueOf(.05));
+                    rh = rh.add(BigDecimal.valueOf(.01));
                     Config.setHighRisk(rh);
                     rl = BigDecimal.ZERO;
                     while (rl.compareTo(rmax) < 0) {
-                        rl = rl.add(BigDecimal.valueOf(.05));
+                        rl = rl.add(BigDecimal.valueOf(.01));
                         Config.setLowRisk(rl);
 
                         portfolio = new Portfolio();
