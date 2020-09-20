@@ -10,43 +10,50 @@ public class Config {
     private static BigDecimal lowRisk = BigDecimal.valueOf(.10);
     private static BigDecimal allowance = BigDecimal.valueOf(.10);
 
-    public static BigDecimal getInitialCash() {
+    public Config(int shortPeriod, int longPeriod, BigDecimal highRisk, BigDecimal lowRisk) {
+        setShortPeriod(shortPeriod);
+        setLongPeriod(longPeriod);
+        setHighRisk(highRisk);
+        setLowRisk(lowRisk);
+    }
+
+    public BigDecimal getInitialCash() {
         return initialCash;
     }
 
-    public static void setInitialCash(BigDecimal initialCash) {
+    public void setInitialCash(BigDecimal initialCash) {
         Config.initialCash = initialCash;
     }
 
-    public static int getShortPeriod() {
+    public int getShortPeriod() {
         return shortPeriod;
     }
 
-    public static void setShortPeriod(int shortPeriod) {
+    public void setShortPeriod(int shortPeriod) {
         Config.shortPeriod = shortPeriod;
     }
 
-    public static int getLongPeriod() {
+    public int getLongPeriod() {
         return longPeriod;
     }
 
-    public static void setLongPeriod(int longPeriod) {
+    public void setLongPeriod(int longPeriod) {
         Config.longPeriod = longPeriod;
     }
 
-    public static BigDecimal getHighRisk() {
+    public BigDecimal getHighRisk() {
         return highRisk;
     }
 
-    public static void setHighRisk(BigDecimal highRisk) {
+    public void setHighRisk(BigDecimal highRisk) {
         Config.highRisk = highRisk;
     }
 
-    public static BigDecimal getLowRisk() {
+    public BigDecimal getLowRisk() {
         return lowRisk;
     }
 
-    public static void setLowRisk(BigDecimal lowRisk) {
+    public void setLowRisk(BigDecimal lowRisk) {
         Config.lowRisk = lowRisk;
     }
 

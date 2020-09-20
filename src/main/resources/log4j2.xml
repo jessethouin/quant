@@ -14,10 +14,9 @@
         </Console>
     </Appenders>
     <Loggers>
-        <Logger name="com.jessethouin" level="info" />
-        <Root level="info">
-            <AppenderRef ref="STDOUT" />
-            <AppenderRef ref="FILE" />
+        <Root level="debug">
+            <AppenderRef ref="STDOUT" level="info" />
+            <AppenderRef ref="FILE" level="debug" />
         </Root>
     </Loggers>
 </Configuration>

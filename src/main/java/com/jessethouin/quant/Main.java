@@ -1,36 +1,54 @@
 package com.jessethouin.quant;
 
-import com.jessethouin.quant.calculators.*;
-import com.jessethouin.quant.conf.Config;
-import com.jessethouin.quant.exceptions.CashException;
 import org.apache.commons.lang3.time.StopWatch;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.text.MessageFormat;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Main {
     private static final Logger LOG = LogManager.getLogger(Main.class);
+    private static String best = "";
+    private static BigDecimal bestv = BigDecimal.ZERO;
 
-    public static void main(String[] args) throws CashException {
+    public static void main(String[] args) throws InterruptedException {
         StopWatch watch = new StopWatch();
         watch.start();
 
+        int max = 30;
+        BigDecimal rmax = BigDecimal.valueOf(.25);
+        BigDecimal hlIncrement = BigDecimal.valueOf(.05);
+
+        if (args.length == 0) LOG.info("Using default values for max (30), rmax (.25), and hlIncrement (.05).");
+
+        for (int i = 0; i < args.length; i++) {
+            switch (i) {
+                case 0 -> max = Integer.parseInt(args[i]);
+                case 1 -> rmax = BigDecimal.valueOf(Integer.parseInt(args[i]));
+                case 2 -> hlIncrement = BigDecimal.valueOf(Integer.parseInt(args[i]));
+            }
+        }
+
+/*
         Portfolio portfolio = new Portfolio();
         portfolio.setCash(Config.getInitialCash());
 
         Security aapl = new Security("AAPL");
-//        Security goog = new Security("GOOG"); // TODO: ability to work with multiple securities
+        Security goog = new Security("GOOG"); // TODO: ability to work with multiple securities
 
         portfolio.setSecurities(new ArrayList<>(Collections.singletonList(aapl)));
+*/
 
         List<BigDecimal> intradayPrices = new ArrayList<>();
 
         InputStream aapl_csv = Thread.currentThread().getContextClassLoader().getResourceAsStream("AAPL.csv");
-        if (aapl_csv == null) throw new NullPointerException("aapl_csv was null for some reason. Perhaps the file didn't exist, or we didn't have permissions to read it.");
+        if (aapl_csv == null)
+            throw new NullPointerException("aapl_csv was null for some reason. Perhaps the file didn't exist, or we didn't have permissions to read it.");
         try (Scanner scanner = new Scanner(aapl_csv)) {
             while (scanner.hasNextLine()) {
                 try (Scanner rowScanner = new Scanner(scanner.nextLine())) {
@@ -44,65 +62,58 @@ public class Main {
         }
 
 
-        BigDecimal rh;
-        BigDecimal rl;
-        BigDecimal rmax = BigDecimal.valueOf(.25);
-
-        String best = "";
-        BigDecimal bestv = BigDecimal.ZERO;
-        StopWatch loopWatch = new StopWatch();
+        ExecutorService es = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+        List<Callable<Object>> todo = new ArrayList<>();
 
         int s;
         int l = 0;
-        int max = 200;
+        BigDecimal rh;
+        BigDecimal rl;
+
         while (l < max) {
-            loopWatch.start();
-            Config.setLongPeriod(l++);
-            s = 1;
+            l++;
+            s = 0;
             while (s < l) {
-                Config.setShortPeriod(s++);
+                s++;
                 rh = BigDecimal.ZERO;
                 while (rh.compareTo(rmax) < 0) {
-                    rh = rh.add(BigDecimal.valueOf(.01));
-                    Config.setHighRisk(rh);
+                    rh = rh.add(hlIncrement);
                     rl = BigDecimal.ZERO;
                     while (rl.compareTo(rmax) < 0) {
-                        rl = rl.add(BigDecimal.valueOf(.01));
-                        Config.setLowRisk(rl);
-
-                        portfolio = new Portfolio();
-                        portfolio.setCash(Config.getInitialCash());
-                        aapl = new Security("AAPL");
-                        portfolio.setSecurities(new ArrayList<>(Collections.singletonList(aapl)));
-
-                        Calc c = new Calc(aapl, intradayPrices.get(0));
-
-                        List<BigDecimal> shortOutput = MA.ma(intradayPrices, Config.getShortPeriod(), MATypes.DEMA);
-                        List<BigDecimal> longOutput = MA.ma(intradayPrices, Config.getLongPeriod(), MATypes.DEMA);
-
-                        for (int i = 0; i < intradayPrices.size(); i++) {
-                            LOG.debug(i + ": " + shortOutput.get(i) + " : " + longOutput.get(i) + " : " + intradayPrices.get(i) + " : " + portfolio.getCash());
-                            c.updateCalc(intradayPrices.get(i), shortOutput.get(i), longOutput.get(i), portfolio);
-                            portfolio.addCash(c.decide());
-                        }
-
-                        LOG.debug(portfolio.toString());
-
-                        if (portfolio.getPortfolioValue().compareTo(bestv) > 0) {
-                            best = "short: " + s + " long: " + l + " rl: " + rl.toPlainString() + " rh: " + rh.toPlainString() + " v: " + portfolio.getPortfolioValue();
-                            bestv = portfolio.getPortfolioValue();
-                        }
-                        LOG.debug("short: " + s + " long: " + l + " v: " + portfolio.getPortfolioValue());
+                        rl = rl.add(hlIncrement);
+                        todo.add(Executors.callable(new ProcessHistoricIntradayPrices(s, l, rh, rl, intradayPrices)));
                     }
                 }
             }
-            loopWatch.stop();
-            LOG.info(l + " - " + loopWatch.getTime(TimeUnit.MILLISECONDS));
-            loopWatch.reset();
         }
-        LOG.info(best);
+
+        LOG.info(MessageFormat.format("{0} threads were created.", todo.size()));
+
+        List<Future<Object>> answers = es.invokeAll(todo);
+        es.shutdown();
+
         watch.stop();
-        LOG.info("Time Elapsed: " + watch.getTime(TimeUnit.MILLISECONDS));
+
+        LOG.info(MessageFormat.format("\nThe best combination of parameters is\n\t{0}\nwith a value of ${1}", getBest(), getBestv()));
+        LOG.info(MessageFormat.format("Time Elapsed: {0}", watch.getTime(TimeUnit.MILLISECONDS) / 1000));
+
 //        ImageCharts line = new ImageCharts().cht("ls").chd()
+    }
+
+    public static String getBest() {
+        return best;
+    }
+
+    public static void setBest(String best) {
+        Main.best = best;
+    }
+
+    public static BigDecimal getBestv() {
+        return bestv;
+    }
+
+    public static void setBestv(BigDecimal bestv) {
+        Main.bestv = bestv;
+        LOG.info(MessageFormat.format("\n\nHomer Simpson: The best combination of parameters SO FAR is\n\t{0}\nwith a value of ${1}\n", getBest(), getBestv()));
     }
 }

@@ -21,7 +21,7 @@ public class Security {
         if (posQty == null) posQty = BigDecimal.ZERO;
         posQty = posQty.add(qty);
         positions.put(price, posQty);
-        LOG.debug("Bought " + qty + " at " + price);
+        LOG.trace("Bought " + qty + " at " + price);
         return qty.multiply(price).setScale(3, RoundingMode.HALF_UP);
     }
 
@@ -35,7 +35,7 @@ public class Security {
                 q = positions.get(p);
                 cash = cash.add(price.multiply(q)).setScale(3, RoundingMode.HALF_UP);
                 remove.add(p);
-                LOG.debug("Sold " + q + " at " + price);
+                LOG.trace("Sold " + q + " at " + price);
             }
         }
 
