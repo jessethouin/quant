@@ -8,6 +8,13 @@
         <File name="FILE" fileName="${basePath}/logfile.log" append="false">
             <PatternLayout pattern="%-5p | %d{yyyy-MM-dd HH:mm:ss,SSS} | [%t] %C{2} (%F:%L) - %m%n" />
         </File>
+        <RollingFile name="RollingFile" fileName="${basePath}/blsh.log" filePattern="logs/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.log.gz">
+            <Policies>
+                <TimeBasedTriggeringPolicy />
+                <SizeBasedTriggeringPolicy size="250 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="10"/>
+        </RollingFile>
         <!-- Console Appender -->
         <Console name="STDOUT" target="SYSTEM_OUT">
             <PatternLayout pattern="%-5p | %d{yyyy-MM-dd HH:mm:ss,SSS} | [%t] %C{2} (%F:%L) - %m%n" />
@@ -16,7 +23,7 @@
     <Loggers>
         <Root level="debug">
             <AppenderRef ref="STDOUT" level="info" />
-            <AppenderRef ref="FILE" level="debug" />
+            <AppenderRef ref="RollingFile" level="debug" />
         </Root>
     </Loggers>
 </Configuration>

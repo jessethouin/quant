@@ -9,7 +9,6 @@ import java.math.BigDecimal;
 import java.text.MessageFormat;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class Main {
     private static final Logger LOG = LogManager.getLogger(Main.class);
@@ -29,8 +28,8 @@ public class Main {
         for (int i = 0; i < args.length; i++) {
             switch (i) {
                 case 0 -> max = Integer.parseInt(args[i]);
-                case 1 -> rmax = BigDecimal.valueOf(Integer.parseInt(args[i]));
-                case 2 -> hlIncrement = BigDecimal.valueOf(Integer.parseInt(args[i]));
+                case 1 -> rmax = BigDecimal.valueOf(Double.parseDouble(args[i]));
+                case 2 -> hlIncrement = BigDecimal.valueOf(Double.parseDouble(args[i]));
             }
         }
 
@@ -46,7 +45,7 @@ public class Main {
 
         List<BigDecimal> intradayPrices = new ArrayList<>();
 
-        InputStream aapl_csv = Thread.currentThread().getContextClassLoader().getResourceAsStream("AAPL.csv");
+        InputStream aapl_csv = Thread.currentThread().getContextClassLoader().getResourceAsStream("AAPL_part.csv");
         if (aapl_csv == null)
             throw new NullPointerException("aapl_csv was null for some reason. Perhaps the file didn't exist, or we didn't have permissions to read it.");
         try (Scanner scanner = new Scanner(aapl_csv)) {
@@ -62,13 +61,15 @@ public class Main {
         }
 
 
-        ExecutorService es = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+//        ExecutorService es = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+        ExecutorService es = Executors.newFixedThreadPool(1);
         List<Callable<Object>> todo = new ArrayList<>();
 
         int s;
         int l = 0;
         BigDecimal rh;
         BigDecimal rl;
+        setBestv(BigDecimal.ZERO);
 
         while (l < max) {
             l++;
@@ -81,7 +82,7 @@ public class Main {
                     rl = BigDecimal.ZERO;
                     while (rl.compareTo(rmax) < 0) {
                         rl = rl.add(hlIncrement);
-                        todo.add(Executors.callable(new ProcessHistoricIntradayPrices(s, l, rh, rl, intradayPrices)));
+                        todo.add(new ProcessHistoricIntradayPrices(s, l, rh, rl, intradayPrices));
                     }
                 }
             }
@@ -92,9 +93,17 @@ public class Main {
         List<Future<Object>> answers = es.invokeAll(todo);
         es.shutdown();
 
+        answers.forEach(f -> {
+            try {
+                Object o =  f.get();
+                if (o instanceof BigDecimal && ((BigDecimal) o).compareTo(getBestv()) > 0) setBestv((BigDecimal) o);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
         watch.stop();
 
-        LOG.info(MessageFormat.format("\nThe best combination of parameters is\n\t{0}\nwith a value of ${1}", getBest(), getBestv()));
+        LOG.info(MessageFormat.format("\n\nThe best combination of parameters is\n\t{0}\nwith a value of ${1}\n", getBest(), getBestv()));
         LOG.info(MessageFormat.format("Time Elapsed: {0}", watch.getTime(TimeUnit.MILLISECONDS) / 1000));
 
 //        ImageCharts line = new ImageCharts().cht("ls").chd()
@@ -114,6 +123,6 @@ public class Main {
 
     public static void setBestv(BigDecimal bestv) {
         Main.bestv = bestv;
-        LOG.info(MessageFormat.format("\n\nHomer Simpson: The best combination of parameters SO FAR is\n\t{0}\nwith a value of ${1}\n", getBest(), getBestv()));
+//        LOG.info(MessageFormat.format("\n\nHomer Simpson: The best combination of parameters SO FAR is\n\t{0}\nwith a value of ${1}\n", getBest(), getBestv()));
     }
 }
