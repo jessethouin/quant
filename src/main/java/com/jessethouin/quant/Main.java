@@ -45,7 +45,7 @@ public class Main {
 
         List<BigDecimal> intradayPrices = new ArrayList<>();
 
-        InputStream aapl_csv = Thread.currentThread().getContextClassLoader().getResourceAsStream("AAPL_part.csv");
+        InputStream aapl_csv = Thread.currentThread().getContextClassLoader().getResourceAsStream("AAPL.csv");
         if (aapl_csv == null)
             throw new NullPointerException("aapl_csv was null for some reason. Perhaps the file didn't exist, or we didn't have permissions to read it.");
         try (Scanner scanner = new Scanner(aapl_csv)) {
@@ -61,8 +61,7 @@ public class Main {
         }
 
 
-//        ExecutorService es = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-        ExecutorService es = Executors.newFixedThreadPool(1);
+        ExecutorService es = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
         List<Callable<Object>> todo = new ArrayList<>();
 
         int s;

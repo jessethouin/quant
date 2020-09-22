@@ -1,6 +1,5 @@
 package com.jessethouin.quant;
 
-import com.jessethouin.quant.conf.Config;
 import com.jessethouin.quant.exceptions.CashException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -81,7 +80,7 @@ public class Portfolio {
         return getCash().add(holdings.get());
     }
 
-    public BigDecimal getBudget(BigDecimal price) {
-        return getCash().multiply(Config.getAllowance()).divide(price, 0, RoundingMode.FLOOR);
+    public BigDecimal getBudget(BigDecimal price, BigDecimal allowance) {
+        return getCash().multiply(allowance).divide(price, 0, RoundingMode.FLOOR);
     }
 }

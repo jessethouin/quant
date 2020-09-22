@@ -152,7 +152,7 @@ class Calc {
 
     public void updateCalc(BigDecimal price, BigDecimal ma1, BigDecimal ma2, Portfolio portfolio) {
         setPrice(price);
-        setQty(portfolio.getBudget(price));
+        setQty(portfolio.getBudget(price, config.getAllowance()));
         setMa1(ma1);
         setMa2(ma2);
     }

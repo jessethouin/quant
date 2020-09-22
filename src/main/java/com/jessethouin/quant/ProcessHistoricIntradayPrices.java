@@ -60,14 +60,13 @@ public class ProcessHistoricIntradayPrices implements Callable<Object> {
             previous = price;
         }
 
-        LOG.debug(MessageFormat.format("{0,number,00} : {1,number,00} : {2,number,0.00} : {3,number,0.00} : {4,number,00000.000}", finalS, finalL, finalRl, finalRh, portfolio.getPortfolioValue()));
-        return portfolio.getPortfolioValue();
-/*
+//        LOG.debug(MessageFormat.format("{0,number,00} : {1,number,00} : {2,number,0.00} : {3,number,0.00} : {4,number,00000.000}", finalS, finalL, finalRl, finalRh, portfolio.getPortfolioValue()));
         if (portfolio.getPortfolioValue().compareTo(Main.getBestv()) > 0) {
             Main.setBest("short: " + config.getShortPeriod() + " long: " + config.getLongPeriod() + " rl: " + config.getLowRisk().toPlainString() + " rh: " + config.getHighRisk().toPlainString() + " v: " + portfolio.getPortfolioValue());
             Main.setBestv(portfolio.getPortfolioValue());
         }
-*/
+
+        return portfolio.getPortfolioValue();
     }
 
     private BigDecimal getMA(BigDecimal previous, int i, int p) {

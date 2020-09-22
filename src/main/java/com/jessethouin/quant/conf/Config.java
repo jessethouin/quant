@@ -3,12 +3,12 @@ package com.jessethouin.quant.conf;
 import java.math.BigDecimal;
 
 public class Config {
-    private static BigDecimal initialCash = BigDecimal.valueOf(25000);
-    private static int shortPeriod = 8;
-    private static int longPeriod = 20;
-    private static BigDecimal highRisk = BigDecimal.valueOf(.09);
-    private static BigDecimal lowRisk = BigDecimal.valueOf(.10);
-    private static BigDecimal allowance = BigDecimal.valueOf(.10);
+    private BigDecimal initialCash = BigDecimal.valueOf(25000);
+    private int shortPeriod = 8;
+    private int longPeriod = 20;
+    private BigDecimal highRisk = BigDecimal.valueOf(.09);
+    private BigDecimal lowRisk = BigDecimal.valueOf(.10);
+    private BigDecimal allowance = BigDecimal.valueOf(.10);
 
     public Config(int shortPeriod, int longPeriod, BigDecimal highRisk, BigDecimal lowRisk) {
         setShortPeriod(shortPeriod);
@@ -22,7 +22,7 @@ public class Config {
     }
 
     public void setInitialCash(BigDecimal initialCash) {
-        Config.initialCash = initialCash;
+        this.initialCash = initialCash;
     }
 
     public int getShortPeriod() {
@@ -30,7 +30,7 @@ public class Config {
     }
 
     public void setShortPeriod(int shortPeriod) {
-        Config.shortPeriod = shortPeriod;
+        this.shortPeriod = shortPeriod;
     }
 
     public int getLongPeriod() {
@@ -38,7 +38,7 @@ public class Config {
     }
 
     public void setLongPeriod(int longPeriod) {
-        Config.longPeriod = longPeriod;
+        this.longPeriod = longPeriod;
     }
 
     public BigDecimal getHighRisk() {
@@ -46,7 +46,7 @@ public class Config {
     }
 
     public void setHighRisk(BigDecimal highRisk) {
-        Config.highRisk = highRisk;
+        this.highRisk = highRisk;
     }
 
     public BigDecimal getLowRisk() {
@@ -54,14 +54,14 @@ public class Config {
     }
 
     public void setLowRisk(BigDecimal lowRisk) {
-        Config.lowRisk = lowRisk;
+        this.lowRisk = lowRisk;
     }
 
-    public static BigDecimal getAllowance() {
+    public BigDecimal getAllowance() {
         return allowance;
     }
 
-    public static void setAllowance(BigDecimal allowance) {
-        Config.allowance = allowance;
+    public void setAllowance(BigDecimal allowance) {
+        this.allowance = allowance;
     }
 }
