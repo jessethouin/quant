@@ -8,7 +8,7 @@
         <File name="FILE" fileName="${basePath}/logfile.log" append="false">
             <PatternLayout pattern="%-5p | %d{yyyy-MM-dd HH:mm:ss,SSS} | [%t] %C{2} (%F:%L) - %m%n" />
         </File>
-        <RollingFile name="RollingFile" fileName="${basePath}/blsh.log" filePattern="logs/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.log.gz">
+        <RollingFile name="RollingFile" fileName="${basePath}/blsh.log" filePattern="logs/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.log.gz" append="false">
             <Policies>
                 <TimeBasedTriggeringPolicy />
                 <SizeBasedTriggeringPolicy size="250 MB"/>
@@ -21,9 +21,12 @@
         </Console>
     </Appenders>
     <Loggers>
+        <Logger name="com.jessethouin.quant.ProcessHistoricIntradayPrices" level="debug">
+            <AppenderRef ref="RollingFile" level="debug" />
+        </Logger>
         <Root level="debug">
             <AppenderRef ref="STDOUT" level="info" />
-            <AppenderRef ref="RollingFile" level="debug" />
+            <AppenderRef ref="FILE" level="info" />
         </Root>
     </Loggers>
 </Configuration>

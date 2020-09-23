@@ -134,11 +134,6 @@ class Calc {
                 isBuy();
     }
 
-    public boolean sell1() {
-        return getMa1().compareTo(getMa2()) < 0 &&
-                getPrice().compareTo(getHigh().subtract(getSpread().multiply(config.getHighRisk()))) < 0;
-    }
-
     public boolean buy2() {
         return getPrice().compareTo(getLow().add(getSpread().multiply(config.getLowRisk()))) > 0 &&
                 getPrice().compareTo(getLow().add(getSpread().multiply(config.getLowRisk().multiply(BigDecimal.valueOf(3))))) < 0 &&
@@ -146,8 +141,28 @@ class Calc {
                 isBuy();
     }
 
+    private boolean buy3() {
+        return getMa1().compareTo(getLow().add(getSpread().multiply(config.getLowRisk()))) > 0 &&
+                getMa1().compareTo(getHigh().subtract(getSpread().multiply(config.getHighRisk()))) < 0 &&
+                isBuy();
+    }
+
+    public boolean sell1() {
+        return getMa1().compareTo(getMa2()) < 0 &&
+                getPrice().compareTo(getHigh().subtract(getSpread().multiply(config.getHighRisk()))) < 0;
+    }
+
     public boolean sell2() {
         return getPrice().compareTo(getHigh().subtract(getSpread().multiply(config.getLowRisk()))) < 0;
+    }
+
+    public boolean sell3() {
+        return getPrice().compareTo(getHigh().subtract(getSpread().multiply(config.getHighRisk()))) < 0;
+    }
+
+    public boolean sell4() {
+        return getMa1().compareTo(getMa2()) < 0 &&
+                getPrice().compareTo(getHigh().subtract(getSpread().multiply(config.getLowRisk()))) < 0;
     }
 
     public void updateCalc(BigDecimal price, BigDecimal ma1, BigDecimal ma2, Portfolio portfolio) {
