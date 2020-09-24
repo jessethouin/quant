@@ -1,11 +1,13 @@
 package com.jessethouin.quant;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.time.StopWatch;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.text.MessageFormat;
 import java.util.*;
 import java.util.concurrent.*;
@@ -19,6 +21,7 @@ public class Main {
 
     public static void main(String[] args) throws InterruptedException {
         StopWatch watch = new StopWatch();
+        StopWatch loopWatch = new StopWatch();
         watch.start();
 
         int max = 30;
@@ -52,6 +55,8 @@ public class Main {
         BigDecimal rh;
         BigDecimal rl;
         int combos = 0;
+        long nt = 0;
+        List<BigInteger> nt_ = new ArrayList<>();
 
         while (l < max) {
             l++;
@@ -60,6 +65,7 @@ public class Main {
                 s++;
                 rh = BigDecimal.ZERO;
                 while (rh.compareTo(rmax) < 0) {
+                    loopWatch.start();
                     rh = rh.add(hlIncrement);
                     rl = BigDecimal.ZERO;
                     ExecutorService es = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
@@ -72,7 +78,13 @@ public class Main {
                     List<Future<Object>> answers = es.invokeAll(todo);
                     es.shutdown();
                     es.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+                    loopWatch.stop();
+                    nt = loopWatch.getNanoTime();
+                    nt_.add(BigInteger.valueOf(nt));
+                    loopWatch.reset();
                 }
+                OptionalDouble ntAvg = nt_.stream().mapToLong(BigInteger::longValue).average();
+                LOG.info(MessageFormat.format("Average execution time for threads is {0} seconds.", ntAvg.isPresent() ? ntAvg.getAsDouble() / 1000000000 : 0));
             }
         }
 
