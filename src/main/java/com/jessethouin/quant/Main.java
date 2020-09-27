@@ -6,7 +6,6 @@ import org.apache.logging.log4j.Logger;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.text.MessageFormat;
 import java.util.*;
 import java.util.concurrent.*;
@@ -27,6 +26,18 @@ public class Main {
         BigDecimal rmax = BigDecimal.valueOf(.10);
         BigDecimal hlIncrement = BigDecimal.valueOf(.01);
 
+        if (findBestCombos(args, start, max, rmax, hlIncrement)) return;
+
+        watch.stop();
+        LOG.info(MessageFormat.format("Time Elapsed: {0}", watch.getTime(TimeUnit.MILLISECONDS) / 1000));
+    }
+
+    private static boolean findBestCombos(String[] args, int start, int max, BigDecimal rmax, BigDecimal hlIncrement) throws InterruptedException {
+        if (args.length != 0 && args.length != 4) {
+            LOG.error("Listen. You either need to supply 4 arguments or none. Stop trying to half-ass this thing. start, max, rmax, and hlIncrement if you need specifics. Otherwise, shut up and let me do the work.");
+            return true;
+        }
+
         if (args.length == 0) LOG.info(MessageFormat.format("Using default values for start {0}, max {1}, rmax {2}, and hlIncrement {3}.", start, max, rmax, hlIncrement));
 
         for (int i = 0; i < args.length; i++) {
@@ -40,85 +51,74 @@ public class Main {
 
         if (start > max) {
             LOG.error(MessageFormat.format("Starting moving average count {0} must be less than max {1}", start, max));
-            return;
+            return true;
         }
-
-/*
-        Portfolio portfolio = new Portfolio();
-        portfolio.setCash(Config.getInitialCash());
-
-        Security aapl = new Security("AAPL");
-        Security goog = new Security("GOOG"); // TODO: ability to work with multiple securities
-
-        portfolio.setSecurities(new ArrayList<>(Collections.singletonList(aapl)));
-*/
 
         populateIntradayPrices();
 
-        int combos = getCombos(start, max, rmax, hlIncrement);
-
-        LOG.info(MessageFormat.format("{0} combinations were tested.", combos));
+        LOG.info(MessageFormat.format("{0} combinations were tested.", getMACombos(start, max, rmax, hlIncrement)));
         LOG.info(MessageFormat.format("\n\nThe best combination of parameters is\n\t{0}\nwith a value of ${1}\n", getBest(), getBestv()));
-
-        watch.stop();
-        LOG.info(MessageFormat.format("Time Elapsed: {0}", watch.getTime(TimeUnit.MILLISECONDS) / 1000));
-
-//        ImageCharts line = new ImageCharts().cht("ls").chd()
+        return false;
     }
 
-    private static int getCombos(int start, int max, BigDecimal rmax, BigDecimal hlIncrement) throws InterruptedException {
+    private static int getMACombos(int start, int max, BigDecimal rmax, BigDecimal hlIncrement) throws InterruptedException {
         int s;
-        int l = 0;
-        int c = 0;
+        int l = 0, c = 0, combos = 0;
         int i = ((max * (max + 1)) / 2) - max;
         int i_ = i;
-        double secondsLeft = 0;
-        BigDecimal rh;
-        BigDecimal rl;
-        int combos = 0;
+        BigDecimal rh, rl;
         long nt;
         List<Long> nt_ = new ArrayList<>();
         StopWatch loopWatch = new StopWatch();
 
         while (++l <= max) {
             s = start;
-            while (++s < l) { // there's no need to test short and long tail MAs because they will never separate or converge.
+            while (++s < l) { // there's no need to test equal short and long tail MAs because they will never separate or converge. That's why this is < and not <=.
                 rh = BigDecimal.ZERO;
-                loopWatch.start();
-                while (rh.compareTo(rmax) < 0) {
-                    rh = rh.add(hlIncrement);
-                    rl = BigDecimal.ZERO;
-                    ExecutorService es = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-                    List<Callable<Object>> todo = new ArrayList<>();
-                    while (rl.compareTo(rmax) < 0) {
-                        combos++;
-                        rl = rl.add(hlIncrement);
-                        todo.add(new ProcessHistoricIntradayPrices(s, l, rh, rl, intradayPrices));
-                    }
-                    es.invokeAll(todo);
-                    es.shutdown();
-                    es.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
-                }
-                loopWatch.stop();
-                nt = loopWatch.getTime(TimeUnit.MILLISECONDS);
-                nt_.add(nt);
-                loopWatch.reset();
+                combos = getRiskCombos(rmax, hlIncrement, s, l, combos, rh, nt_, loopWatch);
 
-                secondsLeft = secondsLeft == 0 ? nt / (double)1000 : secondsLeft;
-                double ntAvg = nt_.stream().mapToLong(a -> a).average().orElse(0);
-                double r = (ntAvg / (double)1000) * --i_;
-                r = r % (24 * 3600);
-                double hour = r / 3600;
-                r %= 3600;
-                double minutes = r / 60 ;
-                r %= 60;
-                double seconds = r;
-
-                LOG.debug(MessageFormat.format("Average execution time for {3} threads (s:{1} l:{2}) is {0} seconds per thread.", nt, s, l, rmax.divide(hlIncrement, RoundingMode.HALF_UP)));
-                LOG.info(MessageFormat.format("{0,number,percent} complete. {1,number,00:}{2,number,00:}{3,number,00.00} seconds remaining", ++c / (float) i, hour, minutes, seconds));
+                double[] timeUntis = getRemainingTimeUnits(nt_, --i_);
+                LOG.info(MessageFormat.format("{0,number,percent} complete. {1,number,00:}{2,number,00:}{3,number,00.00} remaining", ++c / (float) i, timeUntis[0], timeUntis[1], timeUntis[2]));
             }
         }
         return combos;
+    }
+
+    private static int getRiskCombos(BigDecimal rmax, BigDecimal hlIncrement, int s, int l, int combos, BigDecimal rh, List<Long> nt_, StopWatch loopWatch) throws InterruptedException {
+        long nt;
+        BigDecimal rl;
+        loopWatch.start();
+        while (rh.compareTo(rmax) < 0) {
+            rh = rh.add(hlIncrement);
+            rl = BigDecimal.ZERO;
+            ExecutorService es = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+            List<Callable<Object>> todo = new ArrayList<>();
+            while (rl.compareTo(rmax) < 0) {
+                combos++;
+                rl = rl.add(hlIncrement);
+                todo.add(new ProcessHistoricIntradayPrices(s, l, rh, rl, intradayPrices));
+            }
+            es.invokeAll(todo);
+            es.shutdown();
+            es.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+        }
+        loopWatch.stop();
+        nt = loopWatch.getTime(TimeUnit.MILLISECONDS);
+        nt_.add(nt);
+        loopWatch.reset();
+        return combos;
+    }
+
+    private static double[] getRemainingTimeUnits(List<Long> nt_, int i_) {
+        double r = ((nt_.stream().mapToLong(a -> a).average().orElse(0)) / (double) 1000) * i_; // average numer of seconds it takes to work though all the possible high/low risk combinations.
+        double[] timeUntis = {0,0,0};
+        r = r % (24 * 3600);
+        timeUntis[0] = r / 3600;
+        r %= 3600;
+        timeUntis[1] = r / 60 ;
+        r %= 60;
+        timeUntis[2] = r;
+        return timeUntis;
     }
 
     private static void populateIntradayPrices() {

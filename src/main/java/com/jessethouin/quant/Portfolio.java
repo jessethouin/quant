@@ -46,7 +46,6 @@ public class Portfolio {
     }
 
     public String toString() {
-        AtomicReference<BigDecimal> holdings = new AtomicReference<>(BigDecimal.ZERO);
         StringBuilder s = new StringBuilder();
         s.append(System.lineSeparator());
         s.append("Cash: ");
@@ -62,21 +61,15 @@ public class Portfolio {
                 s.append(p);
                 s.append(", Quantity: ");
                 s.append(q);
-                s.append(", Value: ");
-                s.append(p.multiply(q));
-                s.append(System.lineSeparator());
-                holdings.updateAndGet(v -> v.add(p.multiply(q)));
             });
         });
 
-        s.append("Total value: ");
-        s.append(getCash().add(holdings.get()));
         return s.toString();
     }
 
-    public BigDecimal getPortfolioValue() {
+    public BigDecimal getPortfolioValue(String symbol, BigDecimal price) {
         AtomicReference<BigDecimal> holdings = new AtomicReference<>(BigDecimal.ZERO);
-        securities.forEach(security -> security.positions.forEach((p, q) -> holdings.updateAndGet(v -> v.add(p.multiply(q)))));
+        securities.stream().filter(s -> s.getSymbol().equals(symbol)).forEach(security -> security.positions.forEach((p, q) -> holdings.updateAndGet(v -> v.add(price.multiply(q)))));
         return getCash().add(holdings.get());
     }
 

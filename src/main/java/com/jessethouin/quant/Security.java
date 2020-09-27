@@ -16,6 +16,10 @@ public class Security {
         this.symbol = symbol;
     }
 
+    public String getSymbol() {
+        return symbol;
+    }
+
     public BigDecimal buySecurity(BigDecimal qty, BigDecimal price) {
         BigDecimal posQty = positions.get(price);
         if (posQty == null) posQty = BigDecimal.ZERO;

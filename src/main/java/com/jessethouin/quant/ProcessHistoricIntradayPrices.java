@@ -43,7 +43,7 @@ public class ProcessHistoricIntradayPrices implements Callable<Object> {
         Calc c = new Calc(aapl, config, intradayPrices.get(0));
         BigDecimal sv;
         BigDecimal lv;
-        BigDecimal price;
+        BigDecimal price = intradayPrices.get(0);
         BigDecimal previous = BigDecimal.ZERO;
         for (int i = 0; i < intradayPrices.size(); i++) {
             price = intradayPrices.get(i);
@@ -56,11 +56,11 @@ public class ProcessHistoricIntradayPrices implements Callable<Object> {
                 LOG.error(e);
             }
 
-            LOG.trace(MessageFormat.format("{8,number,000} : {0,number,00} : {5,number,000.000} : {1,number,00} : {6,number,000.000} : {7,number,000.000} : {2,number,0.00} : {3,number,0.00} : {4,number,00000.000}", s, l, rl, rh, portfolio.getPortfolioValue(), sv, lv, price, i));
+            LOG.trace(MessageFormat.format("{8,number,000} : {0,number,00} : {5,number,000.000} : {1,number,00} : {6,number,000.000} : {7,number,000.000} : {2,number,0.00} : {3,number,0.00} : {4,number,00000.000}", s, l, rl, rh, portfolio.getPortfolioValue(aapl.getSymbol(), price), sv, lv, price, i));
             previous = price;
         }
 
-        BigDecimal pValue = portfolio.getPortfolioValue();
+        BigDecimal pValue = portfolio.getPortfolioValue(aapl.getSymbol(), price);
         String msg = MessageFormat.format("{0,number,00} : {1,number,00} : {2,number,0.00} : {3,number,0.00} : {4,number,00000.000}", s, l, rl, rh, pValue);
         LOG.debug(msg);
         Main.updateBest(msg, pValue);
