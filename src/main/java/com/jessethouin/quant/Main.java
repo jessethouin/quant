@@ -1,5 +1,6 @@
 package com.jessethouin.quant;
 
+import com.jessethouin.quant.backtest.Backtest;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 

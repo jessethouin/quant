@@ -1,5 +1,6 @@
 package com.jessethouin.quant;
 
+import com.jessethouin.quant.backtest.Backtest;
 import com.jessethouin.quant.calculators.MA;
 import com.jessethouin.quant.calculators.MATypes;
 import com.jessethouin.quant.calculators.SMA;

@@ -1,5 +1,6 @@
-package com.jessethouin.quant;
+package com.jessethouin.quant.backtest;
 
+import com.jessethouin.quant.ProcessHistoricIntradayPrices;
 import org.apache.commons.lang3.time.StopWatch;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -21,7 +22,7 @@ public class Backtest {
     static String best = "";
     static BigDecimal bestv = BigDecimal.ZERO;
 
-    static void findBestCombos(String[] args) throws InterruptedException {
+    public static void findBestCombos(String[] args) throws InterruptedException {
         StopWatch watch = new StopWatch();
         watch.start();
 
@@ -58,8 +59,6 @@ public class Backtest {
 
         watch.stop();
         LOG.info(MessageFormat.format("Time Elapsed: {0}", watch.getTime(TimeUnit.MILLISECONDS) / 1000));
-
-        return;
     }
 
     private static int getMACombos(int start, int max, BigDecimal rmax, BigDecimal hlIncrement) throws InterruptedException {
@@ -67,15 +66,13 @@ public class Backtest {
         int l = 0, c = 0, combos = 0;
         int i = ((max * (max + 1)) / 2) - max;
         int i_ = i;
-        BigDecimal rh;
         List<Long> nt_ = new ArrayList<>();
         StopWatch loopWatch = new StopWatch();
 
         while (++l <= max) {
             s = start;
             while (++s < l) { // there's no need to test equal short and long tail MAs because they will never separate or converge. That's why this is < and not <=.
-                rh = BigDecimal.ZERO;
-                combos = getRiskCombos(rmax, hlIncrement, s, l, combos, rh, nt_, loopWatch);
+                combos = getRiskCombos(rmax, hlIncrement, s, l, combos, nt_, loopWatch);
 
                 double[] timeUntis = getRemainingTimeUnits(nt_, --i_);
                 LOG.info(MessageFormat.format("{0,number,percent} complete. {1,number,00:}{2,number,00:}{3,number,00.00} remaining", ++c / (float) i, timeUntis[0], timeUntis[1], timeUntis[2]));
@@ -84,9 +81,10 @@ public class Backtest {
         return combos;
     }
 
-    private static int getRiskCombos(BigDecimal rmax, BigDecimal hlIncrement, int s, int l, int combos, BigDecimal rh, List<Long> nt_, StopWatch loopWatch) throws InterruptedException {
+    private static int getRiskCombos(BigDecimal rmax, BigDecimal hlIncrement, int s, int l, int combos, List<Long> nt_, StopWatch loopWatch) throws InterruptedException {
         long nt;
         BigDecimal rl;
+        BigDecimal rh = BigDecimal.ZERO;
         loopWatch.start();
         while (rh.compareTo(rmax) < 0) {
             rh = rh.add(hlIncrement);
