@@ -1,28 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration>
     <Properties>
-        <Property name="basePath">../logs</Property>
+        <Property name="basePath">./logs</Property>
     </Properties>
     <Appenders>
         <!-- File Appender -->
-        <File name="FILE" fileName="${basePath}/logfile.log" append="false">
-            <PatternLayout pattern="%-5p | %d{yyyy-MM-dd HH:mm:ss,SSS} | [%t] %C{2} (%F:%L) - %m%n" />
-        </File>
-        <RollingFile name="RollingFile" fileName="${basePath}/blsh.log" filePattern="logs/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.log.gz" append="false">
+        <RandomAccessFile name="FILE" fileName="${basePath}/logfile.log" append="false" immediateFlush="false">
+            <PatternLayout pattern="%-5p | %d{yyyy-MM-dd HH:mm:ss,SSS} | [%t] - %m%n" />
+        </RandomAccessFile>
+        <RollingRandomAccessFile name="ROLLING_FILE" fileName="${basePath}/blsh.log" filePattern="logs/$${date:yyyy-MM}/blsh-%d{MM-dd-yyyy}-%i.log.gz" append="false" immediateFlush="false">
             <Policies>
                 <TimeBasedTriggeringPolicy />
                 <SizeBasedTriggeringPolicy size="250 MB"/>
             </Policies>
             <DefaultRolloverStrategy max="10"/>
-        </RollingFile>
+        </RollingRandomAccessFile>
         <!-- Console Appender -->
         <Console name="STDOUT" target="SYSTEM_OUT">
-            <PatternLayout pattern="%-5p | %d{yyyy-MM-dd HH:mm:ss,SSS} | [%t] %C{2} (%F:%L) - %m%n" />
+            <PatternLayout pattern="%-5p | %d{yyyy-MM-dd HH:mm:ss,SSS} | [%t] - %m%n" />
         </Console>
     </Appenders>
     <Loggers>
-        <Logger name="com.jessethouin.quant.ProcessHistoricIntradayPrices" level="debug">
-            <AppenderRef ref="RollingFile" level="debug" />
+        <Logger name="com.jessethouin.quant.ProcessHistoricIntradayPrices" level="trace">
+            <AppenderRef ref="ROLLING_FILE" level="trace" />
         </Logger>
         <Root level="debug">
             <AppenderRef ref="STDOUT" level="info" />

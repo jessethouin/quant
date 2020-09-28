@@ -63,7 +63,7 @@ public class ProcessHistoricIntradayPrices implements Callable<Object> {
         BigDecimal pValue = portfolio.getPortfolioValue(aapl.getSymbol(), price);
         String msg = MessageFormat.format("{0,number,00} : {1,number,00} : {2,number,0.00} : {3,number,0.00} : {4,number,00000.000}", s, l, rl, rh, pValue);
         LOG.debug(msg);
-        Main.updateBest(msg, pValue);
+        Backtest.updateBest(msg, pValue);
 
         return pValue;
     }
