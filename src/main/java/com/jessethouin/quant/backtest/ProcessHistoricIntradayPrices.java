@@ -1,6 +1,8 @@
-package com.jessethouin.quant;
+package com.jessethouin.quant.backtest;
 
-import com.jessethouin.quant.backtest.Backtest;
+import com.jessethouin.quant.Calc;
+import com.jessethouin.quant.Portfolio;
+import com.jessethouin.quant.Security;
 import com.jessethouin.quant.calculators.MA;
 import com.jessethouin.quant.calculators.MATypes;
 import com.jessethouin.quant.calculators.SMA;

@@ -21,9 +21,7 @@ public class Security {
     }
 
     public BigDecimal buySecurity(BigDecimal qty, BigDecimal price) {
-        BigDecimal posQty = positions.get(price);
-        if (posQty == null) posQty = BigDecimal.ZERO;
-        posQty = posQty.add(qty);
+        BigDecimal posQty = positions.getOrDefault(price, BigDecimal.ZERO).add(qty);
         positions.put(price, posQty);
         LOG.trace("Bought " + qty + " at " + price);
         return qty.multiply(price).setScale(3, RoundingMode.HALF_UP);

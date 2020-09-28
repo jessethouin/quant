@@ -4,7 +4,7 @@ import com.jessethouin.quant.conf.Config;
 
 import java.math.BigDecimal;
 
-class Calc {
+public class Calc {
     private final Security security;
     private final Config config;
 

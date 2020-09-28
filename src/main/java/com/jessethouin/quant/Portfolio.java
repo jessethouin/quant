@@ -67,9 +67,9 @@ public class Portfolio {
         return s.toString();
     }
 
-    public BigDecimal getPortfolioValue(String symbol, BigDecimal price) {
+    public BigDecimal getPortfolioValue(String symbol, BigDecimal price) { //todo: refactor to take Map<String, BigDecimal>
         AtomicReference<BigDecimal> holdings = new AtomicReference<>(BigDecimal.ZERO);
-        securities.stream().filter(s -> s.getSymbol().equals(symbol)).forEach(security -> security.positions.forEach((p, q) -> holdings.updateAndGet(v -> v.add(price.multiply(q)))));
+        getSecurities().stream().filter(s -> s.getSymbol().equals(symbol)).forEach(security -> security.positions.forEach((p, q) -> holdings.updateAndGet(v -> v.add(price.multiply(q)))));
         return getCash().add(holdings.get());
     }
 

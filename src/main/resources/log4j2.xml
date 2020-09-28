@@ -21,8 +21,8 @@
         </Console>
     </Appenders>
     <Loggers>
-        <Logger name="com.jessethouin.quant.ProcessHistoricIntradayPrices" level="trace">
-            <AppenderRef ref="ROLLING_FILE" level="trace" />
+        <Logger name="com.jessethouin.quant.backtest.ProcessHistoricIntradayPrices" level="trace">
+            <AppenderRef ref="ROLLING_FILE" level="debug" />
         </Logger>
         <Root level="debug">
             <AppenderRef ref="STDOUT" level="info" />
