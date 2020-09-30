@@ -1,0 +1,14 @@
+<component name="libraryTable">
+  <library name="lib">
+    <CLASSES>
+      <root url="file://$PROJECT_DIR$/../alpaca-java/build/distributions/alpaca-java-5.2/lib" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$PROJECT_DIR$/../alpaca-java/build/libs/alpaca-java-5.2-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/../alpaca-java/build/libs/alpaca-java-5.2-sources.jar!/" />
+    </SOURCES>
+    <jarDirectory url="file://$PROJECT_DIR$/../alpaca-java/build/distributions/alpaca-java-5.2/lib" recursive="false" />
+  </library>
+</component>

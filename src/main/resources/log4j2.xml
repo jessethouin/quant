@@ -25,7 +25,7 @@
             <AppenderRef ref="ROLLING_FILE" level="debug" />
         </Logger>
         <Root level="debug">
-            <AppenderRef ref="STDOUT" level="info" />
+            <AppenderRef ref="STDOUT" level="debug" />
             <AppenderRef ref="FILE" level="info" />
         </Root>
     </Loggers>

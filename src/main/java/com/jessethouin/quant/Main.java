@@ -1,7 +1,7 @@
 package com.jessethouin.quant;
 
 import com.jessethouin.quant.backtest.Backtest;
-import com.jessethouin.quant.live.Live;
+import com.jessethouin.quant.alpaca.Live;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
