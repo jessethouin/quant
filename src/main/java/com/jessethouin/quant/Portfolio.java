@@ -32,6 +32,7 @@ public class Portfolio {
 
     public void addCash(BigDecimal cash) throws CashException {
         if (cash.signum() < 0) {
+            LOG.trace("Deducting cash: " + cash);
             deductCash(cash.abs());
             return;
         }

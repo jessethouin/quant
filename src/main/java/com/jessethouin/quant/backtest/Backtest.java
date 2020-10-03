@@ -1,5 +1,6 @@
 package com.jessethouin.quant.backtest;
 
+import com.jessethouin.quant.conf.Config;
 import org.apache.commons.lang3.time.StopWatch;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -119,10 +120,11 @@ public class Backtest {
     }
 
     private static void populateIntradayPrices() {
-        InputStream aapl_csv = Thread.currentThread().getContextClassLoader().getResourceAsStream("AAPL.csv");
-        if (aapl_csv == null)
-            throw new NullPointerException("aapl_csv was null for some reason. Perhaps the file didn't exist, or we didn't have permissions to read it.");
-        try (Scanner scanner = new Scanner(aapl_csv)) {
+        Config config = new Config();
+        InputStream data = Thread.currentThread().getContextClassLoader().getResourceAsStream(config.getBackTestData());
+        if (data == null)
+            throw new NullPointerException("data was null for some reason. Perhaps the file didn't exist, or we didn't have permissions to read it.");
+        try (Scanner scanner = new Scanner(data)) {
             while (scanner.hasNextLine()) {
                 try (Scanner rowScanner = new Scanner(scanner.nextLine())) {
                     rowScanner.useDelimiter(",");

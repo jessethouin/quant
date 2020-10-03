@@ -116,10 +116,23 @@ public class Calc {
 
         if (getMa1().signum() == 0 || getMa2().signum() == 0) return proceeds;
 
-        if (buy1()) {
+        boolean buy = switch (config.getBuyStrategy()) {
+            case BUY1 -> buy1();
+            case BUY2 -> buy2();
+            case BUY3 -> buy3();
+        };
+
+        boolean sell = switch (config.getSellStrategy()) {
+            case SELL1 -> sell1();
+            case SELL2 -> sell2();
+            case SELL3 -> sell3();
+            case SELL4 -> sell4();
+        };
+
+        if (buy) {
             proceeds = getSecurity().buySecurity(getQty(), getPrice()).negate();
             setBuy(false);
-        } else if (sell2()) {
+        } else if (sell) {
             proceeds = getSecurity().sellSecurity(getPrice());
             setBuy(true);
         }

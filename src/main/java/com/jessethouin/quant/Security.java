@@ -9,8 +9,8 @@ import java.util.*;
 
 public class Security {
     private static final Logger LOG = LogManager.getLogger(Security.class);
-    public String symbol;
-    public HashMap<BigDecimal, BigDecimal> positions = new HashMap<>();
+    public final String symbol;
+    public final HashMap<BigDecimal, BigDecimal> positions = new HashMap<>();
 
     public Security(String symbol) {
         this.symbol = symbol;

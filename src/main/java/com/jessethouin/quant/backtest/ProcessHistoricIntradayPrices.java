@@ -20,11 +20,11 @@ import java.util.concurrent.Callable;
 
 public class ProcessHistoricIntradayPrices implements Callable<Object> {
     private static final Logger LOG = LogManager.getLogger(ProcessHistoricIntradayPrices.class);
-    int s;
-    int l;
-    BigDecimal rh;
-    BigDecimal rl;
-    List<BigDecimal> intradayPrices;
+    final int s;
+    final int l;
+    final BigDecimal rh;
+    final BigDecimal rl;
+    final List<BigDecimal> intradayPrices;
 
     public ProcessHistoricIntradayPrices(int s, int l, BigDecimal rh, BigDecimal rl, List<BigDecimal> intradayPrices) {
         this.s = s;
@@ -36,10 +36,13 @@ public class ProcessHistoricIntradayPrices implements Callable<Object> {
 
     @Override
     public BigDecimal call() {
+        Config config = new Config();
+        config.setLowRisk(rl);
+        config.setHighRisk(rh);
 
-        Config config = new Config(s, l, rh, rl);
         Portfolio portfolio = new Portfolio();
         portfolio.setCash(config.getInitialCash());
+
         Security aapl = new Security("AAPL");
         portfolio.setSecurities(new ArrayList<>(Collections.singletonList(aapl)));
 
