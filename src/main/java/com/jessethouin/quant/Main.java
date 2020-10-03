@@ -14,7 +14,7 @@ public class Main {
         if (args.length > 0) {
             switch (args[0]) {
                 case "backtest" -> Backtest.findBestCombos(Arrays.copyOfRange(args, 1, args.length));
-                case "live" -> Live.doPaperTrading(Arrays.copyOfRange(args, 1, args.length));
+                case "live" -> Live.doPaperTrading();
                 default -> LOG.error("1st arg must be \"backtest\" or \"live\".");
             }
         }

@@ -1,6 +1,10 @@
 package com.jessethouin.quant.alpaca;
 
+import com.jessethouin.quant.Calc;
 import com.jessethouin.quant.Portfolio;
+import com.jessethouin.quant.Security;
+import com.jessethouin.quant.conf.Config;
+import com.jessethouin.quant.exceptions.CashException;
 import net.jacobpeterson.alpaca.AlpacaAPI;
 import net.jacobpeterson.alpaca.enums.Direction;
 import net.jacobpeterson.alpaca.enums.OrderStatus;
@@ -21,37 +25,39 @@ import java.math.BigDecimal;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 import static net.jacobpeterson.alpaca.websocket.marketdata.message.MarketDataStreamMessageType.*;
 
 public class Live {
     private static final Logger LOG = LogManager.getLogger(Live.class);
+    private static final Config config = new Config();
+    private static final Portfolio portfolio = new Portfolio();
     final AlpacaAPI alpacaAPI = new AlpacaAPI();
 
-    public static void doPaperTrading(String[] args) {
-        if (args.length != 0 && args.length != 4) {
-            LOG.error("Listen. You either need to supply 4 arguments or none. Stop trying to half-ass this thing. start, max, rmax, and hlIncrement if you need specifics. Otherwise, shut up and let me do the work.");
-            return;
-        }
+    public static void doPaperTrading() {
 
         Live live = new Live();
         Account alpacaAccount = live.getAccount();
 
         if (alpacaAccount != null) {
-            Portfolio portfolio = new Portfolio();
             portfolio.setCash(new BigDecimal(alpacaAccount.getCash()));
+
+            List<Security> securities = new ArrayList<>();
+            securities.add(new Security("AAPL"));
+            securities.add(new Security("GOOG"));
+            portfolio.setSecurities(securities);
 
             LOG.info("\n\nAccount Information:");
             LOG.info("\t" + alpacaAccount.toString().replace(",", ",\n\t"));
 
             LOG.info("Portfolion Cash: " + portfolio.getCash());
-            LOG.info(live.getOpenPosition("AAPL"));
-            LOG.info(live.getOpenPosition("GOOG"));
+            portfolio.getSecurities().forEach(security -> LOG.info(live.getOpenPosition(security.getSymbol())));
 
             Objects.requireNonNull(live.getClosedOrders()).forEach(o -> LOG.info(o.toString()));
 
-            live.openQuoteListener();
+            live.openStreamListener(portfolio.getSecurities());
         }
     }
 
@@ -75,8 +81,9 @@ public class Live {
         return null;
     }
 
-    private void openQuoteListener() {
-        alpacaAPI.addMarketDataStreamListener(new MarketDataStreamListenerAdapter("AAPL", QUOTES, TRADES, AGGREGATE_MINUTE) {
+    private void openStreamListener(List<Security> securities) {
+        //RECEIVED: {"stream":"Q.AAPL","data":{"ev":"Q","T":"AAPL","x":17,"p":112.12,"s":1,"X":3,"P":112.98,"S":1,"c":[0],"t":1601645053026000000}}
+        securities.forEach(s -> alpacaAPI.addMarketDataStreamListener(new MarketDataStreamListenerAdapter(s.getSymbol(), QUOTES, TRADES, AGGREGATE_MINUTE) {
             @Override
             public void onStreamUpdate(MarketDataStreamMessageType streamMessageType, MarketDataStreamMessage streamMessage) {
                 switch (streamMessageType) {
@@ -87,6 +94,12 @@ public class Live {
                     case TRADES -> {
                         TradeMessage tradeMessage = (TradeMessage) streamMessage;
                         LOG.info("\nTrade Update: \n\t" + tradeMessage.toString().replace(",", ",\n\t"));
+                        Calc c = new Calc(s, config, BigDecimal.valueOf(tradeMessage.getP()));
+                        try {
+                            portfolio.addCash(c.decide());
+                        } catch (CashException e) {
+                            LOG.error(e.getLocalizedMessage());
+                        }
                     }
                     case AGGREGATE_MINUTE -> {
                         AggregateMinuteMessage aggregateMessage = (AggregateMinuteMessage) streamMessage;
@@ -94,7 +107,7 @@ public class Live {
                     }
                 }
             }
-        });
+        }));
     }
 
     private Position getOpenPosition(String symbol) {
