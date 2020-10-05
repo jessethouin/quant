@@ -1,9 +1,11 @@
 package com.jessethouin.quant.alpaca;
 
-import com.jessethouin.quant.Calc;
-import com.jessethouin.quant.Portfolio;
-import com.jessethouin.quant.Security;
+import com.jessethouin.quant.broker.Transactions;
+import com.jessethouin.quant.calculators.Calc;
+import com.jessethouin.quant.beans.Portfolio;
+import com.jessethouin.quant.beans.Security;
 import com.jessethouin.quant.conf.Config;
+import com.jessethouin.quant.db.Database;
 import com.jessethouin.quant.exceptions.CashException;
 import net.jacobpeterson.alpaca.AlpacaAPI;
 import net.jacobpeterson.alpaca.enums.Direction;
@@ -25,6 +27,7 @@ import java.math.BigDecimal;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -33,7 +36,7 @@ import static net.jacobpeterson.alpaca.websocket.marketdata.message.MarketDataSt
 public class Live {
     private static final Logger LOG = LogManager.getLogger(Live.class);
     private static final Config config = new Config();
-    private static final Portfolio portfolio = new Portfolio();
+    private static Portfolio portfolio;
     final AlpacaAPI alpacaAPI = new AlpacaAPI();
 
     public static void doPaperTrading() {
@@ -42,11 +45,19 @@ public class Live {
         Account alpacaAccount = live.getAccount();
 
         if (alpacaAccount != null) {
+            portfolio = Database.get();
+            if (portfolio == null) {
+                portfolio = new Portfolio();
+            }
             portfolio.setCash(new BigDecimal(alpacaAccount.getCash()));
 
             List<Security> securities = new ArrayList<>();
-            securities.add(new Security("AAPL"));
-            securities.add(new Security("GOOG"));
+            Arrays.stream(new String[]{"AAPL", "GOOG"}).iterator().forEachRemaining(t -> {
+                Security security = new Security();
+                security.setSymbol(t);
+                security.setPortfolio(portfolio);
+                securities.add(security);
+            });
             portfolio.setSecurities(securities);
 
             LOG.info("\n\nAccount Information:");
@@ -96,7 +107,8 @@ public class Live {
                         LOG.info("\nTrade Update: \n\t" + tradeMessage.toString().replace(",", ",\n\t"));
                         Calc c = new Calc(s, config, BigDecimal.valueOf(tradeMessage.getP()));
                         try {
-                            portfolio.addCash(c.decide());
+                            Transactions.addCash(portfolio, c.decide());
+                            Database.save(portfolio);
                         } catch (CashException e) {
                             LOG.error(e.getLocalizedMessage());
                         }

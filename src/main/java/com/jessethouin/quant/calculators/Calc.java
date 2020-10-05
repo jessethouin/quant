@@ -1,5 +1,8 @@
-package com.jessethouin.quant;
+package com.jessethouin.quant.calculators;
 
+import com.jessethouin.quant.beans.Portfolio;
+import com.jessethouin.quant.beans.Security;
+import com.jessethouin.quant.broker.Transactions;
 import com.jessethouin.quant.conf.Config;
 
 import java.math.BigDecimal;
@@ -130,10 +133,10 @@ public class Calc {
         };
 
         if (buy) {
-            proceeds = getSecurity().buySecurity(getQty(), getPrice()).negate();
+            proceeds = Transactions.buySecurity(security.getPositions(), getQty(), getPrice()).negate();
             setBuy(false);
         } else if (sell) {
-            proceeds = getSecurity().sellSecurity(getPrice());
+            proceeds = Transactions.sellSecurity(security.getPositions(), getPrice());
             setBuy(true);
         }
 
@@ -180,7 +183,7 @@ public class Calc {
 
     public void updateCalc(BigDecimal price, BigDecimal ma1, BigDecimal ma2, Portfolio portfolio) {
         setPrice(price);
-        setQty(portfolio.getBudget(price, config.getAllowance()));
+        setQty(Transactions.getBudget(portfolio, price, config.getAllowance()));
         setMa1(ma1);
         setMa2(ma2);
     }

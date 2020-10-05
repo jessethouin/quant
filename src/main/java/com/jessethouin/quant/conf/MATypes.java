@@ -1,4 +1,4 @@
-package com.jessethouin.quant.calculators;
+package com.jessethouin.quant.conf;
 
 public enum MATypes {
     EMA,

@@ -1,5 +1,7 @@
 package com.jessethouin.quant.calculators;
 
+import com.jessethouin.quant.conf.MATypes;
+
 import java.math.BigDecimal;
 
 public class MA {
