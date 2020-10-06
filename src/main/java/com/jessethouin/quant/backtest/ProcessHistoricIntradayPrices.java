@@ -4,9 +4,6 @@ import com.jessethouin.quant.broker.Transactions;
 import com.jessethouin.quant.calculators.Calc;
 import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.beans.Security;
-import com.jessethouin.quant.calculators.MA;
-import com.jessethouin.quant.conf.MATypes;
-import com.jessethouin.quant.calculators.SMA;
 import com.jessethouin.quant.conf.Config;
 import com.jessethouin.quant.exceptions.CashException;
 import org.apache.logging.log4j.LogManager;
@@ -53,10 +50,12 @@ public class ProcessHistoricIntradayPrices implements Callable<Object> {
         BigDecimal lv;
         BigDecimal price = intradayPrices.get(0);
         BigDecimal previous = BigDecimal.ZERO;
+        BigDecimal psv = BigDecimal.ZERO;
+        BigDecimal plv = BigDecimal.ZERO;
         for (int i = 0; i < intradayPrices.size(); i++) {
             price = intradayPrices.get(i);
-            sv = getMA(previous, i, s);
-            lv = getMA(previous, i, l);
+            sv = Transactions.getMA(intradayPrices, psv, i, s, price);
+            lv = Transactions.getMA(intradayPrices, plv, i, l, price);
             c.updateCalc(price, sv, lv, portfolio);
             try {
                 Transactions.addCash(portfolio, c.decide());
@@ -66,6 +65,8 @@ public class ProcessHistoricIntradayPrices implements Callable<Object> {
 
             LOG.trace(MessageFormat.format("{8,number,000} : {0,number,00} : {5,number,000.000} : {1,number,00} : {6,number,000.000} : {7,number,000.000} : {2,number,0.00} : {3,number,0.00} : {4,number,00000.000}", s, l, rl, rh, Transactions.getPortfolioValue(portfolio, security.getSymbol(), price), sv, lv, price, i));
             previous = price;
+            psv = sv;
+            plv = lv;
         }
 
         BigDecimal pValue = Transactions.getPortfolioValue(portfolio, security.getSymbol(), price);
@@ -76,11 +77,4 @@ public class ProcessHistoricIntradayPrices implements Callable<Object> {
         return pValue;
     }
 
-    private BigDecimal getMA(BigDecimal previous, int i, int p) {
-        BigDecimal ma;
-        if (i < p) ma = BigDecimal.ZERO;
-        else if (i == p) ma = SMA.sma(intradayPrices.subList(0, i), p);
-        else ma = MA.ma(intradayPrices.get(i), previous, p, MATypes.TEMA);
-        return ma;
-    }
 }

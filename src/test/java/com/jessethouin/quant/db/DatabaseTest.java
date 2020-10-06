@@ -67,7 +67,7 @@ class DatabaseTest {
         Object result = session.createQuery( "from Portfolio" ).uniqueResult();
         if (result instanceof Portfolio) {
             System.out.println("Cash: " + ((Portfolio) result).getCash());
-            System.out.println("\tSecurities: " + ((Portfolio) result).getSecurities().size()); //.forEach(s -> System.out.println("\tSecurity: " + s.getSymbol()));
+            System.out.println("\tSecurities: " + ((Portfolio) result).getSecurities().size());
         }
         session.getTransaction().commit();
         session.close();

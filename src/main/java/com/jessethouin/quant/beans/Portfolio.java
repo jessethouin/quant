@@ -25,7 +25,7 @@ public class Portfolio {
         this.portfolioId = portfolioId;
     }
 
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, mappedBy = "portfolio", fetch = FetchType.EAGER)
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "portfolio", fetch = FetchType.EAGER)
     public List<Security> getSecurities() {
         return securities;
     }

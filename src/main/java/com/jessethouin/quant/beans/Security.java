@@ -33,7 +33,7 @@ public class Security {
         this.symbol = symbol;
     }
 
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, mappedBy = "security", fetch = FetchType.EAGER)
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "security", fetch = FetchType.EAGER)
     public List<Position> getPositions() {
         return positions;
     }

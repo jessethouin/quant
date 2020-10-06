@@ -2,6 +2,10 @@ package com.jessethouin.quant.broker;
 
 import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.beans.Position;
+import com.jessethouin.quant.calculators.MA;
+import com.jessethouin.quant.calculators.SMA;
+import com.jessethouin.quant.conf.MATypes;
+import com.jessethouin.quant.db.Database;
 import com.jessethouin.quant.exceptions.CashException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -49,6 +53,7 @@ public class Transactions {
             return;
         }
         portfolio.setCash(portfolio.getCash().add(cash));
+        if (cash.compareTo(BigDecimal.ZERO) != 0) Database.save(portfolio);
     }
 
     public static void deductCash(Portfolio portfolio, BigDecimal cash) throws CashException {
@@ -68,4 +73,11 @@ public class Transactions {
         return portfolio.getCash().multiply(allowance).divide(price, 0, RoundingMode.FLOOR);
     }
 
+    public static BigDecimal getMA(List<BigDecimal> intradayPrices, BigDecimal previous, int i, int p, BigDecimal price) {
+        BigDecimal ma;
+        if (i < p) ma = BigDecimal.ZERO;
+        else if (i == p) ma = SMA.sma(intradayPrices.subList(0, i), p);
+        else ma = MA.ma(price, previous, p, MATypes.TEMA);
+        return ma;
+    }
 }

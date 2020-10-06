@@ -17,8 +17,8 @@ public class Config {
     private BigDecimal highRisk;
     private BigDecimal lowRisk;
     private BigDecimal allowance;
-    private BigDecimal shortMA;
-    private BigDecimal longMA;
+    private int shortMA;
+    private int longMA;
     private BuyStrategyTypes buyStrategy;
     private SellStrategyTypes sellStrategy;
     private String backTestData;
@@ -37,8 +37,8 @@ public class Config {
             setAllowance(new BigDecimal(prop.getProperty("allowance")));
             setHighRisk(new BigDecimal(prop.getProperty("highRisk")));
             setLowRisk(new BigDecimal(prop.getProperty("lowRisk")));
-            setShortMA(new BigDecimal(prop.getProperty("shortMA")));
-            setLongMA(new BigDecimal(prop.getProperty("longMA")));
+            setShortMA(Integer.parseInt(prop.getProperty("shortMA")));
+            setLongMA(Integer.parseInt(prop.getProperty("longMA")));
             setBuyStrategy(BuyStrategyTypes.valueOf(prop.getProperty("buyStrategy")));
             setSellStrategy(SellStrategyTypes.valueOf(prop.getProperty("sellStrategy")));
             setBackTestData(prop.getProperty("backTestData"));
@@ -79,19 +79,19 @@ public class Config {
         this.initialCash = initialCash;
     }
 
-    public BigDecimal getShortMA() {
+    public int getShortMA() {
         return shortMA;
     }
 
-    public void setShortMA(BigDecimal shortMA) {
+    public void setShortMA(int shortMA) {
         this.shortMA = shortMA;
     }
 
-    public BigDecimal getLongMA() {
+    public int getLongMA() {
         return longMA;
     }
 
-    public void setLongMA(BigDecimal longMA) {
+    public void setLongMA(int longMA) {
         this.longMA = longMA;
     }
 
