@@ -17,8 +17,8 @@ public class Config {
     private BigDecimal highRisk;
     private BigDecimal lowRisk;
     private BigDecimal allowance;
-    private int shortMA;
-    private int longMA;
+    private int shortLookback;
+    private int longLookback;
     private BuyStrategyTypes buyStrategy;
     private SellStrategyTypes sellStrategy;
     private String backTestData;
@@ -37,8 +37,8 @@ public class Config {
             setAllowance(new BigDecimal(prop.getProperty("allowance")));
             setHighRisk(new BigDecimal(prop.getProperty("highRisk")));
             setLowRisk(new BigDecimal(prop.getProperty("lowRisk")));
-            setShortMA(Integer.parseInt(prop.getProperty("shortMA")));
-            setLongMA(Integer.parseInt(prop.getProperty("longMA")));
+            setShortLookback(Integer.parseInt(prop.getProperty("shortLookback")));
+            setLongLookback(Integer.parseInt(prop.getProperty("longLookback")));
             setBuyStrategy(BuyStrategyTypes.valueOf(prop.getProperty("buyStrategy")));
             setSellStrategy(SellStrategyTypes.valueOf(prop.getProperty("sellStrategy")));
             setBackTestData(prop.getProperty("backTestData"));
@@ -79,20 +79,20 @@ public class Config {
         this.initialCash = initialCash;
     }
 
-    public int getShortMA() {
-        return shortMA;
+    public int getShortLookback() {
+        return shortLookback;
     }
 
-    public void setShortMA(int shortMA) {
-        this.shortMA = shortMA;
+    public void setShortLookback(int shortLookback) {
+        this.shortLookback = shortLookback;
     }
 
-    public int getLongMA() {
-        return longMA;
+    public int getLongLookback() {
+        return longLookback;
     }
 
-    public void setLongMA(int longMA) {
-        this.longMA = longMA;
+    public void setLongLookback(int longLookback) {
+        this.longLookback = longLookback;
     }
 
     public BuyStrategyTypes getBuyStrategy() {

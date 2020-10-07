@@ -9,8 +9,10 @@
     <artifactId>quant</artifactId>
     <version>1.0-SNAPSHOT</version>
     <properties>
-        <maven.compiler.source>1.15</maven.compiler.source>
-        <maven.compiler.target>1.15</maven.compiler.target>
+        <maven.compiler.source>15</maven.compiler.source>
+        <maven.compiler.target>15</maven.compiler.target>
+        <version.maven-install-plugin>3.0.0-M1</version.maven-install-plugin>
+        <version.alpaca>5.2</version.alpaca>
     </properties>
 
     <dependencies>
@@ -47,12 +49,6 @@
             <artifactId>disruptor</artifactId>
             <version>3.4.2</version>
         </dependency>
-<!--        <dependency>-->
-<!--            <groupId>net.jacobpeterson</groupId>-->
-<!--            <artifactId>alpaca-java</artifactId>-->
-<!--            <version>5.2</version>-->
-<!--            <scope>compile</scope>-->
-<!--        </dependency>-->
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
@@ -73,9 +69,47 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
-            <version>RELEASE</version>
+            <version>5.7.0</version>
             <scope>test</scope>
         </dependency>
+        <!--        <dependency>-->
+        <!--            <groupId>net.jacobpeterson</groupId>-->
+        <!--            <artifactId>alpaca-java</artifactId>-->
+        <!--            <version>5.2</version>-->
+        <!--            <scope>compile</scope>-->
+        <!--        </dependency>-->
+        <dependency>
+            <groupId>net.jacobpeterson</groupId>
+            <artifactId>alpaca</artifactId>
+            <version>${version.alpaca}</version>
+        </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-install-plugin</artifactId>
+                <version>${version.maven-install-plugin}</version>
+                <executions>
+                    <execution>
+                        <id>alpaca-java-jar</id>
+                        <phase>clean</phase>
+                        <configuration>
+                            <groupId>net.jacobpeterson</groupId>
+                            <artifactId>alpaca</artifactId>
+                            <version>${version.alpaca}</version>
+                            <file>${project.basedir}/libs/alpaca-java-5.2.jar</file>
+                            <packaging>jar</packaging>
+                            <generatePom>true</generatePom>
+                        </configuration>
+                        <goals>
+                            <goal>install-file</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>

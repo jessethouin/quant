@@ -18,25 +18,27 @@ import java.util.concurrent.Callable;
 
 public class ProcessHistoricIntradayPrices implements Callable<Object> {
     private static final Logger LOG = LogManager.getLogger(ProcessHistoricIntradayPrices.class);
-    final int s;
-    final int l;
-    final BigDecimal rh;
-    final BigDecimal rl;
+    final int shortLookback;
+    final int longLookback;
+    final BigDecimal highRisk;
+    final BigDecimal lowRisk;
     final List<BigDecimal> intradayPrices;
 
-    public ProcessHistoricIntradayPrices(int s, int l, BigDecimal rh, BigDecimal rl, List<BigDecimal> intradayPrices) {
-        this.s = s;
-        this.l = l;
-        this.rh = rh;
-        this.rl = rl;
+    public ProcessHistoricIntradayPrices(int shortLookback, int longLookback, BigDecimal highRisk, BigDecimal lowRisk, List<BigDecimal> intradayPrices) {
+        this.shortLookback = shortLookback;
+        this.longLookback = longLookback;
+        this.highRisk = highRisk;
+        this.lowRisk = lowRisk;
         this.intradayPrices = intradayPrices;
     }
 
     @Override
     public BigDecimal call() {
         Config config = new Config();
-        config.setLowRisk(rl);
-        config.setHighRisk(rh);
+        config.setShortLookback(shortLookback);
+        config.setLongLookback(longLookback);
+        config.setLowRisk(lowRisk);
+        config.setHighRisk(highRisk);
 
         Portfolio portfolio = new Portfolio();
         portfolio.setCash(config.getInitialCash());
@@ -45,36 +47,34 @@ public class ProcessHistoricIntradayPrices implements Callable<Object> {
         security.setSymbol("AAPL");
         portfolio.setSecurities(new ArrayList<>(Collections.singletonList(security)));
 
-        Calc c = new Calc(security, config, intradayPrices.get(0));
-        BigDecimal sv;
-        BigDecimal lv;
+        BigDecimal shortMAValue;
+        BigDecimal longMAValue;
         BigDecimal price = intradayPrices.get(0);
-        BigDecimal previous = BigDecimal.ZERO;
-        BigDecimal psv = BigDecimal.ZERO;
-        BigDecimal plv = BigDecimal.ZERO;
+        BigDecimal previousShortMAValue = BigDecimal.ZERO;
+        BigDecimal previousLongMAValue = BigDecimal.ZERO;
+        Calc c = new Calc(security, config, price);
         for (int i = 0; i < intradayPrices.size(); i++) {
             price = intradayPrices.get(i);
-            sv = Transactions.getMA(intradayPrices, psv, i, s, price);
-            lv = Transactions.getMA(intradayPrices, plv, i, l, price);
-            c.updateCalc(price, sv, lv, portfolio);
+            shortMAValue = Transactions.getMA(intradayPrices, previousShortMAValue, i, shortLookback, price);
+            longMAValue = Transactions.getMA(intradayPrices, previousLongMAValue, i, longLookback, price);
+            c.updateCalc(price, shortMAValue, longMAValue, portfolio);
             try {
                 Transactions.addCash(portfolio, c.decide());
             } catch (CashException e) {
                 LOG.error(e);
             }
 
-            LOG.trace(MessageFormat.format("{8,number,000} : {0,number,00} : {5,number,000.000} : {1,number,00} : {6,number,000.000} : {7,number,000.000} : {2,number,0.00} : {3,number,0.00} : {4,number,00000.000}", s, l, rl, rh, Transactions.getPortfolioValue(portfolio, security.getSymbol(), price), sv, lv, price, i));
-            previous = price;
-            psv = sv;
-            plv = lv;
+            LOG.trace(MessageFormat.format("{8,number,000} : {0,number,00} : {5,number,000.000} : {1,number,00} : {6,number,000.000} : {7,number,000.000} : {2,number,0.00} : {3,number,0.00} : {4,number,00000.000}", shortLookback, longLookback, lowRisk, highRisk, Transactions.getPortfolioValue(portfolio, security.getSymbol(), price), shortMAValue, longMAValue, price, i));
+            previousShortMAValue = shortMAValue;
+            previousLongMAValue = longMAValue;
         }
 
-        BigDecimal pValue = Transactions.getPortfolioValue(portfolio, security.getSymbol(), price);
-        String msg = MessageFormat.format("{0,number,00} : {1,number,00} : {2,number,0.00} : {3,number,0.00} : {4,number,00000.000}", s, l, rl, rh, pValue);
+        BigDecimal portfolioValue = Transactions.getPortfolioValue(portfolio, security.getSymbol(), price);
+        String msg = MessageFormat.format("{0,number,00} : {1,number,00} : {2,number,0.00} : {3,number,0.00} : {4,number,00000.000}", shortLookback, longLookback, lowRisk, highRisk, portfolioValue);
         LOG.debug(msg);
-        Backtest.updateBest(msg, pValue);
+        BacktestParameterCombos.updateBest(msg, portfolioValue);
 
-        return pValue;
+        return portfolioValue;
     }
 
 }

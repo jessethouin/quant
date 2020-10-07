@@ -119,14 +119,14 @@ public class Live {
                         LOG.info("\nTrade Update: \n\t" + tradeMessage.toString().replace(",", ",\n\t"));
 
                         price = BigDecimal.valueOf(tradeMessage.getP());
-                        if (count < config.getLongMA()) intradayPrices.add(price);
+                        if (count < config.getLongLookback()) intradayPrices.add(price);
 
-                        sv = Transactions.getMA(intradayPrices, previous, count, config.getShortMA(), price);
-                        lv = Transactions.getMA(intradayPrices, previous, count, config.getLongMA(), price);
+                        sv = Transactions.getMA(intradayPrices, previous, count, config.getShortLookback(), price);
+                        lv = Transactions.getMA(intradayPrices, previous, count, config.getLongLookback(), price);
                         c.updateCalc(price, sv, lv, portfolio);
                         try {
                             Transactions.addCash(portfolio, c.decide());
-                            LOG.debug(MessageFormat.format("{8,number,000} : {0,number,00} : {5,number,000.000} : {1,number,00} : {6,number,000.000} : {7,number,000.000} : {2,number,0.00} : {3,number,0.00} : {4,number,00000.000}", config.getShortMA(), config.getLongMA(), config.getLowRisk(), config.getHighRisk(), Transactions.getPortfolioValue(portfolio, s.getSymbol(), price), sv, lv, price, count));
+                            LOG.debug(MessageFormat.format("{8,number,000} : {0,number,00} : {5,number,000.000} : {1,number,00} : {6,number,000.000} : {7,number,000.000} : {2,number,0.00} : {3,number,0.00} : {4,number,00000.000}", config.getShortLookback(), config.getLongLookback(), config.getLowRisk(), config.getHighRisk(), Transactions.getPortfolioValue(portfolio, s.getSymbol(), price), sv, lv, price, count));
                         } catch (CashException e) {
                             LOG.error(e.getLocalizedMessage());
                         }

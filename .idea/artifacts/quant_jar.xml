@@ -1,6 +1,6 @@
 <component name="ArtifactManager">
   <artifact type="jar" name="quant:jar">
-    <output-path>$PROJECT_DIR$/out/artifacts/quant_jar</output-path>
+    <output-path>$PROJECT_DIR$/target/artifacts/quant_jar</output-path>
     <root id="archive" name="quant.jar">
       <element id="directory" name="META-INF">
         <element id="file-copy" path="$PROJECT_DIR$/src/main/resources/META-INF/MANIFEST.MF" />

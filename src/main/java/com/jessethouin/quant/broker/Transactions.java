@@ -73,11 +73,11 @@ public class Transactions {
         return portfolio.getCash().multiply(allowance).divide(price, 0, RoundingMode.FLOOR);
     }
 
-    public static BigDecimal getMA(List<BigDecimal> intradayPrices, BigDecimal previous, int i, int p, BigDecimal price) {
+    public static BigDecimal getMA(List<BigDecimal> intradayPrices, BigDecimal previousMA, int i, int lookback, BigDecimal price) {
         BigDecimal ma;
-        if (i < p) ma = BigDecimal.ZERO;
-        else if (i == p) ma = SMA.sma(intradayPrices.subList(0, i), p);
-        else ma = MA.ma(price, previous, p, MATypes.TEMA);
+        if (i < lookback) ma = BigDecimal.ZERO;
+        else if (i == lookback) ma = SMA.sma(intradayPrices.subList(0, i), lookback);
+        else ma = MA.ma(price, previousMA, lookback, MATypes.TEMA);
         return ma;
     }
 }
