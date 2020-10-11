@@ -10,13 +10,16 @@ import java.util.List;
 @Entity
 @Table(name = "PORTFOLIO")
 public class Portfolio {
-    private long portfolioId;
-    private BigDecimal cash = BigDecimal.ZERO;
-    private List<Security> securities = new ArrayList<>();
-
     @Id
     @GeneratedValue(generator = "increment")
     @GenericGenerator(name = "increment", strategy = "increment")
+    private long portfolioId;
+
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "portfolio", fetch = FetchType.EAGER, orphanRemoval = true)
+    private List<Security> securities = new ArrayList<>();
+
+    private BigDecimal cash = BigDecimal.ZERO;
+
     public Long getPortfolioId() {
         return portfolioId;
     }
@@ -25,7 +28,6 @@ public class Portfolio {
         this.portfolioId = portfolioId;
     }
 
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "portfolio", fetch = FetchType.EAGER)
     public List<Security> getSecurities() {
         return securities;
     }

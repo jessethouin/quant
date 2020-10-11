@@ -2,6 +2,7 @@ package com.jessethouin.quant.broker;
 
 import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.beans.Position;
+import com.jessethouin.quant.beans.Security;
 import com.jessethouin.quant.calculators.MA;
 import com.jessethouin.quant.calculators.SMA;
 import com.jessethouin.quant.conf.MATypes;
@@ -15,26 +16,37 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class Transactions {
     private static final Logger LOG = LogManager.getLogger(Transactions.class);
 
-    public static BigDecimal buySecurity(List<Position> positions, BigDecimal qty, BigDecimal price) {
-        Position position = new Position();
-        position.setQuantity(qty);
-        position.setPrice(price);
-        position.setOpened(new Date());
-        positions.add(position);
+    public static BigDecimal buySecurity(Security security, BigDecimal qty, BigDecimal price) {
+        Position position;
+        Optional<Position> existingPosition = security.getPositions().stream().filter(p -> p.getPrice().compareTo(price) == 0).findFirst();
+
+        if (existingPosition.isPresent()) {
+            position = existingPosition.get();
+            position.setQuantity(position.getQuantity().add(qty));
+        } else {
+            position = new Position();
+            position.setQuantity(qty);
+            position.setPrice(price);
+            position.setOpened(new Date());
+            position.setSecurity(security);
+            security.getPositions().add(position);
+        }
+
         LOG.trace("Bought " + qty + " at " + price);
         return qty.multiply(price).setScale(3, RoundingMode.HALF_UP);
     }
 
-    public static BigDecimal sellSecurity(List<Position> positions, BigDecimal price) {
+    public static BigDecimal sellSecurity(Security security, BigDecimal price) {
         List<Position> remove = new ArrayList<>();
         AtomicReference<BigDecimal> cash = new AtomicReference<>(BigDecimal.ZERO);
 
-        positions.forEach(position -> {
+        security.getPositions().forEach(position -> {
             if (position.getPrice().compareTo(price) <= 0) {
                 cash.set(cash.get().add(price.multiply(position.getQuantity())).setScale(3, RoundingMode.HALF_UP));
                 remove.add(position);
@@ -42,7 +54,7 @@ public class Transactions {
             }
         });
 
-        positions.removeAll(remove);
+        security.getPositions().removeAll(remove);
         return cash.get();
     }
 
@@ -53,7 +65,6 @@ public class Transactions {
             return;
         }
         portfolio.setCash(portfolio.getCash().add(cash));
-        if (cash.compareTo(BigDecimal.ZERO) != 0) Database.save(portfolio);
     }
 
     public static void deductCash(Portfolio portfolio, BigDecimal cash) throws CashException {

@@ -5,6 +5,7 @@ import com.jessethouin.quant.conf.Config;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Scanner;
 
@@ -27,5 +28,6 @@ public abstract class AbstractBacktest {
                 }
             }
         }
+//        Collections.reverse(intradayPrices);
     }
 }

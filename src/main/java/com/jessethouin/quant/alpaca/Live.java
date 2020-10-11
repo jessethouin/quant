@@ -47,30 +47,28 @@ public class Live {
         Account alpacaAccount = live.getAccount();
 
         if (alpacaAccount != null) {
-            portfolio = Database.get();
+            portfolio = Database.getPortfolio();
+
             if (portfolio == null) {
                 portfolio = new Portfolio();
                 portfolio.setCash(new BigDecimal(alpacaAccount.getCash()));
+                List<String> tickers = Arrays.asList("GOOG", "AAPL");
+                tickers.forEach(t -> {
+                    Security security = new Security();
+                    security.setSymbol(t);
+                    security.setPortfolio(portfolio);
+                    portfolio.getSecurities().add(security);
+                });
+                Database.persistPortfolio(portfolio);
             }
 
-            List<Security> securities = new ArrayList<>();
-            List<String> tickers = Arrays.asList("GOOG", "AAPL");
-            tickers.forEach(t -> {
-                Security security = new Security();
-                security.setSymbol(t);
-                security.setPortfolio(portfolio);
-                securities.add(security);
-            });
-
-            portfolio.setSecurities(securities);
-
-            LOG.info("\n\nAccount Information:");
+            LOG.info("\n\nAlpaca Account Information:");
             LOG.info("\t" + alpacaAccount.toString().replace(",", ",\n\t"));
 
             LOG.info("Portfolion Cash: " + portfolio.getCash());
-            portfolio.getSecurities().forEach(security -> LOG.info(live.getOpenPosition(security.getSymbol())));
+            portfolio.getSecurities().forEach(security -> LOG.info("Open position:" + live.getOpenPosition(security.getSymbol())));
 
-            Objects.requireNonNull(live.getClosedOrders()).forEach(o -> LOG.info(o.toString()));
+            Objects.requireNonNull(live.getClosedOrders()).forEach(o -> LOG.info("Closed Orders:" + o.toString()));
 
             live.openStreamListener(portfolio.getSecurities());
         }
@@ -131,6 +129,7 @@ public class Live {
                             LOG.error(e.getLocalizedMessage());
                         }
 
+                        Database.persistPortfolio(portfolio);
                         previous = price;
                         count++;
                     }

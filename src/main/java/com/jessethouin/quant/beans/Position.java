@@ -9,15 +9,18 @@ import java.util.Date;
 @Entity
 @Table(name = "POSITION")
 public class Position {
+    @Id
+    @GeneratedValue(generator = "increment")
+    @GenericGenerator(name = "increment", strategy = "increment")
     private long positionId;
     private Date opened;
     private BigDecimal quantity;
     private BigDecimal price;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "security_id")
     private Security security;
 
-    @Id
-    @GeneratedValue(generator = "increment")
-    @GenericGenerator(name = "increment", strategy = "increment")
     public Long getPositionId() {
         return positionId;
     }
@@ -50,8 +53,6 @@ public class Position {
         this.price = price;
     }
 
-    @ManyToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "securityId")
     public Security getSecurity() {
         return security;
     }

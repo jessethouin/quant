@@ -5,6 +5,7 @@ import com.jessethouin.quant.beans.Security;
 import com.jessethouin.quant.broker.Transactions;
 import com.jessethouin.quant.calculators.Calc;
 import com.jessethouin.quant.conf.Config;
+import com.jessethouin.quant.db.Database;
 import com.jessethouin.quant.exceptions.CashException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -22,19 +23,30 @@ public class BacktestStaticParameters extends AbstractBacktest {
 
         Config config = new Config();
 
-        Portfolio portfolio = new Portfolio();
-        portfolio.setCash(config.getInitialCash());
+        Portfolio portfolio = Database.getPortfolio();
+        Security security;
 
-        Security security = new Security();
-        security.setSymbol("AAPL");
-        portfolio.setSecurities(new ArrayList<>(Collections.singletonList(security)));
+        if (portfolio == null) {
+            portfolio = new Portfolio();
+            portfolio.setCash(config.getInitialCash());
+
+            security = new Security();
+            security.setSymbol("AAPL");
+            security.setPortfolio(portfolio);
+
+            portfolio.setSecurities(new ArrayList<>(Collections.singletonList(security)));
+
+            Database.persistPortfolio(portfolio);
+        } else {
+            security = portfolio.getSecurities().get(0);
+        }
 
         BigDecimal shortMAValue;
         BigDecimal longMAValue;
         BigDecimal price = intradayPrices.get(0);
         BigDecimal previousShortMAValue = BigDecimal.ZERO;
         BigDecimal previousLongMAValue = BigDecimal.ZERO;
-        Calc c = new Calc(security, config, price);
+        Calc c = new Calc(portfolio.getSecurities().get(0), config, price);
         for (int i = 0; i < intradayPrices.size(); i++) {
             price = intradayPrices.get(i);
             shortMAValue = Transactions.getMA(intradayPrices, previousShortMAValue, i, config.getShortLookback(), price);
@@ -51,8 +63,12 @@ public class BacktestStaticParameters extends AbstractBacktest {
             previousLongMAValue = longMAValue;
         }
 
+        Database.persistPortfolio(portfolio);
+
         BigDecimal portfolioValue = Transactions.getPortfolioValue(portfolio, security.getSymbol(), price);
         String msg = MessageFormat.format("{0,number,00} : {1,number,00} : {2,number,0.00} : {3,number,0.00} : {4,number,00000.000}", config.getShortLookback(), config.getLongLookback(), config.getLowRisk(), config.getHighRisk(), portfolioValue);
         LOG.debug(msg);
+
+        portfolio.getSecurities().get(0).getPositions().forEach(ps -> LOG.info(ps.getPrice() + ", " + ps.getQuantity() + " : " + ps.getPrice().multiply(ps.getQuantity())));
     }
 }
