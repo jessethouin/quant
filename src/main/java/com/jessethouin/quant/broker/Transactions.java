@@ -6,7 +6,6 @@ import com.jessethouin.quant.beans.Security;
 import com.jessethouin.quant.calculators.MA;
 import com.jessethouin.quant.calculators.SMA;
 import com.jessethouin.quant.conf.MATypes;
-import com.jessethouin.quant.db.Database;
 import com.jessethouin.quant.exceptions.CashException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

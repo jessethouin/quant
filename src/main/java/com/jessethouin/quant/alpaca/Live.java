@@ -110,7 +110,7 @@ public class Live {
                 switch (streamMessageType) {
                     case QUOTES -> {
                         QuoteMessage quoteMessage = (QuoteMessage) streamMessage;
-//                        LOG.info("\nQuote Update: \n\t" + quoteMessage.toString().replace(",", ",\n\t"));
+                        LOG.info("\nQuote Update: \n\t" + quoteMessage.toString().replace(",", ",\n\t"));
                     }
                     case TRADES -> {
                         TradeMessage tradeMessage = (TradeMessage) streamMessage;

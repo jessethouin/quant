@@ -2,9 +2,6 @@ package com.jessethouin.quant.db;
 
 import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.beans.Security;
-import com.jessethouin.quant.broker.Transactions;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.boot.MetadataSources;
@@ -17,7 +14,6 @@ import java.util.Arrays;
 import java.util.List;
 
 class DatabaseTest {
-    private static final Logger LOG = LogManager.getLogger(Transactions.class);
     private SessionFactory sessionFactory;
 
     @org.junit.jupiter.api.BeforeEach
@@ -71,9 +67,5 @@ class DatabaseTest {
         }
         session.getTransaction().commit();
         session.close();
-    }
-
-    @org.junit.jupiter.api.Test
-    void get() {
     }
 }

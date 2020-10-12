@@ -50,5 +50,7 @@ class EMATest {
             previous = ma;
         }
         System.out.println(ArrayUtils.toString(results));
+
+        for (int i = 0; i < results.length; i++) assert results[i].compareTo(expected[i]) == 0;
     }
 }

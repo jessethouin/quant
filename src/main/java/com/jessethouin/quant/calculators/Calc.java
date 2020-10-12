@@ -133,10 +133,10 @@ public class Calc {
         };
 
         if (buy) {
-            proceeds = Transactions.buySecurity(security, getQty(), getPrice()).negate();
+            proceeds = Transactions.buySecurity(getSecurity(), getQty(), getPrice()).negate();
             setBuy(false);
         } else if (sell) {
-            proceeds = Transactions.sellSecurity(security, getPrice());
+            proceeds = Transactions.sellSecurity(getSecurity(), getPrice());
             setBuy(true);
         }
 

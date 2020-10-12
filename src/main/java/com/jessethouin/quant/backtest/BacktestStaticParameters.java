@@ -18,7 +18,7 @@ import java.util.Collections;
 public class BacktestStaticParameters extends AbstractBacktest {
     private static final Logger LOG = LogManager.getLogger(BacktestStaticParameters.class);
 
-    public static void runBacktest(String[] args) {
+    public static void runBacktest() {
         populateIntradayPrices();
 
         Config config = new Config();
