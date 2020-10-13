@@ -1,9 +1,8 @@
 package com.jessethouin.quant;
 
-import com.jessethouin.quant.backtest.BacktestParameterCombos;
 import com.jessethouin.quant.alpaca.Live;
+import com.jessethouin.quant.backtest.BacktestParameterCombos;
 import com.jessethouin.quant.backtest.BacktestStaticParameters;
-import com.jessethouin.quant.db.Database;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -18,10 +17,8 @@ public class Main {
                 case "combos" -> BacktestParameterCombos.findBestCombos(Arrays.copyOfRange(args, 1, args.length));
                 case "backtest" -> BacktestStaticParameters.runBacktest();
                 case "paper" -> Live.doPaperTrading();
-                default -> LOG.error("1st arg must be \"combos\", \"backtest\", or \"live\".");
+                default -> LOG.error("1st arg must be \"combos\", \"backtest\", or \"paper\".");
             }
         }
-
-        Database.closeSession();
     }
 }

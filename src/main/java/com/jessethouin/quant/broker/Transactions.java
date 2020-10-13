@@ -41,12 +41,12 @@ public class Transactions {
         return qty.multiply(price).setScale(3, RoundingMode.HALF_UP);
     }
 
-    public static BigDecimal sellSecurity(Security security, BigDecimal price) {
+    public static BigDecimal sellSecurity(Security security, BigDecimal price, boolean sellAll) {
         List<Position> remove = new ArrayList<>();
         AtomicReference<BigDecimal> cash = new AtomicReference<>(BigDecimal.ZERO);
 
         security.getPositions().forEach(position -> {
-            if (position.getPrice().compareTo(price) <= 0) {
+            if (position.getPrice().compareTo(price) <= 0 || sellAll) {
                 cash.set(cash.get().add(price.multiply(position.getQuantity())).setScale(3, RoundingMode.HALF_UP));
                 remove.add(position);
                 LOG.trace("Sold " + position.getQuantity() + " at " + price);
@@ -55,6 +55,14 @@ public class Transactions {
 
         security.getPositions().removeAll(remove);
         return cash.get();
+    }
+
+    public static BigDecimal sellAll(Security security, BigDecimal price) {
+        return sellSecurity(security, price, true);
+    }
+
+    public static BigDecimal sellSecurity(Security security, BigDecimal price) {
+        return sellSecurity(security, price, false);
     }
 
     public static void addCash(Portfolio portfolio, BigDecimal cash) throws CashException {

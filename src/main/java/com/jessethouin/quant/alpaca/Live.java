@@ -52,7 +52,7 @@ public class Live {
             if (portfolio == null) {
                 portfolio = new Portfolio();
                 portfolio.setCash(new BigDecimal(alpacaAccount.getCash()));
-                List<String> tickers = Arrays.asList("GOOG", "AAPL");
+                List<String> tickers = Arrays.asList("GOOG");
                 tickers.forEach(t -> {
                     Security security = new Security();
                     security.setSymbol(t);
@@ -100,10 +100,11 @@ public class Live {
             final Calc c = new Calc(s, config, BigDecimal.ZERO);
             final List<BigDecimal> intradayPrices = new ArrayList<>();
             int count = 0;
-            BigDecimal sv;
-            BigDecimal lv;
+            BigDecimal shortMAValue;
+            BigDecimal longMAValue;
             BigDecimal price = BigDecimal.ZERO;
-            BigDecimal previous = BigDecimal.ZERO;
+            BigDecimal previousShortMAValue = BigDecimal.ZERO;
+            BigDecimal previousLongMAValue = BigDecimal.ZERO;
 
             @Override
             public void onStreamUpdate(MarketDataStreamMessageType streamMessageType, MarketDataStreamMessage streamMessage) {
@@ -119,18 +120,19 @@ public class Live {
                         price = BigDecimal.valueOf(tradeMessage.getP());
                         if (count < config.getLongLookback()) intradayPrices.add(price);
 
-                        sv = Transactions.getMA(intradayPrices, previous, count, config.getShortLookback(), price);
-                        lv = Transactions.getMA(intradayPrices, previous, count, config.getLongLookback(), price);
-                        c.updateCalc(price, sv, lv, portfolio);
+                        shortMAValue = Transactions.getMA(intradayPrices, previousShortMAValue, count, config.getShortLookback(), price);
+                        longMAValue = Transactions.getMA(intradayPrices, previousLongMAValue, count, config.getLongLookback(), price);
+                        c.updateCalc(price, shortMAValue, longMAValue, portfolio);
                         try {
                             Transactions.addCash(portfolio, c.decide());
-                            LOG.debug(MessageFormat.format("{8,number,000} : {0,number,00} : {5,number,000.000} : {1,number,00} : {6,number,000.000} : {7,number,000.000} : {2,number,0.00} : {3,number,0.00} : {4,number,00000.000}", config.getShortLookback(), config.getLongLookback(), config.getLowRisk(), config.getHighRisk(), Transactions.getPortfolioValue(portfolio, s.getSymbol(), price), sv, lv, price, count));
+                            LOG.debug(MessageFormat.format("{0,number,000} : ma1 {1,number,000.000} : ma2 {2,number,000.000} : l {3,number,000.000}: h {4,number,000.000}: p {5,number,000.000} : {6,number,00000.000}", count, shortMAValue, longMAValue, c.getLow(), c.getHigh(), price, Transactions.getPortfolioValue(portfolio, s.getSymbol(), price)));
                         } catch (CashException e) {
                             LOG.error(e.getLocalizedMessage());
                         }
 
                         Database.persistPortfolio(portfolio);
-                        previous = price;
+                        previousShortMAValue = shortMAValue;
+                        previousLongMAValue = longMAValue;
                         count++;
                     }
                     case AGGREGATE_MINUTE -> {

@@ -137,6 +137,10 @@ public class Calc {
             setBuy(false);
         } else if (sell) {
             proceeds = Transactions.sellSecurity(getSecurity(), getPrice());
+            if (proceeds.compareTo(BigDecimal.ZERO) > 0) {
+                setLow(price);
+                setHigh(price);
+            }
             setBuy(true);
         }
 
@@ -183,6 +187,8 @@ public class Calc {
 
     public void updateCalc(BigDecimal price, BigDecimal ma1, BigDecimal ma2, Portfolio portfolio) {
         setPrice(price);
+        if (getLow().equals(BigDecimal.ZERO)) setLow(price);
+        if (getHigh().equals(BigDecimal.ZERO)) setHigh(price);
         setQty(Transactions.getBudget(portfolio, price, config.getAllowance()));
         setMa1(ma1);
         setMa2(ma2);
