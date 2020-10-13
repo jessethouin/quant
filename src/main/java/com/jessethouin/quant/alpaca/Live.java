@@ -28,7 +28,6 @@ import java.text.MessageFormat;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -52,7 +51,7 @@ public class Live {
             if (portfolio == null) {
                 portfolio = new Portfolio();
                 portfolio.setCash(new BigDecimal(alpacaAccount.getCash()));
-                List<String> tickers = Arrays.asList("GOOG");
+                List<String> tickers = config.getSecurities();
                 tickers.forEach(t -> {
                     Security security = new Security();
                     security.setSymbol(t);

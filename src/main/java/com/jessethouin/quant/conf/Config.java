@@ -7,7 +7,10 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Properties;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Config {
     private static final Logger LOG = LogManager.getLogger(Config.class);
@@ -22,6 +25,7 @@ public class Config {
     private BuyStrategyTypes buyStrategy;
     private SellStrategyTypes sellStrategy;
     private String backTestData;
+    private List<String> securities;
 
     public Config() {
         try {
@@ -42,6 +46,7 @@ public class Config {
             setBuyStrategy(BuyStrategyTypes.valueOf(prop.getProperty("buyStrategy")));
             setSellStrategy(SellStrategyTypes.valueOf(prop.getProperty("sellStrategy")));
             setBackTestData(prop.getProperty("backTestData"));
+            setSecurities(Stream.of(prop.getProperty("securities").split(",", -1)).collect(Collectors.toList()));
         } catch (IOException e) {
             LOG.error("Unable to read properties file: " + e.getLocalizedMessage());
         }
@@ -117,5 +122,13 @@ public class Config {
 
     public void setBackTestData(String backTestData) {
         this.backTestData = backTestData;
+    }
+
+    public List<String> getSecurities() {
+        return securities;
+    }
+
+    public void setSecurities(List<String> securities) {
+        this.securities = securities;
     }
 }
