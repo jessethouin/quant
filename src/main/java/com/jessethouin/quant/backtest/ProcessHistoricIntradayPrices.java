@@ -71,7 +71,7 @@ public class ProcessHistoricIntradayPrices implements Callable<Object> {
 
         BigDecimal portfolioValue = Transactions.getPortfolioValue(portfolio, security.getSymbol(), price);
         String msg = MessageFormat.format("{0,number,00} : {1,number,00} : {2,number,0.00} : {3,number,0.00} : {4,number,00000.000}", shortLookback, longLookback, lowRisk, highRisk, portfolioValue);
-        LOG.debug(msg);
+        LOG.trace(msg);
         BacktestParameterCombos.updateBest(msg, portfolioValue);
 
         return portfolioValue;

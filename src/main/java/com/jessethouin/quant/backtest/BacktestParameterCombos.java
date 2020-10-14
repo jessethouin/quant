@@ -63,23 +63,23 @@ public class BacktestParameterCombos extends AbstractBacktest {
         int lookbackRange = maxMALookback - minMALookback;
         int i = ((lookbackRange * (lookbackRange + 1)) / 2) - lookbackRange;
         int i_ = i;
-        List<Long> nt_ = new ArrayList<>();
+        List<Long> comboProcessingTimes = new ArrayList<>();
         StopWatch loopWatch = new StopWatch();
 
         while (++longLookback <= maxMALookback) {
             shortLookback = minMALookback;
             while (++shortLookback < longLookback) { // there's no need to test equal short and long tail MAs because they will never separate or converge. That's why this is < and not <=.
-                combos = getRiskCombos(riskMax, riskIncrement, shortLookback, longLookback, combos, nt_, loopWatch);
+                combos = getRiskCombos(riskMax, riskIncrement, shortLookback, longLookback, combos, comboProcessingTimes, loopWatch);
 
-                double[] timeUntis = getRemainingTimeUnits(nt_, --i_);
+                double[] timeUntis = getRemainingTimeUnits(comboProcessingTimes, --i_);
                 LOG.info(MessageFormat.format("{0,number,percent} complete. {1,number,00:}{2,number,00:}{3,number,00.00} remaining", ++c / (float) i, timeUntis[0], timeUntis[1], timeUntis[2]));
             }
         }
         return combos;
     }
 
-    private static int getRiskCombos(BigDecimal riskMax, BigDecimal riskIncrement, int shortLookback, int longLookback, int combos, List<Long> nt_, StopWatch loopWatch) throws InterruptedException {
-        long nt;
+    private static int getRiskCombos(BigDecimal riskMax, BigDecimal riskIncrement, int shortLookback, int longLookback, int combos, List<Long> comboProcessingTimes, StopWatch loopWatch) throws InterruptedException {
+        long comboProcessingTime;
         BigDecimal lowRisk;
         BigDecimal highRisk = BigDecimal.ZERO;
         loopWatch.start();
@@ -98,14 +98,14 @@ public class BacktestParameterCombos extends AbstractBacktest {
             es.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
         }
         loopWatch.stop();
-        nt = loopWatch.getTime(TimeUnit.MILLISECONDS);
-        nt_.add(nt);
+        comboProcessingTime = loopWatch.getTime(TimeUnit.MILLISECONDS);
+        comboProcessingTimes.add(comboProcessingTime);
         loopWatch.reset();
         return combos;
     }
 
-    private static double[] getRemainingTimeUnits(List<Long> nt_, int i_) {
-        double r = ((nt_.stream().mapToLong(a -> a).average().orElse(0)) / (double) 1000) * i_; // average numer of seconds it takes to work though all the possible high/low risk combinations.
+    private static double[] getRemainingTimeUnits(List<Long> comboProcessingTimes, int i_) {
+        double r = ((comboProcessingTimes.stream().mapToLong(a -> a).average().orElse(0)) / (double) 1000) * i_; // average numer of seconds it takes to work though all the possible high/low risk combinations.
         double[] timeUntis = {0,0,0};
         r = r % (24 * 3600);
         timeUntis[0] = r / 3600;
