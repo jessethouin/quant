@@ -3,8 +3,10 @@ package com.jessethouin.quant.broker;
 import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.beans.Position;
 import com.jessethouin.quant.beans.Security;
+import com.jessethouin.quant.calculators.Calc;
 import com.jessethouin.quant.calculators.MA;
 import com.jessethouin.quant.calculators.SMA;
+import com.jessethouin.quant.conf.Config;
 import com.jessethouin.quant.conf.MATypes;
 import com.jessethouin.quant.exceptions.CashException;
 import org.apache.logging.log4j.LogManager;
@@ -21,7 +23,20 @@ import java.util.concurrent.atomic.AtomicReference;
 public class Transactions {
     private static final Logger LOG = LogManager.getLogger(Transactions.class);
 
+    public static void processStreamMessage(Security s, Config config) {
+        final Calc c = new Calc(s, config, BigDecimal.ZERO);
+        final List<BigDecimal> intradayPrices = new ArrayList<>();
+        int count = 0;
+        BigDecimal shortMAValue;
+        BigDecimal longMAValue;
+        BigDecimal price = BigDecimal.ZERO;
+        BigDecimal previousShortMAValue = BigDecimal.ZERO;
+        BigDecimal previousLongMAValue = BigDecimal.ZERO;
+
+    }
+
     public static BigDecimal buySecurity(Security security, BigDecimal qty, BigDecimal price) {
+        if (qty.equals(BigDecimal.ZERO)) return BigDecimal.ZERO;
         Position position;
         Optional<Position> existingPosition = security.getPositions().stream().filter(p -> p.getPrice().compareTo(price) == 0).findFirst();
 
@@ -38,7 +53,7 @@ public class Transactions {
         }
 
         LOG.trace("Bought " + qty + " at " + price);
-        return qty.multiply(price).setScale(3, RoundingMode.HALF_UP);
+        return qty.multiply(price).setScale(4, RoundingMode.HALF_UP);
     }
 
     public static BigDecimal sellSecurity(Security security, BigDecimal price, boolean sellAll) {
@@ -47,7 +62,7 @@ public class Transactions {
 
         security.getPositions().forEach(position -> {
             if (position.getPrice().compareTo(price) <= 0 || sellAll) {
-                cash.set(cash.get().add(price.multiply(position.getQuantity())).setScale(3, RoundingMode.HALF_UP));
+                cash.set(cash.get().add(price.multiply(position.getQuantity())).setScale(4, RoundingMode.HALF_UP));
                 remove.add(position);
                 LOG.trace("Sold " + position.getQuantity() + " at " + price);
             }

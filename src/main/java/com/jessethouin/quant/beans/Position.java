@@ -1,5 +1,6 @@
 package com.jessethouin.quant.beans;
 
+import com.jessethouin.quant.db.BigDecimalConverter;
 import org.hibernate.annotations.GenericGenerator;
 
 import javax.persistence.*;
@@ -14,9 +15,10 @@ public class Position {
     @GenericGenerator(name = "increment", strategy = "increment")
     private long positionId;
     private Date opened;
+    @Convert(converter = BigDecimalConverter.class)
     private BigDecimal quantity;
+    @Convert(converter = BigDecimalConverter.class)
     private BigDecimal price;
-
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "security_id")
     private Security security;

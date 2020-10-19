@@ -1,6 +1,7 @@
 package com.jessethouin.quant.db;
 
 import com.jessethouin.quant.beans.Portfolio;
+import com.jessethouin.quant.beans.TickerHistory;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.hibernate.Session;
@@ -47,5 +48,11 @@ public class Database {
         Portfolio result = (Portfolio) getSession().createQuery("from Portfolio").uniqueResult();
         session.getTransaction().commit();
         return result;
+    }
+
+    public static void persistTickerHistory(TickerHistory tickerHistory) {
+        session.beginTransaction();
+        session.persist(tickerHistory);
+        session.getTransaction().commit();
     }
 }

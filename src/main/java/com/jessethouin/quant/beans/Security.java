@@ -14,11 +14,9 @@ public class Security {
     @GenericGenerator(name = "increment", strategy = "increment")
     private long securityId;
     private String symbol;
-
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "portfolio_id")
     private Portfolio portfolio;
-
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "security", fetch = FetchType.EAGER, orphanRemoval = true)
     private List<Position> positions = new ArrayList<>();
 

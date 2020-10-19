@@ -35,6 +35,7 @@
         <mapping class="com.jessethouin.quant.beans.Portfolio"/>
         <mapping class="com.jessethouin.quant.beans.Position"/>
         <mapping class="com.jessethouin.quant.beans.Security"/>
+        <mapping class="com.jessethouin.quant.beans.TickerHistory"/>
 
     </session-factory>
 

@@ -9,6 +9,6 @@ public class TEMA {
         BigDecimal ema1 = EMA.ema(price, previousEMA, lookback);
         BigDecimal ema2 = EMA.ema(ema1, previousEMA, lookback);
         BigDecimal ema3 = EMA.ema(ema2, previousEMA, lookback);
-        return (ema1.multiply(BigDecimal.valueOf(3))).subtract(ema2.multiply(BigDecimal.valueOf(3))).add(ema3).setScale(3, RoundingMode.HALF_UP);
+        return (ema1.multiply(BigDecimal.valueOf(3))).subtract(ema2.multiply(BigDecimal.valueOf(3))).add(ema3).setScale(4, RoundingMode.HALF_UP);
     }
 }

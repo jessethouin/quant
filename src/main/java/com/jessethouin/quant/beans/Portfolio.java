@@ -1,5 +1,6 @@
 package com.jessethouin.quant.beans;
 
+import com.jessethouin.quant.db.BigDecimalConverter;
 import org.hibernate.annotations.GenericGenerator;
 
 import javax.persistence.*;
@@ -14,10 +15,9 @@ public class Portfolio {
     @GeneratedValue(generator = "increment")
     @GenericGenerator(name = "increment", strategy = "increment")
     private long portfolioId;
-
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "portfolio", fetch = FetchType.EAGER, orphanRemoval = true)
     private List<Security> securities = new ArrayList<>();
-
+    @Convert(converter = BigDecimalConverter.class)
     private BigDecimal cash = BigDecimal.ZERO;
 
     public Long getPortfolioId() {
