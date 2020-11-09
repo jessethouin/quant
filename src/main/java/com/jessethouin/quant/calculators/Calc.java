@@ -133,10 +133,10 @@ public class Calc {
         };
 
         if (buy) {
-            proceeds = Transactions.buySecurity(getSecurity(), getQty(), getPrice()).negate();
+            proceeds = Transactions.buySecurity(config.getBroker(), getSecurity(), getQty(), getPrice()).negate();
             setBuy(false);
         } else if (sell) {
-            proceeds = Transactions.sellSecurity(getSecurity(), getPrice());
+            proceeds = Transactions.sellSecurity(config.getBroker(), getSecurity(), getPrice());
             if (proceeds.compareTo(BigDecimal.ZERO) > 0) {
                 setLow(price);
                 setHigh(price);

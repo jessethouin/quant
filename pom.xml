@@ -13,6 +13,7 @@
         <maven.compiler.target>15</maven.compiler.target>
         <version.maven-install-plugin>3.0.0-M1</version.maven-install-plugin>
         <version.alpaca>5.2</version.alpaca>
+        <version.coinbase>0.11.0</version.coinbase>
         <version.intrinio>5.6.3</version.intrinio>
     </properties>
 
@@ -32,6 +33,12 @@
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
             <version>2.11.2</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/com.fasterxml.jackson.datatype/jackson-datatype-jsr310 -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+            <version>2.12.0-rc1</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/com.image-charts/image-charts -->
         <dependency>
@@ -92,11 +99,6 @@
             <version>1.4.9</version>
         </dependency>
         <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <version>20.0</version>
-        </dependency>
-        <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
             <version>2.8.5</version>
@@ -107,6 +109,42 @@
             <version>9.4.28.v20200408</version>
         </dependency>
         <!-- End Alpaca -->
+
+        <dependency>
+            <groupId>org.knowm.xchange</groupId>
+            <artifactId>xchange-core</artifactId>
+            <version>5.0.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.knowm.xchange</groupId>
+            <artifactId>xchange-coinbasepro</artifactId>
+            <version>5.0.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.knowm.xchange</groupId>
+            <artifactId>xchange-stream-coinbasepro</artifactId>
+            <version>5.0.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.knowm.xchange</groupId>
+            <artifactId>xchange-cexio</artifactId>
+            <version>5.0.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.knowm.xchange</groupId>
+            <artifactId>xchange-stream-cexio</artifactId>
+            <version>5.0.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.knowm.xchange</groupId>
+            <artifactId>xchange-binance</artifactId>
+            <version>5.0.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.knowm.xchange</groupId>
+            <artifactId>xchange-stream-binance</artifactId>
+            <version>5.0.3</version>
+        </dependency>
 
         <!-- Begin Intrinio -->
         <dependency>
@@ -163,6 +201,66 @@
                             <artifactId>alpaca</artifactId>
                             <version>${version.alpaca}</version>
                             <file>${project.basedir}/libs/alpaca-java-5.2.jar</file>
+                            <packaging>jar</packaging>
+                            <generatePom>true</generatePom>
+                        </configuration>
+                        <goals>
+                            <goal>install-file</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>coinbase-pro-java-api</id>
+                        <phase>clean</phase>
+                        <configuration>
+                            <groupId>com.coinbase.exchange</groupId>
+                            <artifactId>api</artifactId>
+                            <version>${version.coinbase}</version>
+                            <file>${project.basedir}/libs/api-0.11.0.jar</file>
+                            <packaging>jar</packaging>
+                            <generatePom>true</generatePom>
+                        </configuration>
+                        <goals>
+                            <goal>install-file</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>coinbase-pro-java-model</id>
+                        <phase>clean</phase>
+                        <configuration>
+                            <groupId>com.coinbase.exchange</groupId>
+                            <artifactId>model</artifactId>
+                            <version>${version.coinbase}</version>
+                            <file>${project.basedir}/libs/model-0.11.0.jar</file>
+                            <packaging>jar</packaging>
+                            <generatePom>true</generatePom>
+                        </configuration>
+                        <goals>
+                            <goal>install-file</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>coinbase-pro-java-security</id>
+                        <phase>clean</phase>
+                        <configuration>
+                            <groupId>com.coinbase.exchange</groupId>
+                            <artifactId>security</artifactId>
+                            <version>${version.coinbase}</version>
+                            <file>${project.basedir}/libs/security-0.11.0.jar</file>
+                            <packaging>jar</packaging>
+                            <generatePom>true</generatePom>
+                        </configuration>
+                        <goals>
+                            <goal>install-file</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>coinbase-pro-java-websocketfeed</id>
+                        <phase>clean</phase>
+                        <configuration>
+                            <groupId>com.coinbase.exchange</groupId>
+                            <artifactId>websocketfeed</artifactId>
+                            <version>${version.coinbase}</version>
+                            <file>${project.basedir}/libs/websocketfeed-0.11.0.jar</file>
                             <packaging>jar</packaging>
                             <generatePom>true</generatePom>
                         </configuration>

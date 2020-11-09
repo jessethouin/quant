@@ -1,11 +1,14 @@
 package com.jessethouin.quant.broker;
 
+import com.jessethouin.quant.alpaca.AlpacaTransactions;
+import com.jessethouin.quant.alpaca.beans.AlpacaOrder;
 import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.beans.Position;
 import com.jessethouin.quant.beans.Security;
 import com.jessethouin.quant.calculators.Calc;
 import com.jessethouin.quant.calculators.MA;
 import com.jessethouin.quant.calculators.SMA;
+import com.jessethouin.quant.conf.Broker;
 import com.jessethouin.quant.conf.Config;
 import com.jessethouin.quant.conf.MATypes;
 import com.jessethouin.quant.exceptions.CashException;
@@ -35,8 +38,25 @@ public class Transactions {
 
     }
 
-    public static BigDecimal buySecurity(Security security, BigDecimal qty, BigDecimal price) {
+    public static BigDecimal buySecurity(Broker broker, Security security, BigDecimal qty, BigDecimal price) {
         if (qty.equals(BigDecimal.ZERO)) return BigDecimal.ZERO;
+
+        switch (broker) {
+            case ALPACA:
+                AlpacaOrder alpacaOrder = AlpacaTransactions.buySecurity(security, qty, price);
+                if (alpacaOrder == null) return BigDecimal.ZERO;
+            case ROBINHOOD:
+                break;
+            case COINBASE:
+                break;
+            case CEXIO:
+                break;
+            case BINANCE:
+                break;
+            default:
+                throw new IllegalStateException("Unexpected value: " + broker);
+        }
+
         Position position;
         Optional<Position> existingPosition = security.getPositions().stream().filter(p -> p.getPrice().compareTo(price) == 0).findFirst();
 
@@ -56,12 +76,24 @@ public class Transactions {
         return qty.multiply(price).setScale(4, RoundingMode.HALF_UP);
     }
 
-    public static BigDecimal sellSecurity(Security security, BigDecimal price, boolean sellAll) {
+    public static BigDecimal sellSecurity(Broker broker, Security security, BigDecimal price, boolean sellAll) {
         List<Position> remove = new ArrayList<>();
         AtomicReference<BigDecimal> cash = new AtomicReference<>(BigDecimal.ZERO);
 
         security.getPositions().forEach(position -> {
-            if (position.getPrice().compareTo(price) <= 0 || sellAll) {
+            if (position.getPrice().compareTo(price) < 0 || sellAll) {
+                AlpacaOrder alpacaOrder;
+                switch (broker) {
+                    case ALPACA:
+                        alpacaOrder = AlpacaTransactions.sellSecurity(security, position.getQuantity(), price);
+                        if (alpacaOrder == null) return;
+                    case ROBINHOOD:
+                        break;
+                    case COINBASE:
+                        break;
+                    default:
+                        throw new IllegalStateException("Unexpected value: " + broker);
+                }
                 cash.set(cash.get().add(price.multiply(position.getQuantity())).setScale(4, RoundingMode.HALF_UP));
                 remove.add(position);
                 LOG.trace("Sold " + position.getQuantity() + " at " + price);
@@ -72,12 +104,12 @@ public class Transactions {
         return cash.get();
     }
 
-    public static BigDecimal sellAll(Security security, BigDecimal price) {
-        return sellSecurity(security, price, true);
+    public static BigDecimal sellAll(Broker broker,Security security, BigDecimal price) {
+        return sellSecurity(broker, security, price, true);
     }
 
-    public static BigDecimal sellSecurity(Security security, BigDecimal price) {
-        return sellSecurity(security, price, false);
+    public static BigDecimal sellSecurity(Broker broker, Security security, BigDecimal price) {
+        return sellSecurity(broker, security, price, false);
     }
 
     public static void addCash(Portfolio portfolio, BigDecimal cash) throws CashException {
@@ -96,7 +128,7 @@ public class Transactions {
         portfolio.setCash(portfolio.getCash().subtract(cash));
     }
 
-    public static BigDecimal getPortfolioValue(Portfolio portfolio, String symbol, BigDecimal price) { //todo: refactor to take Map<String, BigDecimal>
+    public static BigDecimal getPortfolioValue(Portfolio portfolio, String symbol, BigDecimal price) {
         AtomicReference<BigDecimal> holdings = new AtomicReference<>(BigDecimal.ZERO);
         portfolio.getSecurities().stream().filter(s -> s.getSymbol().equals(symbol)).forEach(security -> security.getPositions().forEach(position -> holdings.updateAndGet(v -> v.add(price.multiply(position.getQuantity())))));
         return portfolio.getCash().add(holdings.get());

@@ -1,5 +1,6 @@
 package com.jessethouin.quant.db;
 
+import com.jessethouin.quant.alpaca.beans.AlpacaOrder;
 import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.beans.TickerHistory;
 import org.apache.logging.log4j.LogManager;
@@ -35,6 +36,22 @@ public class Database {
         if (session != null && session.isOpen()) {
             session.close();
         }
+    }
+
+    public static void persistAlpacaOrder(AlpacaOrder alpacaOrder) {
+        session.beginTransaction();
+        session.persist(alpacaOrder);
+        session.getTransaction().commit();
+    }
+
+    public static AlpacaOrder getAlpacaOrder(String id) {
+        session.beginTransaction();
+        AlpacaOrder result = (AlpacaOrder) getSession()
+                .createQuery("from AlpacaOrder where id=:id")
+                .setParameter("id", id)
+                .uniqueResult();
+        session.getTransaction().commit();
+        return result;
     }
 
     public static void persistPortfolio(Portfolio portfolio) {

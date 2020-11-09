@@ -26,6 +26,7 @@ public class Config {
     private SellStrategyTypes sellStrategy;
     private String backTestData;
     private List<String> securities;
+    private Broker broker;
 
     public Config() {
         try {
@@ -47,6 +48,7 @@ public class Config {
             setSellStrategy(SellStrategyTypes.valueOf(prop.getProperty("sellStrategy")));
             setBackTestData(prop.getProperty("backTestData"));
             setSecurities(Stream.of(prop.getProperty("securities").split(",", -1)).collect(Collectors.toList()));
+            setBroker(Broker.valueOf(prop.getProperty("broker")));
         } catch (IOException e) {
             LOG.error("Unable to read properties file: " + e.getLocalizedMessage());
         }
@@ -130,5 +132,13 @@ public class Config {
 
     public void setSecurities(List<String> securities) {
         this.securities = securities;
+    }
+
+    public Broker getBroker() {
+        return broker;
+    }
+
+    public void setBroker(Broker broker) {
+        this.broker = broker;
     }
 }

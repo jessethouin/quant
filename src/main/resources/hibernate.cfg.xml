@@ -36,6 +36,7 @@
         <mapping class="com.jessethouin.quant.beans.Position"/>
         <mapping class="com.jessethouin.quant.beans.Security"/>
         <mapping class="com.jessethouin.quant.beans.TickerHistory"/>
+        <mapping class="com.jessethouin.quant.alpaca.beans.AlpacaOrder"/>
 
     </session-factory>
 

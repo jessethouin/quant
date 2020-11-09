@@ -1,6 +1,6 @@
 package com.jessethouin.quant;
 
-import com.jessethouin.quant.alpaca.Live;
+import com.jessethouin.quant.alpaca.AlpacaLive;
 import com.jessethouin.quant.backtest.BacktestParameterCombos;
 import com.jessethouin.quant.backtest.BacktestStaticParameters;
 import org.apache.logging.log4j.LogManager;
@@ -16,7 +16,7 @@ public class Main {
             switch (args[0]) {
                 case "combos" -> BacktestParameterCombos.findBestCombos(Arrays.copyOfRange(args, 1, args.length));
                 case "backtest" -> BacktestStaticParameters.runBacktest();
-                case "paper" -> Live.doPaperTrading();
+                case "paper" -> AlpacaLive.doPaperTrading();
                 default -> LOG.error("1st arg must be \"combos\", \"backtest\", or \"paper\".");
             }
         }
