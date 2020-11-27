@@ -5,7 +5,7 @@ public enum OrderStatus {
     EXPIRED("expired"),
     CANCELED("canceled"); // ugh, Americans. It's CANCELLED!!
 
-    String status;
+    final String status;
     OrderStatus(String s) {
         this.status = s;
     }

@@ -1,12 +1,11 @@
 package com.jessethouin.quant.beans;
 
-import com.jessethouin.quant.db.BigDecimalConverter;
+import com.jessethouin.quant.alpaca.beans.AlpacaOrder;
 import org.hibernate.annotations.GenericGenerator;
 
 import javax.persistence.*;
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "PORTFOLIO")
@@ -16,9 +15,11 @@ public class Portfolio {
     @GenericGenerator(name = "increment", strategy = "increment")
     private long portfolioId;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "portfolio", fetch = FetchType.EAGER, orphanRemoval = true)
-    private List<Security> securities = new ArrayList<>();
-    @Convert(converter = BigDecimalConverter.class)
-    private BigDecimal cash = BigDecimal.ZERO;
+    private Set<Security> securities = new HashSet<>();
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "portfolio", fetch = FetchType.EAGER, orphanRemoval = true)
+    private Set<Currency> currencies = new HashSet<>();
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "portfolio", fetch = FetchType.EAGER, orphanRemoval = true)
+    private Set<AlpacaOrder> alpacaOrders = new HashSet<>();
 
     public Long getPortfolioId() {
         return portfolioId;
@@ -28,20 +29,27 @@ public class Portfolio {
         this.portfolioId = portfolioId;
     }
 
-    public List<Security> getSecurities() {
+    public Set<Security> getSecurities() {
         return securities;
     }
 
-    public void setSecurities(List<Security> securities) {
+    public void setSecurities(Set<Security> securities) {
         this.securities = securities;
     }
 
-    public BigDecimal getCash() {
-        return cash;
+    public Set<Currency> getCurrencies() {
+        return currencies;
     }
 
-    public void setCash(BigDecimal cash) {
-        this.cash = cash;
+    public void setCurrencies(Set<Currency> currencies) {
+        this.currencies = currencies;
     }
 
+    public Set<AlpacaOrder> getAlpacaOrders() {
+        return alpacaOrders;
+    }
+
+    public void setAlpacaOrders(Set<AlpacaOrder> alpacaOrders) {
+        this.alpacaOrders = alpacaOrders;
+    }
 }

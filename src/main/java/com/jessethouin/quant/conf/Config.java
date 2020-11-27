@@ -26,6 +26,8 @@ public class Config {
     private SellStrategyTypes sellStrategy;
     private String backTestData;
     private List<String> securities;
+    private List<String> fiatCurrencies;
+    private List<String> cryptoCurrencies;
     private Broker broker;
 
     public Config() {
@@ -48,6 +50,8 @@ public class Config {
             setSellStrategy(SellStrategyTypes.valueOf(prop.getProperty("sellStrategy")));
             setBackTestData(prop.getProperty("backTestData"));
             setSecurities(Stream.of(prop.getProperty("securities").split(",", -1)).collect(Collectors.toList()));
+            setFiatCurrencies(Stream.of(prop.getProperty("fiatCurrencies").split(",", -1)).collect(Collectors.toList()));
+            setCryptoCurrencies(Stream.of(prop.getProperty("cryptoCurrencies").split(",", -1)).collect(Collectors.toList()));
             setBroker(Broker.valueOf(prop.getProperty("broker")));
         } catch (IOException e) {
             LOG.error("Unable to read properties file: " + e.getLocalizedMessage());
@@ -132,6 +136,22 @@ public class Config {
 
     public void setSecurities(List<String> securities) {
         this.securities = securities;
+    }
+
+    public List<String> getFiatCurrencies() {
+        return fiatCurrencies;
+    }
+
+    public void setFiatCurrencies(List<String> fiatCurrencies) {
+        this.fiatCurrencies = fiatCurrencies;
+    }
+
+    public List<String> getCryptoCurrencies() {
+        return cryptoCurrencies;
+    }
+
+    public void setCryptoCurrencies(List<String> cryptoCurrencies) {
+        this.cryptoCurrencies = cryptoCurrencies;
     }
 
     public Broker getBroker() {

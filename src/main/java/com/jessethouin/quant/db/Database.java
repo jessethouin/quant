@@ -1,8 +1,11 @@
 package com.jessethouin.quant.db;
 
 import com.jessethouin.quant.alpaca.beans.AlpacaOrder;
+import com.jessethouin.quant.beans.Currency;
 import com.jessethouin.quant.beans.Portfolio;
+import com.jessethouin.quant.beans.Security;
 import com.jessethouin.quant.beans.TickerHistory;
+import com.jessethouin.quant.binance.beans.BinanceLimitOrder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.hibernate.Session;
@@ -10,6 +13,7 @@ import org.hibernate.SessionFactory;
 import org.hibernate.boot.MetadataSources;
 import org.hibernate.boot.registry.StandardServiceRegistry;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
+import org.jetbrains.annotations.NotNull;
 
 public class Database {
     private static Session session;
@@ -54,6 +58,44 @@ public class Database {
         return result;
     }
 
+    public static void persistBinanceLimitOrder(BinanceLimitOrder binanceLimitOrder) {
+        session.beginTransaction();
+        session.persist(binanceLimitOrder);
+        session.getTransaction().commit();
+    }
+
+    public static BinanceLimitOrder getBinanceLimitOrder(String id) {
+        session.beginTransaction();
+        BinanceLimitOrder result = (BinanceLimitOrder) getSession()
+                .createQuery("from BinanceLimitOrder where id=:id")
+                .setParameter("id", id)
+                .uniqueResult();
+        session.getTransaction().commit();
+        return result;
+    }
+
+    public static Currency getCurrencyFromPortfolio(@NotNull Portfolio portfolio, String currencySymbol) {
+        session.beginTransaction();
+        Currency result = (Currency) getSession()
+                .createQuery("from Currency where portfolio_id=:portfolio_id and symbol=:symbol")
+                .setParameter("portfolio_id", portfolio.getPortfolioId())
+                .setParameter("symbol", currencySymbol)
+                .uniqueResult();
+        session.getTransaction().commit();
+        return result;
+    }
+
+    public static Security getSecurityFromPortfolio(@NotNull Portfolio portfolio, String securitySymbol) {
+        session.beginTransaction();
+        Security result = (Security) getSession()
+                .createQuery("from Security where portfolio_id=:portfolio_id and symbol=:symbol")
+                .setParameter("portfolio_id", portfolio.getPortfolioId())
+                .setParameter("symbol", securitySymbol)
+                .uniqueResult();
+        session.getTransaction().commit();
+        return result;
+    }
+
     public static void persistPortfolio(Portfolio portfolio) {
         session.beginTransaction();
         session.persist(portfolio);
@@ -65,6 +107,12 @@ public class Database {
         Portfolio result = (Portfolio) getSession().createQuery("from Portfolio").uniqueResult();
         session.getTransaction().commit();
         return result;
+    }
+
+    public static void persistSecurity(Security security) {
+        session.beginTransaction();
+        session.persist(security);
+        session.getTransaction().commit();
     }
 
     public static void persistTickerHistory(TickerHistory tickerHistory) {

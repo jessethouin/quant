@@ -182,7 +182,13 @@
             <artifactId>retry4j</artifactId>
             <version>0.15.0</version>
         </dependency>
-<!-- End Intrinio -->
+        <dependency>
+            <groupId>org.jetbrains</groupId>
+            <artifactId>annotations</artifactId>
+            <version>RELEASE</version>
+            <scope>compile</scope>
+        </dependency>
+        <!-- End Intrinio -->
 
     </dependencies>
 

@@ -3,11 +3,11 @@ package com.jessethouin.quant.beans;
 import org.hibernate.annotations.GenericGenerator;
 
 import javax.persistence.*;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
-@Table(name = "SECURITY")
+@Table(name = "SECURITY", uniqueConstraints = @UniqueConstraint(columnNames = {"symbol", "portfolio_id"}))
 public class Security {
     @Id
     @GeneratedValue(generator = "increment")
@@ -17,8 +17,11 @@ public class Security {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "portfolio_id")
     private Portfolio portfolio;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "currency_id")
+    private Currency currency;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "security", fetch = FetchType.EAGER, orphanRemoval = true)
-    private List<Position> positions = new ArrayList<>();
+    private Set<SecurityPosition> securityPositions = new HashSet<>();
 
     public Long getSecurityId() {
         return securityId;
@@ -36,12 +39,20 @@ public class Security {
         this.symbol = symbol;
     }
 
-    public List<Position> getPositions() {
-        return positions;
+    public Set<SecurityPosition> getSecurityPositions() {
+        return securityPositions;
     }
 
-    public void setPositions(List<Position> positions) {
-        this.positions = positions;
+    public void setSecurityPositions(Set<SecurityPosition> securityPositions) {
+        this.securityPositions = securityPositions;
+    }
+
+    public Currency getCurrency() {
+        return currency;
+    }
+
+    public void setCurrency(Currency currency) {
+        this.currency = currency;
     }
 
     public Portfolio getPortfolio() {

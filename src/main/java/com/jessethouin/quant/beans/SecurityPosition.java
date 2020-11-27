@@ -8,8 +8,8 @@ import java.math.BigDecimal;
 import java.util.Date;
 
 @Entity
-@Table(name = "POSITION")
-public class Position {
+@Table(name = "SECURITY_POSITION")
+public class SecurityPosition {
     @Id
     @GeneratedValue(generator = "increment")
     @GenericGenerator(name = "increment", strategy = "increment")

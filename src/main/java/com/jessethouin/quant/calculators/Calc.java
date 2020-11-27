@@ -1,14 +1,22 @@
 package com.jessethouin.quant.calculators;
 
+import com.jessethouin.quant.beans.Currency;
 import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.beans.Security;
 import com.jessethouin.quant.broker.Transactions;
+import com.jessethouin.quant.broker.Util;
 import com.jessethouin.quant.conf.Config;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.math.BigDecimal;
 
 public class Calc {
+    private static final Logger LOG = LogManager.getLogger(Calc.class);
+
     private final Security security;
+    private final Currency base;
+    private final Currency counter;
     private final Config config;
 
     private BigDecimal price;
@@ -21,11 +29,17 @@ public class Calc {
     private BigDecimal qty;
 
     public Calc(Security security, Config config, BigDecimal price) {
-        this(security, config, price, price, price, BigDecimal.ZERO, true);
+        this(security, security.getCurrency(), null, config, price, price, price, BigDecimal.ZERO, true);
     }
 
-    public Calc(Security security, Config config, BigDecimal price, BigDecimal high, BigDecimal low, BigDecimal spread, boolean buy) {
+    public Calc(Currency base, Currency counter, Config config, BigDecimal price) {
+        this(null, base, counter, config, price, price, price, BigDecimal.ZERO, true);
+    }
+
+    public Calc(Security security, Currency base, Currency counter, Config config, BigDecimal price, BigDecimal high, BigDecimal low, BigDecimal spread, boolean buy) {
         this.security = security;
+        this.base = base;
+        this.counter = counter;
         this.config = config;
         this.price = price;
         this.high = high;
@@ -48,6 +62,14 @@ public class Calc {
 
     public BigDecimal getPrice() {
         return price;
+    }
+
+    public Currency getBase() {
+        return base;
+    }
+
+    public Currency getCounter() {
+        return counter;
     }
 
     public void setPrice(BigDecimal price) {
@@ -102,9 +124,7 @@ public class Calc {
         this.buy = buy;
     }
 
-    public BigDecimal decide() {
-        BigDecimal proceeds = BigDecimal.ZERO;
-
+    public void decide() {
         if (getPrice().compareTo(getHigh()) > 0) {
             setHigh(getPrice());
         } else if (getPrice().compareTo(getLow()) < 0) {
@@ -112,12 +132,12 @@ public class Calc {
             setHigh(getPrice());
             setSpread(BigDecimal.ZERO);
             setBuy(true);
-            return proceeds;
+            return;
         }
 
         setSpread(getHigh().subtract(getLow()));
 
-        if (getMa1().signum() == 0 || getMa2().signum() == 0) return proceeds;
+        if (getMa1().signum() == 0 || getMa2().signum() == 0) return;
 
         boolean buy = switch (config.getBuyStrategy()) {
             case BUY1 -> buy1();
@@ -133,18 +153,16 @@ public class Calc {
         };
 
         if (buy) {
-            proceeds = Transactions.buySecurity(config.getBroker(), getSecurity(), getQty(), getPrice()).negate();
+            Transactions.placeBuyOrder(config.getBroker(), getSecurity(), getBase(), getCounter(), getQty(), getPrice());
             setBuy(false);
         } else if (sell) {
-            proceeds = Transactions.sellSecurity(config.getBroker(), getSecurity(), getPrice());
-            if (proceeds.compareTo(BigDecimal.ZERO) > 0) {
+            boolean success = Transactions.placeSellOrder(config.getBroker(), getSecurity(), getBase(), getCounter(), getPrice());
+            if (success) {
                 setLow(price);
                 setHigh(price);
             }
             setBuy(true);
         }
-
-        return proceeds;
     }
 
     private boolean buy1() {
@@ -173,7 +191,20 @@ public class Calc {
     }
 
     public boolean sell2() {
-        return getPrice().compareTo(getHigh().subtract(getSpread().multiply(config.getLowRisk()))) < 0;
+        if (getPrice().compareTo(getHigh().subtract(getSpread().multiply(config.getLowRisk()))) < 0) {
+            LOG.info("Sell2 met. Here's why.\n" +
+                    "\nconfig.getLowRisk() = " + config.getLowRisk() +
+                    "\ngetSpread() = " + getSpread() +
+                    "\ngetSpread().multiply(config.getLowRisk()) = " + getSpread().multiply(config.getLowRisk()) +
+                    "\ngetHigh() = " + getHigh() +
+                    "\ngetHigh().subtract(getSpread().multiply(config.getLowRisk())) = " + getHigh().subtract(getSpread().multiply(config.getLowRisk())) +
+                    "\ngetPrice() = " + getPrice() +
+                    "\ngetPrice().compareTo(getHigh().subtract(getSpread().multiply(config.getLowRisk()))) = " + getPrice().compareTo(getHigh().subtract(getSpread().multiply(config.getLowRisk()))));
+            return true;
+        } else {
+            return false;
+        }
+//        return getPrice().compareTo(getHigh().subtract(getSpread().multiply(config.getLowRisk()))) < 0;
     }
 
     public boolean sell3() {
@@ -189,7 +220,7 @@ public class Calc {
         setPrice(price);
         if (getLow().equals(BigDecimal.ZERO)) setLow(price);
         if (getHigh().equals(BigDecimal.ZERO)) setHigh(price);
-        setQty(Transactions.getBudget(portfolio, price, config.getAllowance()));
+        setQty(Util.getBudget(portfolio, price, config.getAllowance(), getBase()));
         setMa1(ma1);
         setMa2(ma2);
     }

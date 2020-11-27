@@ -1,13 +1,14 @@
 package com.jessethouin.quant.alpaca;
 
 import com.jessethouin.quant.alpaca.beans.AlpacaOrder;
+import com.jessethouin.quant.beans.Currency;
 import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.beans.Security;
-import com.jessethouin.quant.broker.Transactions;
+import com.jessethouin.quant.broker.Util;
 import com.jessethouin.quant.calculators.Calc;
 import com.jessethouin.quant.conf.Config;
+import com.jessethouin.quant.conf.CurrencyTypes;
 import com.jessethouin.quant.db.Database;
-import com.jessethouin.quant.exceptions.CashException;
 import net.jacobpeterson.alpaca.AlpacaAPI;
 import net.jacobpeterson.alpaca.enums.Direction;
 import net.jacobpeterson.alpaca.enums.OrderStatus;
@@ -35,9 +36,8 @@ import java.text.SimpleDateFormat;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
-import java.util.stream.Stream;
 
-import static com.jessethouin.quant.conf.OrderStatus.*;
+import static com.jessethouin.quant.conf.OrderStatus.FILLED;
 import static net.jacobpeterson.polygon.websocket.message.PolygonStreamMessageType.AGGREGATE_PER_SECOND;
 import static net.jacobpeterson.polygon.websocket.message.PolygonStreamMessageType.TRADE;
 
@@ -49,9 +49,10 @@ public class AlpacaLive {
     private final AlpacaAPI alpacaAPI = new AlpacaAPI();
     private final PolygonAPI polygonAPI = new PolygonAPI();
 
-    private AlpacaLive(){}
+    private AlpacaLive() {
+    }
 
-    public static AlpacaLive getInstance(){
+    public static AlpacaLive getInstance() {
         return instance;
     }
 
@@ -65,13 +66,31 @@ public class AlpacaLive {
 
             if (portfolio == null) {
                 portfolio = new Portfolio();
-                portfolio.setCash(new BigDecimal(alpacaAccount.getCash()));
-                List<String> tickers = config.getSecurities();
-                tickers.forEach(t -> {
-                    Security security = new Security();
-                    security.setSymbol(t);
-                    security.setPortfolio(portfolio);
-                    portfolio.getSecurities().add(security);
+                List<String> fiatCurrencies = config.getFiatCurrencies();
+                fiatCurrencies.forEach(c -> {
+                    Currency currency = new Currency();
+                    currency.setSymbol(c);
+                    currency.setCurrencyType(CurrencyTypes.FIAT);
+                    if (c.equals("USD")) { // default-coded for now, until international exchanges are implemented
+                        List<String> tickers = config.getSecurities();
+                        tickers.forEach(t -> {
+                            Security security = new Security();
+                            security.setSymbol(t);
+                            security.setCurrency(currency);
+                            security.setPortfolio(portfolio);
+                            portfolio.getSecurities().add(security);
+                        });
+                    }
+                    currency.setPortfolio(portfolio);
+                    portfolio.getCurrencies().add(currency);
+                });
+                List<String> cryptoCurrencies = config.getCryptoCurrencies();
+                cryptoCurrencies.forEach(c -> {
+                    Currency currency = new Currency();
+                    currency.setSymbol(c);
+                    currency.setPortfolio(portfolio);
+                    currency.setCurrencyType(CurrencyTypes.CRYPTO);
+                    portfolio.getCurrencies().add(currency);
                 });
                 Database.persistPortfolio(portfolio);
             }
@@ -79,7 +98,8 @@ public class AlpacaLive {
             LOG.info("\n\nAlpaca Account Information:");
             LOG.info("\t" + alpacaAccount.toString().replace(",", ",\n\t"));
 
-            LOG.info("Portfolion Cash: " + portfolio.getCash());
+            LOG.info("Portfolio Cash:");
+            portfolio.getCurrencies().forEach(c -> LOG.info("\t{} : {}", c.getSymbol(), Util.getBalance(portfolio, c)));
             portfolio.getSecurities().forEach(security -> LOG.info("Open position:" + alpacaLive.getOpenPosition(security.getSymbol())));
 
             Objects.requireNonNull(alpacaLive.getClosedOrders()).forEach(o -> LOG.info("Closed Orders:" + o.toString()));
@@ -109,7 +129,7 @@ public class AlpacaLive {
         return null;
     }
 
-    private void openStreamListener(List<Security> securities) {
+    private void openStreamListener(Set<Security> securities) {
         securities.forEach(s -> getPolygonAPI().addPolygonStreamListener(new PolygonStreamListenerAdapter(s.getSymbol(), PolygonStreamMessageType.values()) {
             final Calc c = new Calc(s, config, BigDecimal.ZERO);
             final List<BigDecimal> intradayPrices = new ArrayList<>();
@@ -141,15 +161,11 @@ public class AlpacaLive {
                 price = BigDecimal.valueOf(p);
                 if (count < config.getLongLookback()) intradayPrices.add(price);
 
-                shortMAValue = Transactions.getMA(intradayPrices, previousShortMAValue, count, config.getShortLookback(), price);
-                longMAValue = Transactions.getMA(intradayPrices, previousLongMAValue, count, config.getLongLookback(), price);
+                shortMAValue = Util.getMA(intradayPrices, previousShortMAValue, count, config.getShortLookback(), price);
+                longMAValue = Util.getMA(intradayPrices, previousLongMAValue, count, config.getLongLookback(), price);
                 c.updateCalc(price, shortMAValue, longMAValue, portfolio);
-                try {
-                    Transactions.addCash(portfolio, c.decide());
-                    LOG.debug(MessageFormat.format("{0,number,000} : ma1 {1,number,000.0000} : ma2 {2,number,000.0000} : l {3,number,000.0000}: h {4,number,000.0000}: p {5,number,000.0000} : {6,number,00000.0000}", count, shortMAValue, longMAValue, c.getLow(), c.getHigh(), price, Transactions.getPortfolioValue(portfolio, s.getSymbol(), price)));
-                } catch (CashException e) {
-                    LOG.error(e.getLocalizedMessage());
-                }
+                c.decide();
+                LOG.debug(MessageFormat.format("{0,number,000} : ma1 {1,number,000.0000} : ma2 {2,number,000.0000} : l {3,number,000.0000}: h {4,number,000.0000}: p {5,number,000.0000} : {6,number,00000.0000}", count, shortMAValue, longMAValue, c.getLow(), c.getHigh(), price, Util.getPortfolioValue(portfolio, s.getCurrency(), price)));
 
                 Database.persistPortfolio(portfolio);
                 previousShortMAValue = shortMAValue;
@@ -157,73 +173,21 @@ public class AlpacaLive {
                 count++;
             }
         }));
-
-        //RECEIVED: {"stream":"Q.AAPL","data":{"ev":"Q","T":"AAPL","x":17,"p":112.12,"s":1,"X":3,"P":112.98,"S":1,"c":[0],"t":1601645053026000000}}
-/*
-        securities.forEach(s -> alpacaAPI.addMarketDataStreamListener(new MarketDataStreamListenerAdapter(s.getSymbol(), TRADES, AGGREGATE_MINUTE) {
-            final Calc c = new Calc(s, config, BigDecimal.ZERO);
-            final List<BigDecimal> intradayPrices = new ArrayList<>();
-            int count = 0;
-            BigDecimal shortMAValue;
-            BigDecimal longMAValue;
-            BigDecimal price = BigDecimal.ZERO;
-            BigDecimal previousShortMAValue = BigDecimal.ZERO;
-            BigDecimal previousLongMAValue = BigDecimal.ZERO;
-
-            @Override
-            public void onStreamUpdate(MarketDataStreamMessageType streamMessageType, MarketDataStreamMessage streamMessage) {
-                switch (streamMessageType) {
-                    case QUOTES -> {
-                        QuoteMessage quoteMessage = (QuoteMessage) streamMessage;
-                        LOG.info("\nQuote Update: \n\t" + quoteMessage.toString().replace(",", ",\n\t"));
-                    }
-                    case TRADES -> {
-                        TradeMessage tradeMessage = (TradeMessage) streamMessage;
-                        LOG.info("\nTrade Update [" + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss,SSS").format(new Date(tradeMessage.getT() / 1000 / 1000)) + "]: \n\t" + tradeMessage.toString().replace(",", ",\n\t"));
-
-                        price = BigDecimal.valueOf(tradeMessage.getP());
-                        if (count < config.getLongLookback()) intradayPrices.add(price);
-
-                        shortMAValue = Transactions.getMA(intradayPrices, previousShortMAValue, count, config.getShortLookback(), price);
-                        longMAValue = Transactions.getMA(intradayPrices, previousLongMAValue, count, config.getLongLookback(), price);
-                        c.updateCalc(price, shortMAValue, longMAValue, portfolio);
-                        try {
-                            Transactions.addCash(portfolio, c.decide());
-                            LOG.debug(MessageFormat.format("{0,number,000} : ma1 {1,number,000.000} : ma2 {2,number,000.000} : l {3,number,000.000}: h {4,number,000.000}: p {5,number,000.000} : {6,number,00000.000}", count, shortMAValue, longMAValue, c.getLow(), c.getHigh(), price, Transactions.getPortfolioValue(portfolio, s.getSymbol(), price)));
-                        } catch (CashException e) {
-                            LOG.error(e.getLocalizedMessage());
-                        }
-
-                        Database.persistPortfolio(portfolio);
-                        previousShortMAValue = shortMAValue;
-                        previousLongMAValue = longMAValue;
-                        count++;
-                    }
-                    case AGGREGATE_MINUTE -> {
-                        AggregateMinuteMessage aggregateMessage = (AggregateMinuteMessage) streamMessage;
-                        LOG.info("\nAggregate Minute Update: \n\t" + aggregateMessage.toString().replace(",", ",\n\t"));
-                    }
-                }
-            }
-        }));
-*/
     }
 
     private void openTradeUpdatesStream() {
-        getAlpacaAPI().addAlpacaStreamListener(new AlpacaStreamListenerAdapter(AlpacaStreamMessageType.TRADE_UPDATES, AlpacaStreamMessageType.ACCOUNT_UPDATES){
+        getAlpacaAPI().addAlpacaStreamListener(new AlpacaStreamListenerAdapter(AlpacaStreamMessageType.TRADE_UPDATES, AlpacaStreamMessageType.ACCOUNT_UPDATES) {
             @Override
             public void onStreamUpdate(AlpacaStreamMessageType streamMessageType, AlpacaStreamMessage streamMessage) {
                 switch (streamMessageType) {
                     case TRADE_UPDATES -> {
                         TradeUpdateMessage tradeUpdateMessage = (TradeUpdateMessage) streamMessage;
-                        Order thisOrder = tradeUpdateMessage.getData().getOrder();
-                        LOG.info(thisOrder.toString());
-                        AlpacaOrder thatOrder = Database.getAlpacaOrder(thisOrder.getId()); //todo: check for null. What if it didn't make it into the database on order creation?
-                        if (!thatOrder.getStatus().equals(thisOrder.getStatus())) {
-                            // update existing alpacaOrder
-                        }
-                        if (Stream.of(FILLED.getStatus(), EXPIRED.getStatus(), CANCELED.getStatus()).anyMatch(thisOrder.getStatus()::equalsIgnoreCase)) {
-                            // remove alpacaa order
+                        Order order = tradeUpdateMessage.getData().getOrder();
+                        LOG.info(order.toString());
+                        AlpacaOrder alpacaOrder = Database.getAlpacaOrder(order.getId()); //todo: check for null. What if it didn't make it into the database on order creation?
+                        Util.updateAlpacaOrder(alpacaOrder, order);
+                        if (alpacaOrder.getStatus().equals(FILLED.getStatus())) {
+                            AlpacaTransactions.processFilledOrder(alpacaOrder);
                         }
                     }
                     case ACCOUNT_UPDATES -> {

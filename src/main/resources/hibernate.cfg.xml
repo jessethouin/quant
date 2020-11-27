@@ -33,10 +33,13 @@
 
         <!-- Names the annotated entity class -->
         <mapping class="com.jessethouin.quant.beans.Portfolio"/>
-        <mapping class="com.jessethouin.quant.beans.Position"/>
+        <mapping class="com.jessethouin.quant.beans.SecurityPosition"/>
         <mapping class="com.jessethouin.quant.beans.Security"/>
+        <mapping class="com.jessethouin.quant.beans.Currency"/>
+        <mapping class="com.jessethouin.quant.beans.CurrencyPosition"/>
         <mapping class="com.jessethouin.quant.beans.TickerHistory"/>
         <mapping class="com.jessethouin.quant.alpaca.beans.AlpacaOrder"/>
+        <mapping class="com.jessethouin.quant.binance.beans.BinanceLimitOrder"/>
 
     </session-factory>
 
