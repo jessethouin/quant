@@ -491,42 +491,46 @@ public class AlpacaOrder {
         return sb.toString();
     }
 
-    public boolean equals(Object other) {
-        if (other == this) {
-            return true;
-        } else if (!(other instanceof AlpacaOrder)) {
-            return false;
-        } else {
-            AlpacaOrder rhs = (AlpacaOrder) other;
-            return Objects.equals(this.symbol, rhs.symbol) &&
-                    Objects.equals(this.replacedAt, rhs.replacedAt) &&
-                    Objects.equals(this.extendedHours, rhs.extendedHours) &&
-                    Objects.equals(this.trailPrice, rhs.trailPrice) &&
-                    Objects.equals(this.assetClass, rhs.assetClass) &&
-                    Objects.equals(this.type, rhs.type) &&
-                    Objects.equals(this.createdAt, rhs.createdAt) &&
-                    Objects.equals(this.expiredAt, rhs.expiredAt) &&
-                    Objects.equals(this.failedAt, rhs.failedAt) &&
-                    Objects.equals(this.assetId, rhs.assetId) &&
-                    Objects.equals(this.legs, rhs.legs) &&
-                    Objects.equals(this.id, rhs.id) &&
-                    Objects.equals(this.submittedAt, rhs.submittedAt) &&
-                    Objects.equals(this.timeInForce, rhs.timeInForce) &&
-                    Objects.equals(this.updatedAt, rhs.updatedAt) &&
-                    Objects.equals(this.side, rhs.side) &&
-                    Objects.equals(this.limitPrice, rhs.limitPrice) &&
-                    Objects.equals(this.trailPercent, rhs.trailPercent) &&
-                    Objects.equals(this.replacedBy, rhs.replacedBy) &&
-                    Objects.equals(this.replaces, rhs.replaces) &&
-                    Objects.equals(this.clientOrderId, rhs.clientOrderId) &&
-                    Objects.equals(this.filledAt, rhs.filledAt) &&
-                    Objects.equals(this.filledAvgPrice, rhs.filledAvgPrice) &&
-                    Objects.equals(this.stopPrice, rhs.stopPrice) &&
-                    Objects.equals(this.canceledAt, rhs.canceledAt) &&
-                    Objects.equals(this.qty, rhs.qty) &&
-                    Objects.equals(this.filledQty, rhs.filledQty) &&
-                    Objects.equals(this.status, rhs.status) &&
-                    Objects.equals(this.hwm, rhs.hwm);
-        }
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        AlpacaOrder that = (AlpacaOrder) o;
+        return orderId == that.orderId &&
+                Objects.equals(portfolio, that.portfolio) &&
+                Objects.equals(id, that.id) &&
+                Objects.equals(clientOrderId, that.clientOrderId) &&
+                Objects.equals(createdAt, that.createdAt) &&
+                Objects.equals(updatedAt, that.updatedAt) &&
+                Objects.equals(submittedAt, that.submittedAt) &&
+                Objects.equals(filledAt, that.filledAt) &&
+                Objects.equals(expiredAt, that.expiredAt) &&
+                Objects.equals(canceledAt, that.canceledAt) &&
+                Objects.equals(failedAt, that.failedAt) &&
+                Objects.equals(replacedAt, that.replacedAt) &&
+                Objects.equals(replacedBy, that.replacedBy) &&
+                Objects.equals(replaces, that.replaces) &&
+                Objects.equals(assetId, that.assetId) &&
+                Objects.equals(symbol, that.symbol) &&
+                Objects.equals(assetClass, that.assetClass) &&
+                Objects.equals(qty, that.qty) &&
+                Objects.equals(filledQty, that.filledQty) &&
+                Objects.equals(type, that.type) &&
+                Objects.equals(side, that.side) &&
+                Objects.equals(timeInForce, that.timeInForce) &&
+                Objects.equals(limitPrice, that.limitPrice) &&
+                Objects.equals(stopPrice, that.stopPrice) &&
+                Objects.equals(filledAvgPrice, that.filledAvgPrice) &&
+                Objects.equals(status, that.status) &&
+                Objects.equals(extendedHours, that.extendedHours) &&
+                Objects.equals(legs, that.legs) &&
+                Objects.equals(trailPrice, that.trailPrice) &&
+                Objects.equals(trailPercent, that.trailPercent) &&
+                Objects.equals(hwm, that.hwm);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(orderId, portfolio, id, clientOrderId, createdAt, updatedAt, submittedAt, filledAt, expiredAt, canceledAt, failedAt, replacedAt, replacedBy, replaces, assetId, symbol, assetClass, qty, filledQty, type, side, timeInForce, limitPrice, stopPrice, filledAvgPrice, status, extendedHours, legs, trailPrice, trailPercent, hwm);
     }
 }

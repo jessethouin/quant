@@ -187,39 +187,6 @@ public class BinanceLimitOrder implements Comparable<BinanceLimitOrder> {
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-
-        final BinanceLimitOrder other = (BinanceLimitOrder) obj;
-
-        if (this.limitPrice == null
-                ? (other.limitPrice != null)
-                : this.limitPrice.compareTo(other.limitPrice) != 0) {
-            return false;
-        }
-        if (this.type != other.type) {
-            return false;
-        }
-        if ((this.originalAmount == null)
-                ? (other.originalAmount != null)
-                : this.originalAmount.compareTo(other.originalAmount) != 0) {
-            return false;
-        }
-        if (!Objects.equals(this.instrument, other.instrument)) {
-            return false;
-        }
-        if (!Objects.equals(this.id, other.id)) {
-            return false;
-        }
-        return Objects.equals(this.timestamp, other.timestamp);
-    }
-
-    @Override
     public int compareTo(BinanceLimitOrder limitOrder) {
         final int ret;
         if (this.getType() == limitOrder.getType()) {
@@ -245,5 +212,30 @@ public class BinanceLimitOrder implements Comparable<BinanceLimitOrder> {
             return originalAmount.subtract(cumulativeAmount);
         }
         return originalAmount;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        BinanceLimitOrder that = (BinanceLimitOrder) o;
+        return orderId == that.orderId &&
+                type == that.type &&
+                Objects.equals(originalAmount, that.originalAmount) &&
+                Objects.equals(instrument, that.instrument) &&
+                Objects.equals(id, that.id) &&
+                Objects.equals(userReference, that.userReference) &&
+                Objects.equals(timestamp, that.timestamp) &&
+                status == that.status &&
+                Objects.equals(cumulativeAmount, that.cumulativeAmount) &&
+                Objects.equals(averagePrice, that.averagePrice) &&
+                Objects.equals(fee, that.fee) &&
+                Objects.equals(leverage, that.leverage) &&
+                Objects.equals(limitPrice, that.limitPrice);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(orderId, type, originalAmount, instrument, id, userReference, timestamp, status, cumulativeAmount, averagePrice, fee, leverage, limitPrice);
     }
 }

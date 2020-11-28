@@ -3,6 +3,7 @@ package com.jessethouin.quant.alpaca;
 import com.jessethouin.quant.alpaca.beans.AlpacaOrder;
 import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.beans.Security;
+import com.jessethouin.quant.beans.SecurityPosition;
 import com.jessethouin.quant.broker.Transactions;
 import com.jessethouin.quant.broker.Util;
 import com.jessethouin.quant.db.Database;
@@ -19,6 +20,8 @@ import org.apache.logging.log4j.Logger;
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Random;
 
 public class AlpacaTransactions {
@@ -94,7 +97,7 @@ public class AlpacaTransactions {
         LOG.info("Sell order failed: " + security.getSymbol() + ", " + qty + ", " + price);
     }
 
-    public static AlpacaOrder placePaperSecuritySellOrder(Security security, BigDecimal qty, BigDecimal price) {
+    public static AlpacaOrder placeTestSecuritySellOrder(Security security, BigDecimal qty, BigDecimal price) {
         if (qty.equals(BigDecimal.ZERO)) return null;
         Order order = new Order(
                 "fake_order_id_" + (new Random().nextInt(1000)),
@@ -145,7 +148,30 @@ public class AlpacaTransactions {
         }
         if (alpacaOrder.getSide().equals(OrderSide.SELL.getAPIName())) {
             Transactions.addCurrencyPosition(portfolio, filledQty.multiply(filledAvgPrice), security.getCurrency());
-            Transactions.addSecurityPosition(security, filledQty.negate(), filledAvgPrice);
+
+            List<SecurityPosition> remove = new ArrayList<>();
+
+            security.getSecurityPositions().forEach(position -> {
+                if (position.getPrice().compareTo(filledAvgPrice) < 0) {
+                    remove.add(position);
+                }
+            });
+
+            BigDecimal[] qty = {filledQty};
+            remove.sort(Comparator.comparing(SecurityPosition::getPrice).reversed());
+
+            remove.forEach(securityPosition -> {
+                BigDecimal securityPositionQuantity = securityPosition.getQuantity();
+
+                if (securityPositionQuantity.compareTo(qty[0]) <= 0) {
+                    security.getSecurityPositions().remove(securityPosition);
+                    qty[0] = qty[0].subtract(securityPositionQuantity);
+                } else {
+                    securityPosition.setQuantity(securityPositionQuantity.subtract(qty[0]));
+                    qty[0] = BigDecimal.ZERO;
+                }
+
+            });
         }
 
         Database.persistPortfolio(portfolio);

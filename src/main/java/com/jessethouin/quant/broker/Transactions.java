@@ -52,7 +52,7 @@ public class Transactions {
                 LOG.info("Place Binance buy order here");
                 BinanceTransactions.buyCurrency(new CurrencyPair(base.getSymbol(), counter.getSymbol()), qty, price);
             }
-            default -> throw new IllegalStateException("Unexpected value: " + broker);
+            default -> throw new IllegalStateException("Unexpected broker: " + broker);
         }
     }
 
@@ -80,7 +80,7 @@ public class Transactions {
                     LOG.info("Place BINANCE sell order here");
                     BinanceTransactions.sellCurrency(new CurrencyPair(base.getSymbol(), counter.getSymbol()), qty[0], price);
                 }
-                default -> throw new IllegalStateException("Unexpected value: " + broker);
+                default -> throw new IllegalStateException("Unexpected broker: " + broker);
             }
 //            Add logic to store positions for removal based on success of sell order placed
 //            base.getCurrencyPositions().removeAll(remove);
@@ -110,47 +110,43 @@ public class Transactions {
                 alpacaOrder.setFilledAvgPrice(price.toPlainString());
                 AlpacaTransactions.processFilledOrder(alpacaOrder);
             }
-            default -> throw new IllegalStateException("Unexpected value: " + broker);
+            default -> throw new IllegalStateException("Unexpected broker: " + broker);
         }
     }
 
     public static boolean placeSecuritySellOrder(Broker broker, Security security, BigDecimal price, boolean sellAll) {
-        List<SecurityPosition> remove = new ArrayList<>();
         BigDecimal[] qty = {BigDecimal.ZERO};
 
         security.getSecurityPositions().forEach(position -> {
             if (position.getPrice().compareTo(price) < 0 || sellAll) {
                 LOG.trace("Create sell order for " + position.getQuantity() + " " + security.getSymbol() + " at " + price);
-                remove.add(position);
                 qty[0] = qty[0].add(position.getQuantity());
             }
         });
 
-        if (!remove.isEmpty()) {
-            switch (broker) {
-                case ALPACA -> {
-                    LOG.info("Place ALPACA sell order here");
-                    AlpacaTransactions.placeSecuritySellOrder(security, qty[0], price);
-                }
-                case ALPACA_TEST -> {
-                    LOG.info("Place ALPACA_TEST sell order here");
-                    AlpacaOrder alpacaOrder = AlpacaTransactions.placePaperSecuritySellOrder(security, qty[0], price);
+        BigDecimal sellQty = qty[0].min(Util.getHeldSecurity(security));
+        if (sellQty.equals(BigDecimal.ZERO)) return false;
 
-                    if (alpacaOrder == null) return false;
-                    alpacaOrder.setStatus(Order.OrderStatus.FILLED.toString());
-                    alpacaOrder.setFilledAt(ZonedDateTime.now());
-                    alpacaOrder.setFilledQty(qty[0].toPlainString());
-                    alpacaOrder.setFilledAvgPrice(price.toPlainString());
-                    AlpacaTransactions.processFilledOrder(alpacaOrder);
-                }
-                default -> throw new IllegalStateException("Unexpected value: " + broker);
+        switch (broker) {
+            case ALPACA -> {
+                LOG.info("Place ALPACA sell order here");
+                AlpacaTransactions.placeSecuritySellOrder(security, sellQty, price);
             }
-//            Add logic to store positions for removal based on success of sell order placed
-//            security.getSecurityPositions().removeAll(remove);
-            return true;
-        }
+            case ALPACA_TEST -> {
+                LOG.info("Place ALPACA_TEST sell order here");
+                AlpacaOrder alpacaOrder = AlpacaTransactions.placeTestSecuritySellOrder(security, sellQty, price);
 
-        return false;
+                // This code would normally be handled by the Order websocket feed
+                if (alpacaOrder == null) return false;
+                alpacaOrder.setStatus(Order.OrderStatus.FILLED.toString());
+                alpacaOrder.setFilledAt(ZonedDateTime.now());
+                alpacaOrder.setFilledQty(sellQty.toPlainString());
+                alpacaOrder.setFilledAvgPrice(price.toPlainString());
+                AlpacaTransactions.processFilledOrder(alpacaOrder);
+            }
+            default -> throw new IllegalStateException("Unexpected broker: " + broker);
+        }
+        return true;
     }
 
     public static boolean placeSecuritySellAllOrder(Broker broker, Security security, BigDecimal price) {

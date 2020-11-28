@@ -44,11 +44,10 @@ public class Util {
     public static BigDecimal getPortfolioValue(Portfolio portfolio, Currency currency, BigDecimal price) {
         AtomicReference<BigDecimal> holdings = new AtomicReference<>(BigDecimal.ZERO);
         holdings.updateAndGet(v -> v.add(getBalance(portfolio, currency)));
-        portfolio.getSecurities().stream().filter(
-                security -> security.getCurrency().equals(currency)).forEach(
-                security -> security.getSecurityPositions().forEach(
-                        position -> holdings.updateAndGet(
-                                v -> v.add(price.multiply(position.getQuantity())))));
+        portfolio.getSecurities().stream()
+                .filter(security -> security.getCurrency().equals(currency))
+                .forEach(security -> security.getSecurityPositions()
+                        .forEach(position -> holdings.updateAndGet(v -> v.add(price.multiply(position.getQuantity())))));
         return holdings.get();
     }
 
@@ -59,6 +58,12 @@ public class Util {
                 .forEach(c -> c.getCurrencyPositions()
                         .forEach(currencyPosition -> balance[0] = balance[0].add(currencyPosition.getQuantity())));
         return balance[0];
+    }
+
+    public static BigDecimal getHeldSecurity(Security security) {
+        BigDecimal[] v = {BigDecimal.ZERO};
+        security.getSecurityPositions().forEach(securityPosition -> v[0] = v[0].add(securityPosition.getQuantity()));
+        return v[0];
     }
 
     public static Set<CurrencyPair> getHeldCurrencyPairs(Portfolio portfolio) {
@@ -138,7 +143,7 @@ public class Util {
         }
     }
 
-    public static AlpacaOrder updateAlpacaOrder(AlpacaOrder alpacaOrder, Order order) {
+    public static void updateAlpacaOrder(AlpacaOrder alpacaOrder, Order order) {
         alpacaOrder.setClientOrderId(order.getClientOrderId());
         alpacaOrder.setUpdatedAt(order.getUpdatedAt());
         alpacaOrder.setSubmittedAt(order.getSubmittedAt());
@@ -167,7 +172,6 @@ public class Util {
         alpacaOrder.setTrailPercent(order.getTrailPercent());
         alpacaOrder.setHwm(order.getHwm());
         Database.persistAlpacaOrder(alpacaOrder);
-        return alpacaOrder;
     }
 
 }
