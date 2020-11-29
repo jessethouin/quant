@@ -95,14 +95,11 @@ public class Transactions {
 
         switch (broker) {
             case ALPACA -> {
-                LOG.info("Placing ALPACA order here");
                 AlpacaTransactions.placeSecurityBuyOrder(security, qty, price);
             }
             case ALPACA_TEST -> {
-                LOG.info("Placing ALPACA_TEST order here");
                 AlpacaOrder alpacaOrder = AlpacaTransactions.placePaperSecurityBuyOrder(security, qty, price);
 
-                LOG.info("Processing ALPACA_TEST order here");
                 if (alpacaOrder == null) return;
                 alpacaOrder.setStatus(Order.OrderStatus.FILLED.toString());
                 alpacaOrder.setFilledAt(ZonedDateTime.now());
@@ -129,11 +126,9 @@ public class Transactions {
 
         switch (broker) {
             case ALPACA -> {
-                LOG.info("Place ALPACA sell order here");
                 AlpacaTransactions.placeSecuritySellOrder(security, sellQty, price);
             }
             case ALPACA_TEST -> {
-                LOG.info("Place ALPACA_TEST sell order here");
                 AlpacaOrder alpacaOrder = AlpacaTransactions.placeTestSecuritySellOrder(security, sellQty, price);
 
                 // This code would normally be handled by the Order websocket feed

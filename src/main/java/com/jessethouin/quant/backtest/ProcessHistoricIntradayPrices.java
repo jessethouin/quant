@@ -9,6 +9,7 @@ import com.jessethouin.quant.calculators.Calc;
 import com.jessethouin.quant.conf.Broker;
 import com.jessethouin.quant.conf.Config;
 import com.jessethouin.quant.conf.CurrencyTypes;
+import com.jessethouin.quant.db.Database;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -52,7 +53,6 @@ public class ProcessHistoricIntradayPrices implements Callable<Object> {
         CurrencyPosition currencyPosition = new CurrencyPosition();
         currencyPosition.setQuantity(config.getInitialCash());
         currencyPosition.setOpened(new Date());
-        currencyPosition.setPrice(BigDecimal.ONE);
         currencyPosition.setBaseCurrency(currency);
 
         currency.getCurrencyPositions().add(currencyPosition);
@@ -64,6 +64,7 @@ public class ProcessHistoricIntradayPrices implements Callable<Object> {
 
         portfolio.getCurrencies().add(currency);
         portfolio.getSecurities().add(security);
+        Database.persistPortfolio(portfolio);
 
         BigDecimal shortMAValue;
         BigDecimal longMAValue;

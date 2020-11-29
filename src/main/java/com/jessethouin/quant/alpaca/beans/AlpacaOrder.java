@@ -2,7 +2,6 @@ package com.jessethouin.quant.alpaca.beans;
 
 import com.jessethouin.quant.beans.Portfolio;
 import net.jacobpeterson.domain.alpaca.order.Order;
-import org.hibernate.annotations.GenericGenerator;
 
 import javax.persistence.*;
 import java.time.ZonedDateTime;
@@ -13,8 +12,7 @@ import java.util.Objects;
 @Table(name = "ALPACA_ORDER")
 public class AlpacaOrder {
     @Id
-    @GeneratedValue(generator = "increment")
-    @GenericGenerator(name = "increment", strategy = "increment")
+    @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private long orderId;
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "portfolio_id")
@@ -48,6 +46,9 @@ public class AlpacaOrder {
     private String trailPrice;
     private String trailPercent;
     private String hwm;
+
+    public AlpacaOrder() {
+    }
 
     public AlpacaOrder(Order order, Portfolio portfolio) {
         this.portfolio = portfolio;

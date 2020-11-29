@@ -191,6 +191,7 @@ public class Calc {
     }
 
     public boolean sell2() {
+/*
         if (getPrice().compareTo(getHigh().subtract(getSpread().multiply(config.getLowRisk()))) < 0) {
             LOG.info("Sell2 met. Here's why.\n" +
                     "\nconfig.getLowRisk() = " + config.getLowRisk() +
@@ -204,7 +205,8 @@ public class Calc {
         } else {
             return false;
         }
-//        return getPrice().compareTo(getHigh().subtract(getSpread().multiply(config.getLowRisk()))) < 0;
+*/
+        return getPrice().compareTo(getHigh().subtract(getSpread().multiply(config.getLowRisk()))) < 0;
     }
 
     public boolean sell3() {

@@ -10,8 +10,7 @@ import java.math.BigDecimal;
 @Table(name = "TICKER_HISTORY")
 public class TickerHistory {
     @Id
-    @GeneratedValue(generator = "increment")
-    @GenericGenerator(name = "increment", strategy = "increment")
+    @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long tickerHistoryId;
     private String ticker; //Ticker of the object
     private Long t; //Nanosecond accuracy SIP Unix Timestamp

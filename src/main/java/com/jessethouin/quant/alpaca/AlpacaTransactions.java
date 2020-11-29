@@ -77,7 +77,6 @@ public class AlpacaTransactions {
         );
         AlpacaOrder alpacaOrder = new AlpacaOrder(order, security.getPortfolio());
         Database.persistAlpacaOrder(alpacaOrder);
-        LOG.info("Buy paper order: " + alpacaOrder.toString().replace(",", ",\n\t"));
         return alpacaOrder;
     }
 
@@ -132,7 +131,6 @@ public class AlpacaTransactions {
         );
         AlpacaOrder alpacaOrder = new AlpacaOrder(order, security.getPortfolio());
         Database.persistAlpacaOrder(alpacaOrder);
-        LOG.info("Sell paper order: " + order.toString().replace(",", ",\n\t"));
         return alpacaOrder;
     }
 

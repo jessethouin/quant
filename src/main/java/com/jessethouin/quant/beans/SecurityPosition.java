@@ -1,7 +1,6 @@
 package com.jessethouin.quant.beans;
 
 import com.jessethouin.quant.db.BigDecimalConverter;
-import org.hibernate.annotations.GenericGenerator;
 
 import javax.persistence.*;
 import java.math.BigDecimal;
@@ -11,8 +10,7 @@ import java.util.Date;
 @Table(name = "SECURITY_POSITION")
 public class SecurityPosition {
     @Id
-    @GeneratedValue(generator = "increment")
-    @GenericGenerator(name = "increment", strategy = "increment")
+    @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private long positionId;
     private Date opened;
     @Convert(converter = BigDecimalConverter.class)

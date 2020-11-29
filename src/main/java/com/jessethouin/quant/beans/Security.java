@@ -1,7 +1,5 @@
 package com.jessethouin.quant.beans;
 
-import org.hibernate.annotations.GenericGenerator;
-
 import javax.persistence.*;
 import java.util.HashSet;
 import java.util.Set;
@@ -10,8 +8,7 @@ import java.util.Set;
 @Table(name = "SECURITY", uniqueConstraints = @UniqueConstraint(columnNames = {"symbol", "portfolio_id"}))
 public class Security {
     @Id
-    @GeneratedValue(generator = "increment")
-    @GenericGenerator(name = "increment", strategy = "increment")
+    @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private long securityId;
     private String symbol;
     @ManyToOne(fetch = FetchType.EAGER)

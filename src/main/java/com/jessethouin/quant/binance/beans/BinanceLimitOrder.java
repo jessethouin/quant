@@ -1,13 +1,9 @@
 package com.jessethouin.quant.binance.beans;
 
-import org.hibernate.annotations.GenericGenerator;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.trade.LimitOrder;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import javax.persistence.*;
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.Objects;
@@ -21,8 +17,7 @@ extend the damned thing.
 @Table(name = "BINANCE_LIMIT_ORDER")
 public class BinanceLimitOrder implements Comparable<BinanceLimitOrder> {
     @Id
-    @GeneratedValue(generator = "increment")
-    @GenericGenerator(name = "increment", strategy = "increment")
+    @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private long orderId;
 
     private Order.OrderType type;

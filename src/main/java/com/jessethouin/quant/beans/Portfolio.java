@@ -1,7 +1,6 @@
 package com.jessethouin.quant.beans;
 
 import com.jessethouin.quant.alpaca.beans.AlpacaOrder;
-import org.hibernate.annotations.GenericGenerator;
 
 import javax.persistence.*;
 import java.util.HashSet;
@@ -11,8 +10,7 @@ import java.util.Set;
 @Table(name = "PORTFOLIO")
 public class Portfolio {
     @Id
-    @GeneratedValue(generator = "increment")
-    @GenericGenerator(name = "increment", strategy = "increment")
+    @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private long portfolioId;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "portfolio", fetch = FetchType.EAGER, orphanRemoval = true)
     private Set<Security> securities = new HashSet<>();
