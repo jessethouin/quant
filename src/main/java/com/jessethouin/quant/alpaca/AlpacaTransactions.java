@@ -6,7 +6,6 @@ import com.jessethouin.quant.beans.Security;
 import com.jessethouin.quant.beans.SecurityPosition;
 import com.jessethouin.quant.broker.Transactions;
 import com.jessethouin.quant.broker.Util;
-import com.jessethouin.quant.db.Database;
 import net.jacobpeterson.alpaca.AlpacaAPI;
 import net.jacobpeterson.alpaca.enums.OrderSide;
 import net.jacobpeterson.alpaca.enums.OrderStatus;
@@ -33,7 +32,7 @@ public class AlpacaTransactions {
         try {
             Order order = alpacaAPI.requestNewLimitOrder(security.getSymbol(), qty.intValue(), OrderSide.BUY, OrderTimeInForce.DAY, price.doubleValue(), false);
             AlpacaOrder alpacaOrder = new AlpacaOrder(order, security.getPortfolio());
-            Database.persistAlpacaOrder(alpacaOrder);
+//            Database.persistAlpacaOrder(alpacaOrder);
             LOG.info("Buy order: " + alpacaOrder.toString().replace(",", ",\n\t"));
             return;
         } catch (AlpacaAPIRequestException e) {
@@ -42,7 +41,7 @@ public class AlpacaTransactions {
         LOG.error("Buy order failed: " + security.getSymbol() + ", " + qty + ", " + price);
     }
 
-    public static AlpacaOrder placePaperSecurityBuyOrder(Security security, BigDecimal qty, BigDecimal price) {
+    public static AlpacaOrder placeTestSecurityBuyOrder(Security security, BigDecimal qty, BigDecimal price) {
         if (qty.equals(BigDecimal.ZERO)) return null;
         Order order = new Order(
                 "fake_order_id_" + (new Random().nextInt(1000)),
@@ -76,7 +75,7 @@ public class AlpacaTransactions {
                 null
         );
         AlpacaOrder alpacaOrder = new AlpacaOrder(order, security.getPortfolio());
-        Database.persistAlpacaOrder(alpacaOrder);
+//        Database.persistAlpacaOrder(alpacaOrder);
         return alpacaOrder;
     }
 
@@ -87,7 +86,7 @@ public class AlpacaTransactions {
         try {
             Order order = alpacaAPI.requestNewLimitOrder(security.getSymbol(), qty.intValue(), OrderSide.SELL, OrderTimeInForce.DAY, price.doubleValue(), false);
             AlpacaOrder alpacaOrder = new AlpacaOrder(order, security.getPortfolio());
-            Database.persistAlpacaOrder(alpacaOrder);
+//            Database.persistAlpacaOrder(alpacaOrder);
             LOG.info("Sell order: " + order.toString().replace(",", ",\n\t"));
             return;
         } catch (AlpacaAPIRequestException e) {
@@ -130,7 +129,7 @@ public class AlpacaTransactions {
                 null
         );
         AlpacaOrder alpacaOrder = new AlpacaOrder(order, security.getPortfolio());
-        Database.persistAlpacaOrder(alpacaOrder);
+//        Database.persistAlpacaOrder(alpacaOrder);
         return alpacaOrder;
     }
 
@@ -141,8 +140,8 @@ public class AlpacaTransactions {
         BigDecimal filledAvgPrice = new BigDecimal(alpacaOrder.getFilledAvgPrice());
 
         if (alpacaOrder.getSide().equals(OrderSide.BUY.getAPIName())) {
-            Transactions.addCurrencyPosition(portfolio, filledQty.multiply(filledAvgPrice).negate(), security.getCurrency());
             Transactions.addSecurityPosition(security, filledQty, filledAvgPrice);
+            Transactions.addCurrencyPosition(portfolio, filledQty.multiply(filledAvgPrice).negate(), security.getCurrency());
         }
         if (alpacaOrder.getSide().equals(OrderSide.SELL.getAPIName())) {
             Transactions.addCurrencyPosition(portfolio, filledQty.multiply(filledAvgPrice), security.getCurrency());
@@ -172,6 +171,6 @@ public class AlpacaTransactions {
             });
         }
 
-        Database.persistPortfolio(portfolio);
+//        Database.persistPortfolio(portfolio);
     }
 }

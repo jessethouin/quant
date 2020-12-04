@@ -1,5 +1,7 @@
 package com.jessethouin.quant.binance.beans;
 
+import com.jessethouin.quant.beans.Portfolio;
+import com.jessethouin.quant.db.BigDecimalConverter;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.trade.LimitOrder;
 
@@ -19,21 +21,30 @@ public class BinanceLimitOrder implements Comparable<BinanceLimitOrder> {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private long orderId;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "portfolio_id")
+    private Portfolio portfolio;
 
     private Order.OrderType type;
+    @Convert(converter = BigDecimalConverter.class)
     private BigDecimal originalAmount;
     private String instrument;
     private String id;
     private String userReference;
     private Date timestamp;
     private Order.OrderStatus status;
+    @Convert(converter = BigDecimalConverter.class)
     private BigDecimal cumulativeAmount;
+    @Convert(converter = BigDecimalConverter.class)
     private BigDecimal averagePrice;
+    @Convert(converter = BigDecimalConverter.class)
     private BigDecimal fee;
     private String leverage;
+    @Convert(converter = BigDecimalConverter.class)
     private BigDecimal limitPrice;
 
-    public BinanceLimitOrder(LimitOrder limitOrder) {
+    public BinanceLimitOrder(LimitOrder limitOrder, Portfolio portfolio) {
+        this.portfolio = portfolio;
         this.type = limitOrder.getType();
         this.originalAmount = limitOrder.getOriginalAmount();
         this.instrument = limitOrder.getInstrument().toString();
@@ -55,6 +66,14 @@ public class BinanceLimitOrder implements Comparable<BinanceLimitOrder> {
 
     public void setOrderId(long orderId) {
         this.orderId = orderId;
+    }
+
+    public Portfolio getPortfolio() {
+        return portfolio;
+    }
+
+    public void setPortfolio(Portfolio portfolio) {
+        this.portfolio = portfolio;
     }
 
     public Order.OrderType getType() {
@@ -209,12 +228,14 @@ public class BinanceLimitOrder implements Comparable<BinanceLimitOrder> {
         return originalAmount;
     }
 
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         BinanceLimitOrder that = (BinanceLimitOrder) o;
         return orderId == that.orderId &&
+                Objects.equals(portfolio, that.portfolio) &&
                 type == that.type &&
                 Objects.equals(originalAmount, that.originalAmount) &&
                 Objects.equals(instrument, that.instrument) &&
@@ -231,6 +252,6 @@ public class BinanceLimitOrder implements Comparable<BinanceLimitOrder> {
 
     @Override
     public int hashCode() {
-        return Objects.hash(orderId, type, originalAmount, instrument, id, userReference, timestamp, status, cumulativeAmount, averagePrice, fee, leverage, limitPrice);
+        return Objects.hash(orderId, portfolio, type, originalAmount, instrument, id, userReference, timestamp, status, cumulativeAmount, averagePrice, fee, leverage, limitPrice);
     }
 }

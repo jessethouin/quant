@@ -4,6 +4,7 @@ import com.jessethouin.quant.alpaca.beans.AlpacaOrder;
 import com.jessethouin.quant.beans.Currency;
 import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.beans.Security;
+import com.jessethouin.quant.broker.Transactions;
 import com.jessethouin.quant.broker.Util;
 import com.jessethouin.quant.calculators.Calc;
 import com.jessethouin.quant.conf.Config;
@@ -72,6 +73,7 @@ public class AlpacaLive {
                     currency.setSymbol(c);
                     currency.setCurrencyType(CurrencyTypes.FIAT);
                     if (c.equals("USD")) { // default-coded for now, until international exchanges are implemented
+                        Transactions.addCurrencyPosition(portfolio, new BigDecimal(alpacaAccount.getCash()), currency);
                         List<String> tickers = config.getSecurities();
                         tickers.forEach(t -> {
                             Security security = new Security();

@@ -222,7 +222,7 @@ public class Calc {
         setPrice(price);
         if (getLow().equals(BigDecimal.ZERO)) setLow(price);
         if (getHigh().equals(BigDecimal.ZERO)) setHigh(price);
-        setQty(Util.getBudget(portfolio, price, config.getAllowance(), getBase()));
+        setQty(Util.getBudget(portfolio, price, config.getAllowance(), getCounter(), getSecurity()));
         setMa1(ma1);
         setMa2(ma2);
     }

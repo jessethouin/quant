@@ -9,7 +9,6 @@ import com.jessethouin.quant.calculators.Calc;
 import com.jessethouin.quant.conf.Broker;
 import com.jessethouin.quant.conf.Config;
 import com.jessethouin.quant.conf.CurrencyTypes;
-import com.jessethouin.quant.db.Database;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -61,10 +60,10 @@ public class ProcessHistoricIntradayPrices implements Callable<Object> {
         Security security = new Security();
         security.setSymbol("AAPL");
         security.setCurrency(currency);
+        security.setPortfolio(portfolio);
 
         portfolio.getCurrencies().add(currency);
         portfolio.getSecurities().add(security);
-        Database.persistPortfolio(portfolio);
 
         BigDecimal shortMAValue;
         BigDecimal longMAValue;

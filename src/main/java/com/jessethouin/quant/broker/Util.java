@@ -3,8 +3,10 @@ package com.jessethouin.quant.broker;
 import com.jessethouin.quant.alpaca.AlpacaLive;
 import com.jessethouin.quant.alpaca.beans.AlpacaOrder;
 import com.jessethouin.quant.beans.Currency;
+import com.jessethouin.quant.beans.CurrencyPosition;
 import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.beans.Security;
+import com.jessethouin.quant.binance.BinanceLive;
 import com.jessethouin.quant.calculators.MA;
 import com.jessethouin.quant.calculators.SMA;
 import com.jessethouin.quant.conf.Config;
@@ -16,7 +18,9 @@ import net.jacobpeterson.polygon.rest.exception.PolygonAPIRequestException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.knowm.xchange.currency.CurrencyPair;
+import org.knowm.xchange.exceptions.CurrencyPairNotValidException;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
@@ -85,8 +89,9 @@ public class Util {
         return currencyPairs;
     }
 
-    public static BigDecimal getBudget(Portfolio portfolio, BigDecimal price, BigDecimal allowance, Currency currency) {
-        return getBalance(portfolio, currency).multiply(allowance).divide(price, 0, RoundingMode.FLOOR);
+    public static BigDecimal getBudget(Portfolio portfolio, BigDecimal price, BigDecimal allowance, Currency currency, Security security) {
+        int scale = security == null ? 8 : 0;
+        return getBalance(portfolio, currency).multiply(allowance).divide(price, scale, RoundingMode.FLOOR);
     }
 
     public static BigDecimal getMA(List<BigDecimal> intradayPrices, BigDecimal previousMA, int i, int lookback, BigDecimal price) {
@@ -101,7 +106,7 @@ public class Util {
      * If a Security with the symbol exists in the portfolio, returns that Security, otherwise creates a new Security,
      * adds to portfolio, and returnes the new Security.
      *
-     * @param symbol Stock symbol
+     * @param symbol    Stock symbol
      * @param portfolio Active portfolio
      * @return A Security object, either existing or new
      */
@@ -111,7 +116,7 @@ public class Util {
         if (s.isPresent()) {
             return s.get();
         } else {
-            Security security=new Security();
+            Security security = new Security();
             security.setSymbol(symbol);
             security.setPortfolio(portfolio);
             Database.persistPortfolio(portfolio);
@@ -124,7 +129,7 @@ public class Util {
      * If a Currency with the symbol exists in the portfolio, returns that Currency, otherwise creates a new Currency,
      * adds to portfolio, and returnes the new Currency.
      *
-     * @param symbol Currency symbol
+     * @param symbol    Currency symbol
      * @param portfolio Active portfolio
      * @return A Currency object, either existing or new
      */
@@ -134,13 +139,53 @@ public class Util {
         if (c.isPresent()) {
             return c.get();
         } else {
-            Currency currency=new Currency();
+            Currency currency = new Currency();
             currency.setCurrencyType(CurrencyTypes.FIAT);
             currency.setSymbol(symbol);
             currency.setPortfolio(portfolio);
             Database.persistPortfolio(portfolio);
             return currency;
         }
+    }
+
+    public static BigDecimal getCurrencyPositionValue(CurrencyPosition currencyPosition, Currency targetCounter) {
+        Currency thisCounter = currencyPosition.getCounterCurrency();
+        BigDecimal thisPrice = currencyPosition.getPrice();
+
+        if (thisCounter.equals(targetCounter)) {
+            return thisPrice;
+        } else {
+            String thisBase = currencyPosition.getBaseCurrency().getSymbol();
+            BigDecimal priceWithThisCounter = getTickerPrice(thisBase, thisCounter.getSymbol());
+            BigDecimal priceWithTargetCounter = getTickerPrice(thisBase, targetCounter.getSymbol());
+            if (priceWithThisCounter != null) {
+                BigDecimal change = thisPrice.divide(priceWithThisCounter, 8, RoundingMode.FLOOR);
+                return priceWithTargetCounter.multiply(change);
+            }
+            return priceWithTargetCounter;
+        }
+    }
+
+    public static BigDecimal getTickerPrice(String base, String counter) {
+        BigDecimal ret = null;
+        try {
+            ret = BinanceLive.INSTANCE.getBinanceExchange().getMarketDataService().getTicker(new CurrencyPair(base, counter)).getLast();
+        } catch (IOException e) {
+            LOG.error(e.getMessage());
+        } catch (CurrencyPairNotValidException e) {
+            LOG.info("Currency Pair {}/{} is not valid. Swapping.", base, counter);
+        }
+
+        if (ret == null) {
+            try {
+                ret = BinanceLive.INSTANCE.getBinanceExchange().getMarketDataService().getTicker(new CurrencyPair(counter, base)).getLast();
+            } catch (IOException e) {
+                LOG.error(e.getMessage());
+            } catch (CurrencyPairNotValidException e) {
+                LOG.info("Currency Pair {}/{} is not valid even after swapping. Return value is NULL, sorry.", counter, base);
+            }
+        }
+        return ret;
     }
 
     public static void updateAlpacaOrder(AlpacaOrder alpacaOrder, Order order) {

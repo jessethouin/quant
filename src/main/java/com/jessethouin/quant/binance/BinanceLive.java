@@ -19,13 +19,17 @@ import org.knowm.xchange.ExchangeFactory;
 import org.knowm.xchange.ExchangeSpecification;
 import org.knowm.xchange.binance.BinanceExchange;
 import org.knowm.xchange.currency.CurrencyPair;
+import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.trade.LimitOrder;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+
+import static com.jessethouin.quant.conf.Broker.BINANCE_TEST;
 
 public class BinanceLive {
     private static final Logger LOG = LogManager.getLogger(BinanceLive.class);
@@ -63,6 +67,7 @@ public class BinanceLive {
 
     //delete from SECURITY_POSITION; delete from SECURITY; delete from CURRENCY_POSITION; delete from CURRENCY; delete from PORTFOLIO;
     public static void doLive() {
+        config.setBroker(BINANCE_TEST);
         portfolio = Database.getPortfolio();
 
         if (portfolio == null) {
@@ -101,12 +106,19 @@ public class BinanceLive {
                     LOG.error(e.getLocalizedMessage());
                 }
 */
-                if (c.equals("BTC")) { // default-coded for now, until international exchanges are implemented
-                    Transactions.addCurrencyPosition(portfolio, BigDecimal.TEN, currency, null, BigDecimal.ZERO);
-                }
                 currency.setPortfolio(portfolio);
                 portfolio.getCurrencies().add(currency);
             });
+
+            try {
+                Currency usd = Util.getCurrencyFromPortfolio("USD", portfolio);
+                Currency btc = Util.getCurrencyFromPortfolio("BTC", portfolio);
+                Currency usdt = Util.getCurrencyFromPortfolio("USDT", portfolio);
+                Ticker ticker = BINANCE_EXCHANGE.getMarketDataService().getTicker(CurrencyPair.BTC_USDT);
+                Transactions.addCurrencyPosition(portfolio, BigDecimal.TEN, btc, usd, ticker.getLast().subtract(BigDecimal.TEN));
+            } catch (IOException e) {
+                LOG.error(e.getLocalizedMessage());
+            }
 
             Database.persistPortfolio(portfolio);
         }
@@ -138,7 +150,10 @@ public class BinanceLive {
 
             Disposable orderSub = BINANCE_STREAMING_EXCHANGE.getStreamingTradeService()
                     .getOrderChanges(currencyPair)
-                    .subscribe(order -> LOG.info("Order: {}", order));
+                    .subscribe(order -> {
+                        LOG.info("Order: {}", order);
+                        // order handling here
+                    });
         });
 
 
@@ -172,7 +187,7 @@ public class BinanceLive {
                     ref.c.decide();
                     LOG.info(MessageFormat.format("{0,number,000} : ma1 {1,number,000.0000} : ma2 {2,number,000.0000} : l {3,number,000.0000}: h {4,number,000.0000}: p {5,number,000.0000} : {6,number,00000.0000}", ref.count, ref.shortMAValue, ref.longMAValue, ref.c.getLow(), ref.c.getHigh(), ref.price, Util.getPortfolioValue(portfolio, baseCurrency)));
 
-//                    Database.persistPortfolio(portfolio);
+                    Database.persistPortfolio(portfolio);
                     ref.previousShortMAValue = ref.shortMAValue;
                     ref.previousLongMAValue = ref.longMAValue;
                     ref.count++;

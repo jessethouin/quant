@@ -1,5 +1,7 @@
 package com.jessethouin.quant.binance;
 
+import com.jessethouin.quant.beans.Portfolio;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.knowm.xchange.Exchange;
@@ -10,6 +12,7 @@ import org.knowm.xchange.currency.CurrencyPair;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 class BinanceTransactionsTest {
     static Exchange exchange;
@@ -23,7 +26,22 @@ class BinanceTransactionsTest {
 
     @Test
     void buySecurity() throws IOException {
-        BinanceTransactions.buyCurrency(CurrencyPair.BTC_USDT, BigDecimal.ONE, limitPriceForCurrencyPair(CurrencyPair.BTC_USDT));
+        Portfolio portfolio = new Portfolio();
+        BinanceTransactions.buyCurrency(portfolio, CurrencyPair.BTC_USDT, BigDecimal.ONE, limitPriceForCurrencyPair(CurrencyPair.BTC_USDT));
+    }
+
+    @Test
+    void testRounding() {
+        BigDecimal a = new BigDecimal("0.783009375");
+        BigDecimal b = a.multiply(BigDecimal.ONE).setScale(8, RoundingMode.FLOOR);
+        Assertions.assertEquals("0.78300937", b.toPlainString());
+
+        BigDecimal c = new BigDecimal("0.000000001");
+        BigDecimal d = c.multiply(BigDecimal.ONE).setScale(8, RoundingMode.FLOOR);
+        Assertions.assertEquals("0.00000000", d.toPlainString());
+
+        System.out.println("b: " + b.toPlainString());
+        System.out.println("d: " + d.toPlainString());
     }
 
     private BigDecimal limitPriceForCurrencyPair(CurrencyPair currencyPair) throws IOException {

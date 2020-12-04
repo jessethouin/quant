@@ -4,8 +4,8 @@ import com.jessethouin.quant.alpaca.AlpacaTransactions;
 import com.jessethouin.quant.alpaca.beans.AlpacaOrder;
 import com.jessethouin.quant.beans.*;
 import com.jessethouin.quant.binance.BinanceTransactions;
+import com.jessethouin.quant.binance.beans.BinanceLimitOrder;
 import com.jessethouin.quant.conf.Broker;
-import com.jessethouin.quant.db.Database;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.knowm.xchange.currency.CurrencyPair;
@@ -13,9 +13,7 @@ import org.knowm.xchange.dto.Order;
 
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 
 public class Transactions {
     private static final Logger LOG = LogManager.getLogger(Transactions.class);
@@ -42,64 +40,71 @@ public class Transactions {
         LOG.trace("Create buy order for " + qty + " " + base.getSymbol() + " at " + price);
 
         switch (broker) {
-            case COINBASE -> {
-                LOG.info("Place COINBASE buy order here");
-            }
-            case CEXIO -> {
-                LOG.info("Place CEXIO buy order here");
-            }
+            case COINBASE -> LOG.info("Place COINBASE buy order here");
+            case CEXIO -> LOG.info("Place CEXIO buy order here");
             case BINANCE -> {
                 LOG.info("Place Binance buy order here");
-                BinanceTransactions.buyCurrency(new CurrencyPair(base.getSymbol(), counter.getSymbol()), qty, price);
+                BinanceTransactions.buyCurrency(base.getPortfolio(), new CurrencyPair(base.getSymbol(), counter.getSymbol()), qty, price);
+            }
+            case BINANCE_TEST -> {
+                LOG.info("Place Binance test buy order here");
+                BinanceLimitOrder binanceLimitOrder = BinanceTransactions.buyTestCurrency(base.getPortfolio(), new CurrencyPair(base.getSymbol(), counter.getSymbol()), qty, price);
+
+                // This code would normally be handled by the Order websocket feed
+                if (binanceLimitOrder == null) return;
+                binanceLimitOrder.setStatus(Order.OrderStatus.FILLED);
+                binanceLimitOrder.setAveragePrice(price);
+                binanceLimitOrder.setCumulativeAmount(qty);
+                BinanceTransactions.processFilledOrder(binanceLimitOrder);
             }
             default -> throw new IllegalStateException("Unexpected broker: " + broker);
         }
     }
 
     public static boolean placeCurrencySellOrder(Broker broker, Currency base, Currency counter, BigDecimal price, boolean sellAll) {
-        List<CurrencyPosition> remove = new ArrayList<>();
         BigDecimal[] qty = {BigDecimal.ZERO};
 
-        base.getCurrencyPositions().stream().filter(currencyPosition -> currencyPosition.getCounterCurrency() == null || currencyPosition.getCounterCurrency().equals(counter)).forEach(position -> {
-            if (position.getPrice().compareTo(price) < 0 || sellAll) {
+        base.getCurrencyPositions().forEach(position -> {
+            BigDecimal positionValue = Util.getCurrencyPositionValue(position, counter);
+            if (positionValue.compareTo(price) < 0 || sellAll) {
                 LOG.trace("Create sell order for " + position.getQuantity() + " " + base.getSymbol() + " at " + price);
-                remove.add(position);
                 qty[0] = qty[0].add(position.getQuantity());
             }
         });
 
-        if (!remove.isEmpty()) {
-            switch (broker) {
-                case COINBASE -> {
-                    LOG.info("Place COINBASE sell order here");
-                }
-                case CEXIO -> {
-                    LOG.info("Place CEXIO sell order here");
-                }
-                case BINANCE -> {
-                    LOG.info("Place BINANCE sell order here");
-                    BinanceTransactions.sellCurrency(new CurrencyPair(base.getSymbol(), counter.getSymbol()), qty[0], price);
-                }
-                default -> throw new IllegalStateException("Unexpected broker: " + broker);
-            }
-//            Add logic to store positions for removal based on success of sell order placed
-//            base.getCurrencyPositions().removeAll(remove);
-            return true;
-        }
+        BigDecimal sellQty = qty[0];
+        if (sellQty.equals(BigDecimal.ZERO)) return false;
 
-        return false;
+        switch (broker) {
+            case COINBASE -> LOG.info("Place COINBASE sell order here");
+            case CEXIO -> LOG.info("Place CEXIO sell order here");
+            case BINANCE -> {
+                LOG.info("Place BINANCE sell order here");
+                BinanceTransactions.sellCurrency(base.getPortfolio(), new CurrencyPair(base.getSymbol(), counter.getSymbol()), sellQty, price);
+            }
+            case BINANCE_TEST -> {
+                BinanceLimitOrder binanceLimitOrder = BinanceTransactions.sellTestCurrency(base.getPortfolio(), new CurrencyPair(base.getSymbol(), counter.getSymbol()), sellQty, price);
+
+                if (binanceLimitOrder == null) return false;
+                binanceLimitOrder.setStatus(Order.OrderStatus.FILLED);
+                binanceLimitOrder.setAveragePrice(price);
+                binanceLimitOrder.setCumulativeAmount(sellQty);
+                BinanceTransactions.processFilledOrder(binanceLimitOrder);
+            }
+            default -> throw new IllegalStateException("Unexpected broker: " + broker);
+        }
+        return true;
     }
 
     public static void placeSecurityBuyOrder(Broker broker, Security security, BigDecimal qty, BigDecimal price) {
         LOG.trace("Create buy order for " + qty + " " + security.getSymbol() + " at " + price);
 
         switch (broker) {
-            case ALPACA -> {
-                AlpacaTransactions.placeSecurityBuyOrder(security, qty, price);
-            }
+            case ALPACA -> AlpacaTransactions.placeSecurityBuyOrder(security, qty, price);
             case ALPACA_TEST -> {
-                AlpacaOrder alpacaOrder = AlpacaTransactions.placePaperSecurityBuyOrder(security, qty, price);
+                AlpacaOrder alpacaOrder = AlpacaTransactions.placeTestSecurityBuyOrder(security, qty, price);
 
+                // This code would normally be handled by the Order websocket feed
                 if (alpacaOrder == null) return;
                 alpacaOrder.setStatus(Order.OrderStatus.FILLED.toString());
                 alpacaOrder.setFilledAt(ZonedDateTime.now());
@@ -121,13 +126,11 @@ public class Transactions {
             }
         });
 
-        BigDecimal sellQty = qty[0].min(Util.getHeldSecurity(security));
+        BigDecimal sellQty = qty[0];
         if (sellQty.equals(BigDecimal.ZERO)) return false;
 
         switch (broker) {
-            case ALPACA -> {
-                AlpacaTransactions.placeSecuritySellOrder(security, sellQty, price);
-            }
+            case ALPACA -> AlpacaTransactions.placeSecuritySellOrder(security, sellQty, price);
             case ALPACA_TEST -> {
                 AlpacaOrder alpacaOrder = AlpacaTransactions.placeTestSecuritySellOrder(security, sellQty, price);
 
@@ -142,10 +145,6 @@ public class Transactions {
             default -> throw new IllegalStateException("Unexpected broker: " + broker);
         }
         return true;
-    }
-
-    public static boolean placeSecuritySellAllOrder(Broker broker, Security security, BigDecimal price) {
-        return placeSecuritySellOrder(broker, security, price, true);
     }
 
     public static boolean placeSecuritySellOrder(Broker broker, Security security, BigDecimal price) {
@@ -174,17 +173,7 @@ public class Transactions {
         credit.setCounterCurrency(counter);
         base.getCurrencyPositions().add(credit);
 
-        if (counter != null) {
-            CurrencyPosition debit = new CurrencyPosition();
-            debit.setOpened(opened);
-            debit.setQuantity(qty.negate());
-            debit.setPrice(price);
-            debit.setBaseCurrency(counter);
-            debit.setCounterCurrency(base);
-            counter.getCurrencyPositions().add(debit);
-        }
-
-        Database.persistPortfolio(portfolio);
+//        Database.persistPortfolio(portfolio);
     }
 
     public static void addSecurityPosition(Security security, BigDecimal qty, BigDecimal price) {
@@ -197,6 +186,6 @@ public class Transactions {
         securityPosition.setOpened(new Date());
         security.getSecurityPositions().add(securityPosition);
 
-        Database.persistSecurity(security);
+//        Database.persistSecurity(security);
     }
 }

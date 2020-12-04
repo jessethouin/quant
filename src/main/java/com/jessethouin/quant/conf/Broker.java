@@ -6,5 +6,6 @@ public enum Broker {
     ROBINHOOD,
     COINBASE,
     CEXIO,
-    BINANCE
+    BINANCE,
+    BINANCE_TEST
 }
