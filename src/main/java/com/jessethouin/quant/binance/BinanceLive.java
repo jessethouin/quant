@@ -3,6 +3,7 @@ package com.jessethouin.quant.binance;
 import com.jessethouin.quant.beans.Currency;
 import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.beans.Security;
+import com.jessethouin.quant.binance.beans.BinanceTradeHistory;
 import com.jessethouin.quant.broker.Transactions;
 import com.jessethouin.quant.broker.Util;
 import com.jessethouin.quant.calculators.Calc;
@@ -27,6 +28,7 @@ import java.math.BigDecimal;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 
 import static com.jessethouin.quant.conf.Broker.BINANCE_TEST;
@@ -184,10 +186,13 @@ public class BinanceLive {
                     ref.shortMAValue = Util.getMA(ref.intradayPrices, ref.previousShortMAValue, ref.count, config.getShortLookback(), ref.price);
                     ref.longMAValue = Util.getMA(ref.intradayPrices, ref.previousLongMAValue, ref.count, config.getLongLookback(), ref.price);
                     ref.c.updateCalc(ref.price, ref.shortMAValue, ref.longMAValue, portfolio);
-                    ref.c.decide();
-                    LOG.info(MessageFormat.format("{0,number,000} : ma1 {1,number,000.0000} : ma2 {2,number,000.0000} : l {3,number,000.0000}: h {4,number,000.0000}: p {5,number,000.0000} : {6,number,00000.0000}", ref.count, ref.shortMAValue, ref.longMAValue, ref.c.getLow(), ref.c.getHigh(), ref.price, Util.getPortfolioValue(portfolio, baseCurrency)));
+//                    ref.c.decide();
+                    LOG.info(MessageFormat.format("{0,number,000} : ma1 {1,number,000.0000} : ma2 {2,number,000.0000} : l {3,number,000.0000}: h {4,number,000.0000}: p {5,number,000.0000} : {6,number,00000.0000}", ref.count, ref.shortMAValue, ref.longMAValue, ref.c.getLow(), ref.c.getHigh(), ref.price, Util.getPortfolioValue(portfolio, baseCurrency).add(Util.getPortfolioValue(portfolio, counterCurrency))));
 
-                    Database.persistPortfolio(portfolio);
+                    BinanceTradeHistory binanceTradeHistory = new BinanceTradeHistory.Builder().setTimestamp(new Date()).setMa1(ref.shortMAValue).setMa2(ref.longMAValue).setL(ref.c.getLow()).setH(ref.c.getHigh()).setP(ref.price).build();
+                    Database.persistTradeHistory(binanceTradeHistory);
+
+//                    Database.persistPortfolio(portfolio);
                     ref.previousShortMAValue = ref.shortMAValue;
                     ref.previousLongMAValue = ref.longMAValue;
                     ref.count++;

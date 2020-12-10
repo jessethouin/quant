@@ -1,6 +1,8 @@
 package com.jessethouin.quant.backtest;
 
+import com.jessethouin.quant.binance.beans.BinanceTradeHistory;
 import com.jessethouin.quant.conf.Config;
+import com.jessethouin.quant.db.Database;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -12,12 +14,19 @@ import java.util.Scanner;
 
 public abstract class AbstractBacktest {
     private static final Logger LOG = LogManager.getLogger(AbstractBacktest.class);
+    private static final Config CONFIG = new Config();
     public static final List<BigDecimal> intradayPrices = new ArrayList<>();
 
     public static void populateIntradayPrices() {
-        Config config = new Config();
-        LOG.info("Loading historic trades from " + config.getBackTestData());
-        InputStream data = Thread.currentThread().getContextClassLoader().getResourceAsStream(config.getBackTestData());
+        if (CONFIG.isBackTestDB()) {
+            LOG.info("Loading historic trades from DB.");
+            Database.getBinanceTradeHistory(4000).stream().map(BinanceTradeHistory::getP).forEach(intradayPrices::add);
+            LOG.info("Finished loading trades from DB");
+            return;
+        }
+
+        LOG.info("Loading historic trades from " + CONFIG.getBackTestData());
+        InputStream data = Thread.currentThread().getContextClassLoader().getResourceAsStream(CONFIG.getBackTestData());
         if (data == null)
             throw new NullPointerException("data was null for some reason. Perhaps the file didn't exist, or we didn't have permissions to read it.");
         try (Scanner scanner = new Scanner(data)) {
@@ -31,7 +40,7 @@ public abstract class AbstractBacktest {
                 }
             }
         }
-        LOG.info("Finished loading trades from " + config.getBackTestData());
+        LOG.info("Finished loading trades from " + CONFIG.getBackTestData());
 //        Collections.reverse(intradayPrices);
     }
 }

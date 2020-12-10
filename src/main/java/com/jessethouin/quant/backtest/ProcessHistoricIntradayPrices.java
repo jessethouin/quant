@@ -90,5 +90,4 @@ public class ProcessHistoricIntradayPrices implements Callable<Object> {
 
         return portfolioValue;
     }
-
 }

@@ -6,6 +6,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.math.BigDecimal;
 import java.text.MessageFormat;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -71,8 +72,7 @@ public class BacktestParameterCombos extends AbstractBacktest {
             while (++shortLookback < longLookback) { // there's no need to test equal short and long tail MAs because they will never separate or converge. That's why this is < and not <=.
                 combos = getRiskCombos(riskMax, riskIncrement, shortLookback, longLookback, combos, comboProcessingTimes, loopWatch);
 
-                double[] timeUntis = getRemainingTimeUnits(comboProcessingTimes, --i_);
-                LOG.info(MessageFormat.format("{0,number,percent} complete. {1,number,00:}{2,number,00:}{3,number,00.00} remaining", ++c / (float) i, timeUntis[0], timeUntis[1], timeUntis[2]));
+                LOG.info(MessageFormat.format("{0,number,percent} complete. {1} remaining", ++c / (float) i, getRemainingTimeUnits(comboProcessingTimes, --i_)));
             }
         }
         return combos;
@@ -104,16 +104,11 @@ public class BacktestParameterCombos extends AbstractBacktest {
         return combos;
     }
 
-    private static double[] getRemainingTimeUnits(List<Long> comboProcessingTimes, int i_) {
-        double r = ((comboProcessingTimes.stream().mapToLong(a -> a).average().orElse(0)) / (double) 1000) * i_; // average numer of seconds it takes to work though all the possible high/low risk combinations.
-        double[] timeUntis = {0,0,0};
-        r = r % (24 * 3600);
-        timeUntis[0] = r / 3600;
-        r %= 3600;
-        timeUntis[1] = r / 60 ;
-        r %= 60;
-        timeUntis[2] = r;
-        return timeUntis;
+    private static String getRemainingTimeUnits(List<Long> comboProcessingTimes, int i_) {
+        BigDecimal avgProcessingTimes = BigDecimal.valueOf((comboProcessingTimes.stream().mapToLong(a -> a).average().orElse(0)));
+        BigDecimal r = avgProcessingTimes.multiply(BigDecimal.valueOf(i_));
+        Duration timeLeft = Duration.ofMillis(r.longValue());
+        return String.format("%02d:%02d:%02d", timeLeft.toHours(), timeLeft.toMinutesPart(), timeLeft.toSecondsPart());
     }
 
     public static BigDecimal getBestv() {

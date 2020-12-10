@@ -9,7 +9,6 @@ import com.jessethouin.quant.calculators.Calc;
 import com.jessethouin.quant.conf.Broker;
 import com.jessethouin.quant.conf.Config;
 import com.jessethouin.quant.conf.CurrencyTypes;
-import com.jessethouin.quant.db.Database;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -26,34 +25,26 @@ public class BacktestStaticParameters extends AbstractBacktest {
         Config config = new Config();
         config.setBroker(Broker.ALPACA_TEST);
 
-        Portfolio portfolio = Database.getPortfolio();
-        Security security;
+        Portfolio portfolio = new Portfolio();
 
-        if (portfolio == null) {
-            portfolio = new Portfolio();
+        Currency currency = new Currency();
+        currency.setSymbol("USD");
+        currency.setCurrencyType(CurrencyTypes.FIAT);
 
-            Currency currency = new Currency();
-            currency.setSymbol("USD");
-            currency.setCurrencyType(CurrencyTypes.FIAT);
+        CurrencyPosition currencyPosition = new CurrencyPosition();
+        currencyPosition.setQuantity(config.getInitialCash());
+        currencyPosition.setOpened(new Date());
+        currencyPosition.setBaseCurrency(currency);
 
-            CurrencyPosition currencyPosition = new CurrencyPosition();
-            currencyPosition.setQuantity(config.getInitialCash());
-            currencyPosition.setOpened(new Date());
-            currencyPosition.setBaseCurrency(currency);
+        currency.getCurrencyPositions().add(currencyPosition);
+        currency.setPortfolio(portfolio);
 
-            currency.getCurrencyPositions().add(currencyPosition);
-            currency.setPortfolio(portfolio);
+        Security security = getSecurity(portfolio);
+        security.setPortfolio(portfolio);
+        security.setCurrency(currency);
 
-            security = getSecurity(portfolio);
-            security.setPortfolio(portfolio);
-            security.setCurrency(currency);
-
-            portfolio.getCurrencies().add(currency);
-            portfolio.getSecurities().add(security);
-            Database.persistPortfolio(portfolio);
-        } else {
-            security = getSecurity(portfolio);
-        }
+        portfolio.getCurrencies().add(currency);
+        portfolio.getSecurities().add(security);
 
         BigDecimal shortMAValue;
         BigDecimal longMAValue;
@@ -72,12 +63,8 @@ public class BacktestStaticParameters extends AbstractBacktest {
             previousShortMAValue = shortMAValue;
             previousLongMAValue = longMAValue;
         }
-
-        Database.persistPortfolio(portfolio);
-
-        String msg = MessageFormat.format("{0,number,00} : {1,number,00} : {2,number,0.00} : {3,number,0.00} : {4,number,00000.000}", config.getShortLookback(), config.getLongLookback(), config.getLowRisk(), config.getHighRisk(), Util.getPortfolioValue(portfolio, security.getCurrency(), price));
-        LOG.debug(msg);
-
+        
+        LOG.debug(MessageFormat.format("{0,number,00} : {1,number,00} : {2,number,0.00} : {3,number,0.00} : {4,number,00000.000}", config.getShortLookback(), config.getLongLookback(), config.getLowRisk(), config.getHighRisk(), Util.getPortfolioValue(portfolio, security.getCurrency(), price)));
         security.getSecurityPositions().forEach(ps -> LOG.info(ps.getPrice() + ", " + ps.getQuantity() + " : " + ps.getPrice().multiply(ps.getQuantity())));
     }
 

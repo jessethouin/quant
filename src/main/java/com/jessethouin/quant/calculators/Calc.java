@@ -29,7 +29,7 @@ public class Calc {
     private BigDecimal qty;
 
     public Calc(Security security, Config config, BigDecimal price) {
-        this(security, security.getCurrency(), null, config, price, price, price, BigDecimal.ZERO, true);
+        this(security, security.getCurrency(), security.getCurrency(), config, price, price, price, BigDecimal.ZERO, true);
     }
 
     public Calc(Currency base, Currency counter, Config config, BigDecimal price) {

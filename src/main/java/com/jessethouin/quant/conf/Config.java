@@ -25,6 +25,7 @@ public class Config {
     private BuyStrategyTypes buyStrategy;
     private SellStrategyTypes sellStrategy;
     private String backTestData;
+    private boolean backTestDB;
     private List<String> securities;
     private List<String> fiatCurrencies;
     private List<String> cryptoCurrencies;
@@ -49,6 +50,7 @@ public class Config {
             setBuyStrategy(BuyStrategyTypes.valueOf(prop.getProperty("buyStrategy")));
             setSellStrategy(SellStrategyTypes.valueOf(prop.getProperty("sellStrategy")));
             setBackTestData(prop.getProperty("backTestData"));
+            setBackTestDB(Boolean.parseBoolean(prop.getProperty("backTestDB")));
             setSecurities(Stream.of(prop.getProperty("securities").split(",", -1)).collect(Collectors.toList()));
             setFiatCurrencies(Stream.of(prop.getProperty("fiatCurrencies").split(",", -1)).collect(Collectors.toList()));
             setCryptoCurrencies(Stream.of(prop.getProperty("cryptoCurrencies").split(",", -1)).collect(Collectors.toList()));
@@ -128,6 +130,14 @@ public class Config {
 
     public void setBackTestData(String backTestData) {
         this.backTestData = backTestData;
+    }
+
+    public boolean isBackTestDB() {
+        return backTestDB;
+    }
+
+    public void setBackTestDB(boolean backTestDB) {
+        this.backTestDB = backTestDB;
     }
 
     public List<String> getSecurities() {
