@@ -10,7 +10,7 @@ import java.util.Set;
 @Table(name = "CURRENCY", uniqueConstraints = @UniqueConstraint(columnNames = {"symbol", "portfolio_id"}))
 public class Currency {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private long currencyId;
     private String symbol;
     private CurrencyTypes currencyType;

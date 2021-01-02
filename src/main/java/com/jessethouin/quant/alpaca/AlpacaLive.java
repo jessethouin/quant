@@ -1,15 +1,13 @@
 package com.jessethouin.quant.alpaca;
 
 import com.jessethouin.quant.alpaca.beans.AlpacaOrder;
-import com.jessethouin.quant.beans.Currency;
 import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.beans.Security;
-import com.jessethouin.quant.broker.Transactions;
 import com.jessethouin.quant.broker.Util;
 import com.jessethouin.quant.calculators.Calc;
 import com.jessethouin.quant.conf.Config;
-import com.jessethouin.quant.conf.CurrencyTypes;
 import com.jessethouin.quant.db.Database;
+import net.jacobpeterson.abstracts.websocket.exception.WebsocketException;
 import net.jacobpeterson.alpaca.AlpacaAPI;
 import net.jacobpeterson.alpaca.enums.Direction;
 import net.jacobpeterson.alpaca.enums.OrderStatus;
@@ -45,7 +43,7 @@ import static net.jacobpeterson.polygon.websocket.message.PolygonStreamMessageTy
 public class AlpacaLive {
     private static final Logger LOG = LogManager.getLogger(AlpacaLive.class);
     private static final AlpacaLive instance = new AlpacaLive();
-    private static final Config config = new Config();
+    private static final Config config = Config.INSTANCE;
     private static Portfolio portfolio;
     private final AlpacaAPI alpacaAPI = new AlpacaAPI();
     private final PolygonAPI polygonAPI = new PolygonAPI();
@@ -66,34 +64,7 @@ public class AlpacaLive {
             portfolio = Database.getPortfolio();
 
             if (portfolio == null) {
-                portfolio = new Portfolio();
-                List<String> fiatCurrencies = config.getFiatCurrencies();
-                fiatCurrencies.forEach(c -> {
-                    Currency currency = new Currency();
-                    currency.setSymbol(c);
-                    currency.setCurrencyType(CurrencyTypes.FIAT);
-                    if (c.equals("USD")) { // default-coded for now, until international exchanges are implemented
-                        Transactions.addCurrencyPosition(portfolio, new BigDecimal(alpacaAccount.getCash()), currency);
-                        List<String> tickers = config.getSecurities();
-                        tickers.forEach(t -> {
-                            Security security = new Security();
-                            security.setSymbol(t);
-                            security.setCurrency(currency);
-                            security.setPortfolio(portfolio);
-                            portfolio.getSecurities().add(security);
-                        });
-                    }
-                    currency.setPortfolio(portfolio);
-                    portfolio.getCurrencies().add(currency);
-                });
-                List<String> cryptoCurrencies = config.getCryptoCurrencies();
-                cryptoCurrencies.forEach(c -> {
-                    Currency currency = new Currency();
-                    currency.setSymbol(c);
-                    currency.setPortfolio(portfolio);
-                    currency.setCurrencyType(CurrencyTypes.CRYPTO);
-                    portfolio.getCurrencies().add(currency);
-                });
+                portfolio = Util.createPortfolio();
                 Database.persistPortfolio(portfolio);
             }
 
@@ -107,7 +78,11 @@ public class AlpacaLive {
             Objects.requireNonNull(alpacaLive.getClosedOrders()).forEach(o -> LOG.info("Closed Orders:" + o.toString()));
 
             alpacaLive.openStreamListener(portfolio.getSecurities());
-            alpacaLive.openTradeUpdatesStream();
+            try {
+                alpacaLive.openTradeUpdatesStream();
+            } catch (WebsocketException e) {
+                LOG.error("Unable to open websocket stream for trade (order) updates. {}", e.getLocalizedMessage());
+            }
         }
     }
 
@@ -132,52 +107,58 @@ public class AlpacaLive {
     }
 
     private void openStreamListener(Set<Security> securities) {
-        securities.forEach(s -> getPolygonAPI().addPolygonStreamListener(new PolygonStreamListenerAdapter(s.getSymbol(), PolygonStreamMessageType.values()) {
-            final Calc c = new Calc(s, config, BigDecimal.ZERO);
-            final List<BigDecimal> intradayPrices = new ArrayList<>();
-            int count = 0;
-            BigDecimal shortMAValue;
-            BigDecimal longMAValue;
-            BigDecimal price = BigDecimal.ZERO;
-            BigDecimal previousShortMAValue = BigDecimal.ZERO;
-            BigDecimal previousLongMAValue = BigDecimal.ZERO;
+        securities.forEach(s -> {
+            try {
+                getPolygonAPI().addPolygonStreamListener(new PolygonStreamListenerAdapter(s.getSymbol(), PolygonStreamMessageType.values()) {
+                    final Calc c = new Calc(s, config, BigDecimal.ZERO);
+                    final List<BigDecimal> intradayPrices = new ArrayList<>();
+                    int count = 0;
+                    BigDecimal shortMAValue;
+                    BigDecimal longMAValue;
+                    BigDecimal price = BigDecimal.ZERO;
+                    BigDecimal previousShortMAValue = BigDecimal.ZERO;
+                    BigDecimal previousLongMAValue = BigDecimal.ZERO;
 
-            @Override
-            public void onStreamUpdate(PolygonStreamMessageType streamMessageType, PolygonStreamMessage streamMessage) {
-                switch (streamMessageType) {
-                    case TRADE -> {
-                        TradeMessage tradeMessage = (TradeMessage) streamMessage;
-                        processMessage(TRADE, tradeMessage.getT(), tradeMessage.getP());
+                    @Override
+                    public void onStreamUpdate(PolygonStreamMessageType streamMessageType, PolygonStreamMessage streamMessage) {
+                        switch (streamMessageType) {
+                            case TRADE -> {
+                                TradeMessage tradeMessage = (TradeMessage) streamMessage;
+                                processMessage(TRADE, tradeMessage.getT(), tradeMessage.getP());
+                            }
+                            case AGGREGATE_PER_SECOND -> {
+                                AggregatePerSecondMessage aggregatePerSecondMessage = (AggregatePerSecondMessage) streamMessage;
+                                processMessage(AGGREGATE_PER_SECOND, aggregatePerSecondMessage.getE(), aggregatePerSecondMessage.getVw());
+                            }
+                        }
                     }
-                    case AGGREGATE_PER_SECOND -> {
-                        AggregatePerSecondMessage aggregatePerSecondMessage = (AggregatePerSecondMessage) streamMessage;
-                        processMessage(AGGREGATE_PER_SECOND, aggregatePerSecondMessage.getE(), aggregatePerSecondMessage.getVw());
+
+                    private void processMessage(PolygonStreamMessageType streamMessageType, Long timestamp, Double p) {
+                        if (streamMessageType.equals(TRADE)) return;
+
+                        LOG.info("===> " + streamMessageType + " [" + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss,SSS").format(new Date(timestamp)) + "]: " + p);
+                        price = BigDecimal.valueOf(p);
+                        if (count < config.getLongLookback()) intradayPrices.add(price);
+
+                        shortMAValue = Util.getMA(intradayPrices, previousShortMAValue, count, config.getShortLookback(), price);
+                        longMAValue = Util.getMA(intradayPrices, previousLongMAValue, count, config.getLongLookback(), price);
+                        c.updateCalc(price, shortMAValue, longMAValue, portfolio);
+                        c.decide();
+                        LOG.debug(MessageFormat.format("{0,number,000} : ma1 {1,number,000.0000} : ma2 {2,number,000.0000} : l {3,number,000.0000}: h {4,number,000.0000}: p {5,number,000.0000} : {6,number,00000.0000}", count, shortMAValue, longMAValue, c.getLow(), c.getHigh(), price, Util.getPortfolioValue(portfolio, s.getCurrency(), price)));
+
+                        Database.persistPortfolio(portfolio);
+                        previousShortMAValue = shortMAValue;
+                        previousLongMAValue = longMAValue;
+                        count++;
                     }
-                }
+                });
+            } catch (WebsocketException e) {
+                LOG.error("Unable to open websocket stream for {}. {}", s.getSymbol(), e.getLocalizedMessage());
             }
-
-            private void processMessage(PolygonStreamMessageType streamMessageType, Long timestamp, Double p) {
-                if (streamMessageType.equals(TRADE)) return;
-
-                LOG.info("===> " + streamMessageType + " [" + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss,SSS").format(new Date(timestamp)) + "]: " + p);
-                price = BigDecimal.valueOf(p);
-                if (count < config.getLongLookback()) intradayPrices.add(price);
-
-                shortMAValue = Util.getMA(intradayPrices, previousShortMAValue, count, config.getShortLookback(), price);
-                longMAValue = Util.getMA(intradayPrices, previousLongMAValue, count, config.getLongLookback(), price);
-                c.updateCalc(price, shortMAValue, longMAValue, portfolio);
-                c.decide();
-                LOG.debug(MessageFormat.format("{0,number,000} : ma1 {1,number,000.0000} : ma2 {2,number,000.0000} : l {3,number,000.0000}: h {4,number,000.0000}: p {5,number,000.0000} : {6,number,00000.0000}", count, shortMAValue, longMAValue, c.getLow(), c.getHigh(), price, Util.getPortfolioValue(portfolio, s.getCurrency(), price)));
-
-                Database.persistPortfolio(portfolio);
-                previousShortMAValue = shortMAValue;
-                previousLongMAValue = longMAValue;
-                count++;
-            }
-        }));
+        });
     }
 
-    private void openTradeUpdatesStream() {
+    private void openTradeUpdatesStream() throws WebsocketException {
         getAlpacaAPI().addAlpacaStreamListener(new AlpacaStreamListenerAdapter(AlpacaStreamMessageType.TRADE_UPDATES, AlpacaStreamMessageType.ACCOUNT_UPDATES) {
             @Override
             public void onStreamUpdate(AlpacaStreamMessageType streamMessageType, AlpacaStreamMessage streamMessage) {

@@ -3,6 +3,7 @@ package com.jessethouin.quant.db;
 import com.jessethouin.quant.alpaca.AlpacaLive;
 import com.jessethouin.quant.beans.Currency;
 import com.jessethouin.quant.beans.*;
+import com.jessethouin.quant.binance.beans.BinanceLimitOrder;
 import com.jessethouin.quant.broker.Util;
 import com.jessethouin.quant.conf.CurrencyTypes;
 import net.jacobpeterson.polygon.rest.exception.PolygonAPIRequestException;
@@ -11,6 +12,8 @@ import org.hibernate.SessionFactory;
 import org.hibernate.boot.MetadataSources;
 import org.hibernate.boot.registry.StandardServiceRegistry;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -158,9 +161,9 @@ class DatabaseTest {
         session.close();
     }
 
-    @org.junit.jupiter.api.Test
-    void testGetCurrencyFromPortfolio() {
-
-
+    @Test
+    void getBinanceLimitOrder() {
+        BinanceLimitOrder binanceLimitOrder = Database.getBinanceLimitOrder("4089390235");
+        Assertions.assertEquals(binanceLimitOrder.getInstrument(), "BTC/USDT");
     }
 }

@@ -1,17 +1,16 @@
-package com.jessethouin.quant.beans;
+package com.jessethouin.quant.alpaca.beans;
 
 import com.jessethouin.quant.db.BigDecimalConverter;
-import org.hibernate.annotations.GenericGenerator;
 
 import javax.persistence.*;
 import java.math.BigDecimal;
 
 @Entity
-@Table(name = "TICKER_HISTORY")
-public class TickerHistory {
+@Table(name = "ALPACA_TRADE_HISTORY")
+public class AlpacaTradeHistory {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
-    private Long tickerHistoryId;
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private Long alpacaTradeHistoryId;
     private String ticker; //Ticker of the object
     private Long t; //Nanosecond accuracy SIP Unix Timestamp
     private Long y; //Nanosecond accuracy Participant/Exchange Unix Timestamp
@@ -24,12 +23,12 @@ public class TickerHistory {
     private BigDecimal p; //Price of the trade
     private Integer z; //Tape where trade occured. ( 1,2 = CTA, 3 = UTP )
 
-    public Long getTickerHistoryId() {
-        return tickerHistoryId;
+    public Long getAlpacaTradeHistoryId() {
+        return alpacaTradeHistoryId;
     }
 
-    public void setTickerHistoryId(Long tickerHistoryId) {
-        this.tickerHistoryId = tickerHistoryId;
+    public void setAlpacaTradeHistoryId(Long alpacaTradeHistoryId) {
+        this.alpacaTradeHistoryId = alpacaTradeHistoryId;
     }
 
     public String getTicker() {

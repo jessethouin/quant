@@ -19,7 +19,7 @@ extend the damned thing.
 @Table(name = "BINANCE_LIMIT_ORDER")
 public class BinanceLimitOrder implements Comparable<BinanceLimitOrder> {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private long orderId;
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "portfolio_id")
@@ -42,6 +42,9 @@ public class BinanceLimitOrder implements Comparable<BinanceLimitOrder> {
     private String leverage;
     @Convert(converter = BigDecimalConverter.class)
     private BigDecimal limitPrice;
+
+    public BinanceLimitOrder() {
+    }
 
     public BinanceLimitOrder(LimitOrder limitOrder, Portfolio portfolio) {
         this.portfolio = portfolio;

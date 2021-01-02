@@ -8,7 +8,7 @@ import java.util.Set;
 @Table(name = "SECURITY", uniqueConstraints = @UniqueConstraint(columnNames = {"symbol", "portfolio_id"}))
 public class Security {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private long securityId;
     private String symbol;
     @ManyToOne(fetch = FetchType.EAGER)

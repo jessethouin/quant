@@ -14,14 +14,15 @@ import java.util.Scanner;
 
 public abstract class AbstractBacktest {
     private static final Logger LOG = LogManager.getLogger(AbstractBacktest.class);
-    private static final Config CONFIG = new Config();
+    public static final Config CONFIG = Config.INSTANCE;
     public static final List<BigDecimal> intradayPrices = new ArrayList<>();
 
     public static void populateIntradayPrices() {
         if (CONFIG.isBackTestDB()) {
             LOG.info("Loading historic trades from DB.");
-            Database.getBinanceTradeHistory(4000).stream().map(BinanceTradeHistory::getP).forEach(intradayPrices::add);
+            Database.getBinanceTradeHistory(CONFIG.getBacktestQty()).stream().map(BinanceTradeHistory::getP).forEach(intradayPrices::add);
             LOG.info("Finished loading trades from DB");
+            LOG.info("\n\tbegin: {}\n\tend:   {}\n\tdiff:  {}", intradayPrices.get(0), intradayPrices.get(intradayPrices.size() - 1), intradayPrices.get(intradayPrices.size() - 1).subtract(intradayPrices.get(0)));
             return;
         }
 
@@ -41,6 +42,5 @@ public abstract class AbstractBacktest {
             }
         }
         LOG.info("Finished loading trades from " + CONFIG.getBackTestData());
-//        Collections.reverse(intradayPrices);
     }
 }

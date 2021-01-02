@@ -55,7 +55,8 @@ public class BacktestParameterCombos extends AbstractBacktest {
         LOG.info(MessageFormat.format("\n\nThe best combination of parameters is\n\t{0}\nwith a value of ${1}\n", getBest(), getBestv()));
 
         watch.stop();
-        LOG.info(MessageFormat.format("Time Elapsed: {0}", watch.getTime(TimeUnit.MILLISECONDS) / 1000));
+        Duration elapsedTime = Duration.ofMillis(watch.getTime(TimeUnit.MILLISECONDS));
+        LOG.info("Time Elapsed: {}", String.format("%02d:%02d:%02d", elapsedTime.toHours(), elapsedTime.toMinutesPart(), elapsedTime.toSecondsPart()));
     }
 
     private static int getMACombos(int minMALookback, int maxMALookback, BigDecimal riskMax, BigDecimal riskIncrement) throws InterruptedException {
@@ -72,7 +73,7 @@ public class BacktestParameterCombos extends AbstractBacktest {
             while (++shortLookback < longLookback) { // there's no need to test equal short and long tail MAs because they will never separate or converge. That's why this is < and not <=.
                 combos = getRiskCombos(riskMax, riskIncrement, shortLookback, longLookback, combos, comboProcessingTimes, loopWatch);
 
-                LOG.info(MessageFormat.format("{0,number,percent} complete. {1} remaining", ++c / (float) i, getRemainingTimeUnits(comboProcessingTimes, --i_)));
+                LOG.info(MessageFormat.format("{0,number,percent} complete. {1} remaining ({2}, {3})", ++c / (float) i, getRemainingTimeUnits(comboProcessingTimes, --i_), shortLookback, longLookback));
             }
         }
         return combos;

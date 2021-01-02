@@ -12,7 +12,7 @@ import java.util.Objects;
 @Table(name = "ALPACA_ORDER")
 public class AlpacaOrder {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private long orderId;
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "portfolio_id")

@@ -3,9 +3,12 @@ package com.jessethouin.quant.broker;
 import com.jessethouin.quant.alpaca.AlpacaTransactions;
 import com.jessethouin.quant.alpaca.beans.AlpacaOrder;
 import com.jessethouin.quant.beans.*;
+import com.jessethouin.quant.binance.BinanceLive;
 import com.jessethouin.quant.binance.BinanceTransactions;
 import com.jessethouin.quant.binance.beans.BinanceLimitOrder;
 import com.jessethouin.quant.conf.Broker;
+import com.jessethouin.quant.conf.Config;
+import com.jessethouin.quant.db.Database;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.knowm.xchange.currency.CurrencyPair;
@@ -47,15 +50,10 @@ public class Transactions {
                 BinanceTransactions.buyCurrency(base.getPortfolio(), new CurrencyPair(base.getSymbol(), counter.getSymbol()), qty, price);
             }
             case BINANCE_TEST -> {
-                LOG.info("Place Binance test buy order here");
+                LOG.info("Placing Test Binance Limit Buy Order");
                 BinanceLimitOrder binanceLimitOrder = BinanceTransactions.buyTestCurrency(base.getPortfolio(), new CurrencyPair(base.getSymbol(), counter.getSymbol()), qty, price);
-
-                // This code would normally be handled by the Order websocket feed
                 if (binanceLimitOrder == null) return;
-                binanceLimitOrder.setStatus(Order.OrderStatus.FILLED);
-                binanceLimitOrder.setAveragePrice(price);
-                binanceLimitOrder.setCumulativeAmount(qty);
-                BinanceTransactions.processFilledOrder(binanceLimitOrder);
+                processTestTransaction(qty, binanceLimitOrder);
             }
             default -> throw new IllegalStateException("Unexpected broker: " + broker);
         }
@@ -66,8 +64,9 @@ public class Transactions {
 
         base.getCurrencyPositions().forEach(position -> {
             BigDecimal positionValue = Util.getCurrencyPositionValue(position, counter);
-            if (positionValue.compareTo(price) < 0 || sellAll) {
-                LOG.trace("Create sell order for " + position.getQuantity() + " " + base.getSymbol() + " at " + price);
+            LOG.info("positionValue: {}, positionValue * loss (break even): {}, price: {}", positionValue, positionValue.multiply(BigDecimal.valueOf(Config.INSTANCE.getLoss())), price);
+            if (positionValue.multiply(BigDecimal.valueOf(Config.INSTANCE.getLoss())).compareTo(price) < 0 || sellAll) {
+                LOG.info("Create sell order for " + position.getQuantity() + " " + base.getSymbol() + " at " + price);
                 qty[0] = qty[0].add(position.getQuantity());
             }
         });
@@ -83,17 +82,27 @@ public class Transactions {
                 BinanceTransactions.sellCurrency(base.getPortfolio(), new CurrencyPair(base.getSymbol(), counter.getSymbol()), sellQty, price);
             }
             case BINANCE_TEST -> {
+                LOG.info("Placing Test Binance Limit Sell Order");
                 BinanceLimitOrder binanceLimitOrder = BinanceTransactions.sellTestCurrency(base.getPortfolio(), new CurrencyPair(base.getSymbol(), counter.getSymbol()), sellQty, price);
-
                 if (binanceLimitOrder == null) return false;
-                binanceLimitOrder.setStatus(Order.OrderStatus.FILLED);
-                binanceLimitOrder.setAveragePrice(price);
-                binanceLimitOrder.setCumulativeAmount(sellQty);
-                BinanceTransactions.processFilledOrder(binanceLimitOrder);
+                processTestTransaction(sellQty, binanceLimitOrder);
             }
             default -> throw new IllegalStateException("Unexpected broker: " + broker);
         }
         return true;
+    }
+
+    private static void processTestTransaction(BigDecimal qty, BinanceLimitOrder binanceLimitOrder) {
+        Database.persistBinanceLimitOrder(binanceLimitOrder);
+
+        BinanceLive.INSTANCE.getOrderHistoryLookup().setOrderId(binanceLimitOrder.getOrderId());
+        BinanceTransactions.processBinanceLimitOrder(binanceLimitOrder);
+
+        // This code would normally be handled by the Order websocket feed
+        binanceLimitOrder.setStatus(Order.OrderStatus.FILLED);
+        binanceLimitOrder.setAveragePrice(BigDecimal.ONE);
+        binanceLimitOrder.setCumulativeAmount(qty);
+        BinanceTransactions.processBinanceLimitOrder(binanceLimitOrder);
     }
 
     public static void placeSecurityBuyOrder(Broker broker, Security security, BigDecimal qty, BigDecimal price) {

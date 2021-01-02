@@ -31,7 +31,7 @@
             <AppenderRef ref="ROLLING_FILE" level="info"/>
         </Logger>
         <Logger name="com.jessethouin.quant.broker.Transactions" level="trace">
-            <AppenderRef ref="ROLLING_FILE" level="trace"/>
+            <AppenderRef ref="ROLLING_FILE" level="info"/>
         </Logger>
         <Logger name="org.hibernate.SQL" level="info" additivity="false">
             <AppenderRef ref="STDOUT"/>

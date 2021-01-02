@@ -10,7 +10,7 @@ import java.util.Date;
 @Table(name = "SECURITY_POSITION")
 public class SecurityPosition {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private long positionId;
     private Date opened;
     @Convert(converter = BigDecimalConverter.class)

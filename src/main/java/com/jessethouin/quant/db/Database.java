@@ -1,12 +1,13 @@
 package com.jessethouin.quant.db;
 
 import com.jessethouin.quant.alpaca.beans.AlpacaOrder;
+import com.jessethouin.quant.alpaca.beans.AlpacaTradeHistory;
 import com.jessethouin.quant.beans.Currency;
 import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.beans.Security;
-import com.jessethouin.quant.beans.TickerHistory;
 import com.jessethouin.quant.binance.beans.BinanceLimitOrder;
 import com.jessethouin.quant.binance.beans.BinanceTradeHistory;
+import com.jessethouin.quant.binance.beans.OrderHistoryLookup;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.hibernate.Session;
@@ -14,7 +15,6 @@ import org.hibernate.SessionFactory;
 import org.hibernate.boot.MetadataSources;
 import org.hibernate.boot.registry.StandardServiceRegistry;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
@@ -84,7 +84,7 @@ public class Database {
         return binanceTradeHistoryList;
     }
 
-    public static Currency getCurrencyFromPortfolio(@NotNull Portfolio portfolio, String currencySymbol) {
+    public static Currency getCurrencyFromPortfolio(Portfolio portfolio, String currencySymbol) {
         session.beginTransaction();
         Currency result = (Currency) getSession()
                 .createQuery("from Currency where portfolio_id=:portfolio_id and symbol=:symbol")
@@ -95,7 +95,7 @@ public class Database {
         return result;
     }
 
-    public static Security getSecurityFromPortfolio(@NotNull Portfolio portfolio, String securitySymbol) {
+    public static Security getSecurityFromPortfolio(Portfolio portfolio, String securitySymbol) {
         session.beginTransaction();
         Security result = (Security) getSession()
                 .createQuery("from Security where portfolio_id=:portfolio_id and symbol=:symbol")
@@ -125,15 +125,21 @@ public class Database {
         session.getTransaction().commit();
     }
 
-    public static void persistTickerHistory(TickerHistory tickerHistory) {
+    public static void persistTickerHistory(AlpacaTradeHistory alpacaTradeHistory) {
         session.beginTransaction();
-        session.persist(tickerHistory);
+        session.persist(alpacaTradeHistory);
         session.getTransaction().commit();
     }
 
     public static void persistTradeHistory(BinanceTradeHistory binanceTradeHistory) {
         session.beginTransaction();
         session.persist(binanceTradeHistory);
+        session.getTransaction().commit();
+    }
+
+    public static void persistOrderHistoryLookup(OrderHistoryLookup orderHistoryLookup) {
+        session.beginTransaction();
+        session.persist(orderHistoryLookup);
         session.getTransaction().commit();
     }
 }

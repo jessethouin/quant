@@ -20,18 +20,22 @@ public class Config {
     private BigDecimal highRisk;
     private BigDecimal lowRisk;
     private BigDecimal allowance;
+    private double loss;
     private int shortLookback;
     private int longLookback;
     private BuyStrategyTypes buyStrategy;
     private SellStrategyTypes sellStrategy;
     private String backTestData;
     private boolean backTestDB;
+    private int backtestQty;
     private List<String> securities;
     private List<String> fiatCurrencies;
     private List<String> cryptoCurrencies;
     private Broker broker;
 
-    public Config() {
+    public static final Config INSTANCE = new Config();
+
+    private Config() {
         try {
             Properties prop = new Properties();
             String propFileName = "quant.properties";
@@ -43,6 +47,7 @@ public class Config {
             }
             setInitialCash(new BigDecimal(prop.getProperty("initialCash")));
             setAllowance(new BigDecimal(prop.getProperty("allowance")));
+            setLoss(Double.parseDouble(prop.getProperty("loss")));
             setHighRisk(new BigDecimal(prop.getProperty("highRisk")));
             setLowRisk(new BigDecimal(prop.getProperty("lowRisk")));
             setShortLookback(Integer.parseInt(prop.getProperty("shortLookback")));
@@ -51,6 +56,7 @@ public class Config {
             setSellStrategy(SellStrategyTypes.valueOf(prop.getProperty("sellStrategy")));
             setBackTestData(prop.getProperty("backTestData"));
             setBackTestDB(Boolean.parseBoolean(prop.getProperty("backTestDB")));
+            setBacktestQty(Integer.parseInt(prop.getProperty("backtestQty")));
             setSecurities(Stream.of(prop.getProperty("securities").split(",", -1)).collect(Collectors.toList()));
             setFiatCurrencies(Stream.of(prop.getProperty("fiatCurrencies").split(",", -1)).collect(Collectors.toList()));
             setCryptoCurrencies(Stream.of(prop.getProperty("cryptoCurrencies").split(",", -1)).collect(Collectors.toList()));
@@ -86,6 +92,14 @@ public class Config {
 
     public void setAllowance(BigDecimal allowance) {
         this.allowance = allowance;
+    }
+
+    public double getLoss() {
+        return loss;
+    }
+
+    public void setLoss(double loss) {
+        this.loss = loss;
     }
 
     public void setInitialCash(BigDecimal initialCash) {
@@ -140,6 +154,14 @@ public class Config {
         this.backTestDB = backTestDB;
     }
 
+    public int getBacktestQty() {
+        return backtestQty;
+    }
+
+    public void setBacktestQty(int backtestQty) {
+        this.backtestQty = backtestQty;
+    }
+
     public List<String> getSecurities() {
         return securities;
     }
@@ -170,5 +192,9 @@ public class Config {
 
     public void setBroker(Broker broker) {
         this.broker = broker;
+    }
+
+    public static Config getTheadSafeConfig() {
+        return new Config();
     }
 }

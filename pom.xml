@@ -12,9 +12,7 @@
         <maven.compiler.source>15</maven.compiler.source>
         <maven.compiler.target>15</maven.compiler.target>
         <version.maven-install-plugin>3.0.0-M1</version.maven-install-plugin>
-        <version.alpaca>5.2</version.alpaca>
-        <version.coinbase>0.11.0</version.coinbase>
-        <version.intrinio>5.6.3</version.intrinio>
+        <version.knowm>5.0.4</version.knowm>
     </properties>
 
     <dependencies>
@@ -41,16 +39,6 @@
             <version>2.12.0-rc1</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/com.image-charts/image-charts -->
-        <dependency>
-            <groupId>com.image-charts</groupId>
-            <artifactId>image-charts</artifactId>
-            <version>1.0.181</version>
-        </dependency>
-        <dependency>
-            <groupId>org.jfree</groupId>
-            <artifactId>jfreechart</artifactId>
-            <version>1.5.0</version>
-        </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
@@ -90,106 +78,52 @@
         <!-- Begin Alpaca -->
         <dependency>
             <groupId>net.jacobpeterson</groupId>
-            <artifactId>alpaca</artifactId>
-            <version>${version.alpaca}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.mashape.unirest</groupId>
-            <artifactId>unirest-java</artifactId>
-            <version>1.4.9</version>
-        </dependency>
-        <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-            <version>2.8.5</version>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.jetty.websocket</groupId>
-            <artifactId>javax-websocket-client-impl</artifactId>
-            <version>9.4.28.v20200408</version>
+            <artifactId>alpaca-java</artifactId>
+            <version>6.0.1</version>
+            <scope>compile</scope>
         </dependency>
         <!-- End Alpaca -->
 
         <dependency>
             <groupId>org.knowm.xchange</groupId>
             <artifactId>xchange-core</artifactId>
-            <version>5.0.3</version>
+            <version>${version.knowm}</version>
         </dependency>
         <dependency>
             <groupId>org.knowm.xchange</groupId>
             <artifactId>xchange-coinbasepro</artifactId>
-            <version>5.0.3</version>
+            <version>${version.knowm}</version>
         </dependency>
         <dependency>
             <groupId>org.knowm.xchange</groupId>
             <artifactId>xchange-stream-coinbasepro</artifactId>
-            <version>5.0.3</version>
+            <version>${version.knowm}</version>
         </dependency>
         <dependency>
             <groupId>org.knowm.xchange</groupId>
             <artifactId>xchange-cexio</artifactId>
-            <version>5.0.3</version>
+            <version>5.0.4</version>
         </dependency>
         <dependency>
             <groupId>org.knowm.xchange</groupId>
             <artifactId>xchange-stream-cexio</artifactId>
-            <version>5.0.3</version>
+            <version>${version.knowm}</version>
         </dependency>
         <dependency>
             <groupId>org.knowm.xchange</groupId>
             <artifactId>xchange-binance</artifactId>
-            <version>5.0.3</version>
+            <version>${version.knowm}</version>
         </dependency>
         <dependency>
             <groupId>org.knowm.xchange</groupId>
             <artifactId>xchange-stream-binance</artifactId>
-            <version>5.0.3</version>
-        </dependency>
-
-        <!-- Begin Intrinio -->
-        <dependency>
-            <groupId>com.intrinio</groupId>
-            <artifactId>sdk</artifactId>
-            <version>${version.intrinio}</version>
+            <version>${version.knowm}</version>
         </dependency>
         <dependency>
-            <groupId>io.swagger</groupId>
-            <artifactId>swagger-annotations</artifactId>
-            <version>1.5.15</version>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>30.1-jre</version>
         </dependency>
-        <dependency>
-            <groupId>com.squareup.okhttp</groupId>
-            <artifactId>okhttp</artifactId>
-            <version>2.7.5</version>
-        </dependency>
-        <dependency>
-            <groupId>com.squareup.okhttp</groupId>
-            <artifactId>logging-interceptor</artifactId>
-            <version>2.7.5</version>
-        </dependency>
-        <dependency>
-            <groupId>io.gsonfire</groupId>
-            <artifactId>gson-fire</artifactId>
-            <version>1.8.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.threeten</groupId>
-            <artifactId>threetenbp</artifactId>
-            <version>1.3.5</version>
-        </dependency>
-        <dependency>
-            <groupId>com.evanlennick</groupId>
-            <artifactId>retry4j</artifactId>
-            <version>0.15.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.jetbrains</groupId>
-            <artifactId>annotations</artifactId>
-            <version>RELEASE</version>
-            <scope>compile</scope>
-        </dependency>
-        <!-- End Intrinio -->
-
     </dependencies>
 
     <build>
@@ -198,98 +132,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-install-plugin</artifactId>
                 <version>${version.maven-install-plugin}</version>
-                <executions>
-                    <execution>
-                        <id>alpaca-java-jar</id>
-                        <phase>clean</phase>
-                        <configuration>
-                            <groupId>net.jacobpeterson</groupId>
-                            <artifactId>alpaca</artifactId>
-                            <version>${version.alpaca}</version>
-                            <file>${project.basedir}/libs/alpaca-java-5.2.jar</file>
-                            <packaging>jar</packaging>
-                            <generatePom>true</generatePom>
-                        </configuration>
-                        <goals>
-                            <goal>install-file</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>coinbase-pro-java-api</id>
-                        <phase>clean</phase>
-                        <configuration>
-                            <groupId>com.coinbase.exchange</groupId>
-                            <artifactId>api</artifactId>
-                            <version>${version.coinbase}</version>
-                            <file>${project.basedir}/libs/api-0.11.0.jar</file>
-                            <packaging>jar</packaging>
-                            <generatePom>true</generatePom>
-                        </configuration>
-                        <goals>
-                            <goal>install-file</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>coinbase-pro-java-model</id>
-                        <phase>clean</phase>
-                        <configuration>
-                            <groupId>com.coinbase.exchange</groupId>
-                            <artifactId>model</artifactId>
-                            <version>${version.coinbase}</version>
-                            <file>${project.basedir}/libs/model-0.11.0.jar</file>
-                            <packaging>jar</packaging>
-                            <generatePom>true</generatePom>
-                        </configuration>
-                        <goals>
-                            <goal>install-file</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>coinbase-pro-java-security</id>
-                        <phase>clean</phase>
-                        <configuration>
-                            <groupId>com.coinbase.exchange</groupId>
-                            <artifactId>security</artifactId>
-                            <version>${version.coinbase}</version>
-                            <file>${project.basedir}/libs/security-0.11.0.jar</file>
-                            <packaging>jar</packaging>
-                            <generatePom>true</generatePom>
-                        </configuration>
-                        <goals>
-                            <goal>install-file</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>coinbase-pro-java-websocketfeed</id>
-                        <phase>clean</phase>
-                        <configuration>
-                            <groupId>com.coinbase.exchange</groupId>
-                            <artifactId>websocketfeed</artifactId>
-                            <version>${version.coinbase}</version>
-                            <file>${project.basedir}/libs/websocketfeed-0.11.0.jar</file>
-                            <packaging>jar</packaging>
-                            <generatePom>true</generatePom>
-                        </configuration>
-                        <goals>
-                            <goal>install-file</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>intrinio-sdk-jar</id>
-                        <phase>clean</phase>
-                        <configuration>
-                            <groupId>com.intrinio</groupId>
-                            <artifactId>sdk</artifactId>
-                            <version>${version.intrinio}</version>
-                            <file>${project.basedir}/libs/intrinio-sdk-5.6.3.jar</file>
-                            <packaging>jar</packaging>
-                            <generatePom>true</generatePom>
-                        </configuration>
-                        <goals>
-                            <goal>install-file</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
     </build>

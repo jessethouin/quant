@@ -18,11 +18,13 @@ import net.jacobpeterson.polygon.rest.exception.PolygonAPIRequestException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.knowm.xchange.currency.CurrencyPair;
+import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.exceptions.CurrencyPairNotValidException;
 
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.text.NumberFormat;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -64,6 +66,15 @@ public class Util {
         return balance[0];
     }
 
+    public static BigDecimal getBalance(Portfolio portfolio, Currency base, Currency counter, BigDecimal marketPrice) {
+        final BigDecimal[] balance = {BigDecimal.ZERO};
+        portfolio.getCurrencies().stream()
+                .filter(c -> c.equals(base))
+                .forEach(c -> c.getCurrencyPositions()
+                        .forEach(currencyPosition -> balance[0] = balance[0].add(counter == null ? currencyPosition.getQuantity() : currencyPosition.getQuantity().multiply(marketPrice))));
+        return balance[0];
+    }
+
     public static BigDecimal getHeldSecurity(Security security) {
         BigDecimal[] v = {BigDecimal.ZERO};
         security.getSecurityPositions().forEach(securityPosition -> v[0] = v[0].add(securityPosition.getQuantity()));
@@ -91,7 +102,8 @@ public class Util {
 
     public static BigDecimal getBudget(Portfolio portfolio, BigDecimal price, BigDecimal allowance, Currency currency, Security security) {
         int scale = security == null ? 8 : 0;
-        return getBalance(portfolio, currency).multiply(allowance).divide(price, scale, RoundingMode.FLOOR);
+        BigDecimal currencyBal = getBalance(portfolio, currency).min(Config.INSTANCE.getInitialCash().multiply(Config.INSTANCE.getAllowance()));
+        return currencyBal.multiply(allowance).divide(price, scale, RoundingMode.FLOOR);
     }
 
     public static BigDecimal getMA(List<BigDecimal> intradayPrices, BigDecimal previousMA, int i, int lookback, BigDecimal price) {
@@ -219,4 +231,87 @@ public class Util {
         Database.persistAlpacaOrder(alpacaOrder);
     }
 
+    public static Portfolio createPortfolio() {
+        Portfolio portfolio = new Portfolio();
+
+        List<String> fiatCurrencies = Config.INSTANCE.getFiatCurrencies();
+        fiatCurrencies.forEach(c -> {
+            Currency currency = new Currency();
+            currency.setSymbol(c);
+            currency.setCurrencyType(CurrencyTypes.FIAT);
+            if (c.equals("USD")) { // default-coded (you're welcome, Pra) for now, until international exchanges are implemented in Alpaca. In other words, ALL securities traded are in USD.
+                Transactions.addCurrencyPosition(portfolio, Config.INSTANCE.getInitialCash(), currency);
+                List<String> tickers = Config.INSTANCE.getSecurities();
+                tickers.forEach(t -> {
+                    Security security = new Security();
+                    security.setSymbol(t);
+                    security.setCurrency(currency);
+                    security.setPortfolio(portfolio);
+                    portfolio.getSecurities().add(security);
+                });
+            }
+            currency.setPortfolio(portfolio);
+            portfolio.getCurrencies().add(currency);
+        });
+
+        List<String> cryptoCurrencies = Config.INSTANCE.getCryptoCurrencies();
+        cryptoCurrencies.forEach(c -> {
+            Currency currency = new Currency();
+            currency.setSymbol(c);
+            currency.setCurrencyType(CurrencyTypes.CRYPTO);
+            currency.setPortfolio(portfolio);
+            portfolio.getCurrencies().add(currency);
+        });
+
+        try {
+            Currency btc = getCurrencyFromPortfolio("BTC", portfolio);
+            Currency usdt = getCurrencyFromPortfolio("USDT", portfolio);
+            Ticker ticker = BinanceLive.INSTANCE.getBinanceExchange().getMarketDataService().getTicker(CurrencyPair.BTC_USDT);
+            Transactions.addCurrencyPosition(portfolio, Config.INSTANCE.getInitialCash(), usdt, btc, ticker.getLast().subtract(BigDecimal.TEN));
+        } catch (IOException e) {
+            LOG.error("Unable to initialize currencies. {}", e.getLocalizedMessage());
+        }
+        return portfolio;
+    }
+
+    public static Security getSecurity(Portfolio portfolio, String symbol) {
+        Security security = new Security();
+        security.setSymbol(symbol);
+        return portfolio.getSecurities().stream().filter(s -> s.getSymbol().equals(symbol)).findFirst().orElse(security);
+    }
+
+    public static Currency getCurrency(Portfolio portfolio, String symbol) {
+        Currency currency = new Currency();
+        currency.setSymbol(symbol);
+        return portfolio.getCurrencies().stream().filter(c -> c.getSymbol().equals(symbol)).findFirst().orElse(currency);
+    }
+
+    public static String formatFiat(Object o) {
+        NumberFormat numberFormat = NumberFormat.getCurrencyInstance();
+        numberFormat.setMaximumFractionDigits(4);
+        return numberFormat.format(o);
+    }
+
+    public static String formatNumber(Object o, int decimalDigits) {
+        NumberFormat numberFormat = NumberFormat.getNumberInstance();
+        numberFormat.setMaximumFractionDigits(decimalDigits);
+        return numberFormat.format(o);
+    }
+
+    public static BigDecimal getBreakEven(BigDecimal qtyBTC) {
+        BigDecimal rate = BigDecimal.valueOf(0.0750 / 100);
+
+        BigDecimal BNB_BTC = getTickerPrice("BNB", "BTC"); // needs to be dynamic
+        BigDecimal BNB_USDT = getTickerPrice("BNB", "USDT"); // needs to be dynamic
+        BigDecimal BTC_USDT = getTickerPrice("BTC", "USDT"); // needs to be dynamic, based off of USDC
+
+        BigDecimal feesInBNB = ((rate.multiply(qtyBTC)).divide(BNB_BTC, 8, RoundingMode.HALF_UP));
+        BigDecimal breakEven = ((BTC_USDT.multiply(rate)).multiply(BigDecimal.valueOf(2))).add(BTC_USDT);
+
+        LOG.debug("Bought {} BTC at {} USDT, costing {}", qtyBTC, BTC_USDT, qtyBTC.multiply(BTC_USDT));
+        LOG.debug("Fees in BNB: {} BNB", feesInBNB);
+        LOG.debug("Fees in USDT: ${}", feesInBNB.multiply(BNB_USDT));
+        LOG.debug("Break even in USDT: {}", breakEven);
+        return breakEven;
+    }
 }
