@@ -3,6 +3,7 @@ package com.jessethouin.quant.backtest;
 import com.jessethouin.quant.beans.Currency;
 import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.beans.Security;
+import com.jessethouin.quant.binance.beans.BinanceLimitOrder;
 import com.jessethouin.quant.broker.Util;
 import com.jessethouin.quant.calculators.Calc;
 import com.jessethouin.quant.conf.Config;
@@ -60,27 +61,33 @@ public class ProcessHistoricIntradayPrices implements Callable<Object> {
             default -> throw new IllegalStateException("Unexpected value: " + config.getBroker());
         }
 
-
         for (int i = 0; i < intradayPrices.size(); i++) {
-            price = intradayPrices.get(i);
-            shortMAValue = Util.getMA(intradayPrices, previousShortMAValue, i, shortLookback, price);
-            longMAValue = Util.getMA(intradayPrices, previousLongMAValue, i, longLookback, price);
-            c.updateCalc(price, shortMAValue, longMAValue, portfolio);
-            c.decide();
+            try {
+                price = intradayPrices.get(i);
+                shortMAValue = Util.getMA(intradayPrices, previousShortMAValue, i, shortLookback, price);
+                longMAValue = Util.getMA(intradayPrices, previousLongMAValue, i, longLookback, price);
+                c.updateCalc(price, shortMAValue, longMAValue, portfolio);
+                c.decide();
 
-            switch (config.getBroker()) {
-                case ALPACA_TEST -> LOG.trace(MessageFormat.format("{8,number,000} : {0,number,00} : {5,number,000.000} : {1,number,00} : {6,number,000.000} : {7,number,000.000} : {2,number,0.00} : {3,number,0.00} : {4,number,000000.000}", config.getShortLookback(), config.getLongLookback(), config.getLowRisk(), config.getHighRisk(), Util.getPortfolioValue(portfolio, c.getSecurity().getCurrency(), price), shortMAValue, longMAValue, price, i));
-                case BINANCE_TEST -> LOG.trace("{} : ma1 {} : ma2 {} : l {} : h {} : p {} : v {}", i, shortMAValue, longMAValue, c.getLow(), c.getHigh(), price, Util.getBalance(portfolio, c.getBase(), c.getCounter(), price).add(Util.getBalance(portfolio, c.getCounter())));
+                switch (config.getBroker()) {
+                    case ALPACA_TEST -> LOG.trace(MessageFormat.format("{8,number,000} : {0,number,00} : {5,number,000.000} : {1,number,00} : {6,number,000.000} : {7,number,000.000} : {2,number,0.00} : {3,number,0.00} : {4,number,000000.000}", config.getShortLookback(), config.getLongLookback(), config.getLowRisk(), config.getHighRisk(), Util.getPortfolioValue(portfolio, c.getSecurity().getCurrency(), price), shortMAValue, longMAValue, price, i));
+                    case BINANCE_TEST -> LOG.trace("{} : ma1 {} : ma2 {} : l {} : h {} : p {} : v {}", i, shortMAValue, longMAValue, c.getLow(), c.getHigh(), price, Util.getBalance(portfolio, c.getBase(), c.getCounter(), price).add(Util.getBalance(portfolio, c.getCounter())));
+                }
+                previousShortMAValue = shortMAValue;
+                previousLongMAValue = longMAValue;
+            } catch (Exception e) {
+                LOG.error(e.getMessage());
             }
-            previousShortMAValue = shortMAValue;
-            previousLongMAValue = longMAValue;
         }
 
         BigDecimal portfolioValue = BigDecimal.ZERO;
         switch (config.getBroker()) {
             case ALPACA_TEST -> portfolioValue = Util.getPortfolioValue(portfolio, c.getBase(), price);
-            case BINANCE_TEST -> portfolioValue = Util.getBalance(portfolio, c.getBase(), c.getCounter(), price).add(Util.getBalance(portfolio, c.getCounter()));
+            case BINANCE_TEST -> portfolioValue = Util.getBalance(portfolio, c.getBase(), c.getCounter(), price)
+                    .add(Util.getBalance(portfolio, c.getCounter()))
+                    .subtract(portfolio.getBinanceLimitOrders().stream().map(BinanceLimitOrder::getFee).reduce(BigDecimal.ZERO, BigDecimal::add));
         }
+
         String msg = MessageFormat.format("{0,number,00} : {1,number,00} : {2,number,0.00} : {3,number,0.00} : {4,number,00000.000}", shortLookback, longLookback, lowRisk, highRisk, portfolioValue);
         LOG.trace(msg);
         BacktestParameterCombos.updateBest(msg, portfolioValue);

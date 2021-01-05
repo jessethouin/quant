@@ -22,7 +22,6 @@ import org.knowm.xchange.dto.trade.LimitOrder;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static com.jessethouin.quant.binance.BinanceLive.INSTANCE;
 import static org.knowm.xchange.binance.dto.trade.OrderType.LIMIT;
@@ -44,13 +43,16 @@ public class BinanceTransactions {
         if (qty.equals(BigDecimal.ZERO)) return;
 
         LimitOrder limitOrder = new LimitOrder.Builder(orderType, currencyPair)
+                .orderStatus(Order.OrderStatus.NEW)
                 .originalAmount(qty)
                 .limitPrice(price)
                 .flag(TimeInForce.GTC)
+                .timestamp(new Date())
                 .build();
         try {
             ((BinanceTradeService) INSTANCE.getBinanceExchange().getTradeService()).placeTestOrder(LIMIT, limitOrder, limitOrder.getLimitPrice(), null);
             BinanceLimitOrder binanceLimitOrder = new BinanceLimitOrder(limitOrder, portfolio);
+            BinanceLive.INSTANCE.getOrderHistoryLookup().setOrderId(binanceLimitOrder.getOrderId());
             Database.persistBinanceLimitOrder(binanceLimitOrder);
             LOG.debug("Limit Order: " + limitOrder.toString());
             LOG.debug("Binance Limit order: " + binanceLimitOrder.toString().replace(",", ",\n\t"));
@@ -68,38 +70,43 @@ public class BinanceTransactions {
     }
 
     private static BinanceLimitOrder testTransact(Portfolio portfolio, CurrencyPair currencyPair, BigDecimal qty, BigDecimal price, OrderType orderType) {
-        if (currencyPair.base.getSymbol().equals("BTC") && qty.compareTo(BigDecimal.valueOf(0.000001)) < 0) return null;
+        if (!Config.INSTANCE.getBackTest() && qty.multiply(price).compareTo(Util.getMinTrade(currencyPair)) < 0) {
+            LOG.warn("Trade must be minimum of {} for {}. Was {}.", Util.getMinTrade(currencyPair), currencyPair.toString(), qty.multiply(price));
+            return null;
+        }
 
         LimitOrder limitOrder = new LimitOrder.Builder(orderType, currencyPair)
                 .orderStatus(Order.OrderStatus.NEW)
                 .originalAmount(qty)
                 .limitPrice(price)
-                .fee(price.multiply(qty).multiply(BigDecimal.valueOf(.001)))
+                .fee(price.multiply(qty).multiply(BigDecimal.valueOf(.00075)))
                 .flag(TimeInForce.GTC)
                 .timestamp(new Date())
                 .build();
         BinanceLimitOrder binanceLimitOrder = new BinanceLimitOrder(limitOrder, portfolio);
+        portfolio.getBinanceLimitOrders().add(binanceLimitOrder);
         LOG.trace("Limit Order: " + limitOrder.toString());
         LOG.trace("Binance Limit order: " + binanceLimitOrder.toString().replace(",", ",\n\t"));
         return binanceLimitOrder;
     }
 
     public static void processBinanceLimitOrder(BinanceLimitOrder binanceLimitOrder) {
+        processBinanceLimitOrder(binanceLimitOrder, Collections.emptyList());
+    }
+
+    public static void processBinanceLimitOrder(BinanceLimitOrder binanceLimitOrder, List<CurrencyPosition> eligibleCurrencyPositions) {
         Portfolio portfolio = binanceLimitOrder.getPortfolio();
         CurrencyPair currencyPair = new CurrencyPair(binanceLimitOrder.getInstrument());
         Currency base = Util.getCurrencyFromPortfolio(currencyPair.base.getSymbol(), portfolio);
         Currency counter = Util.getCurrencyFromPortfolio(currencyPair.counter.getSymbol(), portfolio);
         BigDecimal limitPrice = binanceLimitOrder.getLimitPrice();
         BigDecimal originalAmount = binanceLimitOrder.getOriginalAmount();
-        BigDecimal fee = binanceLimitOrder.getFee();
-        List<CurrencyPosition> remove;
 
         switch (binanceLimitOrder.getType()) {
             case BID -> {
                 switch (binanceLimitOrder.getStatus()) {
                     case NEW -> {
-                        remove = new ArrayList<>(counter.getCurrencyPositions());
-                        reduceCurrency(counter, originalAmount.multiply(limitPrice), remove); //todo subtract fees as well
+                        reduceCurrency(counter, originalAmount.multiply(limitPrice), eligibleCurrencyPositions); //todo subtract fees as well
                     }
                     case FILLED -> Transactions.addCurrencyPosition(portfolio, originalAmount, base, counter, limitPrice);
                     case CANCELED, EXPIRED, REJECTED, REPLACED -> Transactions.addCurrencyPosition(portfolio, originalAmount.multiply(limitPrice), counter, base, limitPrice);
@@ -108,11 +115,7 @@ public class BinanceTransactions {
             case ASK -> {
                 switch (binanceLimitOrder.getStatus()) {
                     case NEW -> {
-                        remove = base.getCurrencyPositions()
-                                .stream()
-                                .filter(position -> position.getPrice().multiply(BigDecimal.valueOf(Config.INSTANCE.getLoss())).compareTo(limitPrice) < 0)
-                                .collect(Collectors.toList());
-                        reduceCurrency(base, originalAmount, remove); //todo subtract fees as well
+                        reduceCurrency(base, originalAmount, eligibleCurrencyPositions); //todo subtract fees as well
                     }
                     case FILLED -> {
                         BigDecimal filledQty = binanceLimitOrder.getCumulativeAmount();

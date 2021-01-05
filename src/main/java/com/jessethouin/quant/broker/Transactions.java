@@ -16,7 +16,9 @@ import org.knowm.xchange.dto.Order;
 
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 public class Transactions {
     private static final Logger LOG = LogManager.getLogger(Transactions.class);
@@ -46,32 +48,24 @@ public class Transactions {
             case COINBASE -> LOG.info("Place COINBASE buy order here");
             case CEXIO -> LOG.info("Place CEXIO buy order here");
             case BINANCE -> {
-                LOG.info("Place Binance buy order here");
+                LOG.info("Placing Binance BUY order for {} of {} at {}", qty, base.getSymbol(), price);
                 BinanceTransactions.buyCurrency(base.getPortfolio(), new CurrencyPair(base.getSymbol(), counter.getSymbol()), qty, price);
             }
             case BINANCE_TEST -> {
-                LOG.info("Placing Test Binance Limit Buy Order");
                 BinanceLimitOrder binanceLimitOrder = BinanceTransactions.buyTestCurrency(base.getPortfolio(), new CurrencyPair(base.getSymbol(), counter.getSymbol()), qty, price);
                 if (binanceLimitOrder == null) return;
-                processTestTransaction(qty, binanceLimitOrder);
+
+                LOG.trace("Placing Binance TEST BUY LIMIT order for {} of {} at {}", qty, base.getSymbol(), price);
+                processTestTransaction(qty, new ArrayList<>(counter.getCurrencyPositions()), binanceLimitOrder);
             }
             default -> throw new IllegalStateException("Unexpected broker: " + broker);
         }
     }
 
     public static boolean placeCurrencySellOrder(Broker broker, Currency base, Currency counter, BigDecimal price, boolean sellAll) {
-        BigDecimal[] qty = {BigDecimal.ZERO};
+        List<CurrencyPosition> currencyPositions = getSellableCurrencyPositions(base, counter, price, sellAll);
 
-        base.getCurrencyPositions().forEach(position -> {
-            BigDecimal positionValue = Util.getCurrencyPositionValue(position, counter);
-            LOG.info("positionValue: {}, positionValue * loss (break even): {}, price: {}", positionValue, positionValue.multiply(BigDecimal.valueOf(Config.INSTANCE.getLoss())), price);
-            if (positionValue.multiply(BigDecimal.valueOf(Config.INSTANCE.getLoss())).compareTo(price) < 0 || sellAll) {
-                LOG.info("Create sell order for " + position.getQuantity() + " " + base.getSymbol() + " at " + price);
-                qty[0] = qty[0].add(position.getQuantity());
-            }
-        });
-
-        BigDecimal sellQty = qty[0];
+        BigDecimal sellQty = currencyPositions.stream().map(CurrencyPosition::getQuantity).reduce(BigDecimal.ZERO, BigDecimal::add);
         if (sellQty.equals(BigDecimal.ZERO)) return false;
 
         switch (broker) {
@@ -82,27 +76,47 @@ public class Transactions {
                 BinanceTransactions.sellCurrency(base.getPortfolio(), new CurrencyPair(base.getSymbol(), counter.getSymbol()), sellQty, price);
             }
             case BINANCE_TEST -> {
-                LOG.info("Placing Test Binance Limit Sell Order");
                 BinanceLimitOrder binanceLimitOrder = BinanceTransactions.sellTestCurrency(base.getPortfolio(), new CurrencyPair(base.getSymbol(), counter.getSymbol()), sellQty, price);
                 if (binanceLimitOrder == null) return false;
-                processTestTransaction(sellQty, binanceLimitOrder);
+
+                LOG.trace("Placing Binance TEST SELL LIMIT Order for {} of {} at {}", sellQty, base.getSymbol(), price);
+                processTestTransaction(sellQty, currencyPositions, binanceLimitOrder);
             }
             default -> throw new IllegalStateException("Unexpected broker: " + broker);
         }
         return true;
     }
 
-    private static void processTestTransaction(BigDecimal qty, BinanceLimitOrder binanceLimitOrder) {
-        Database.persistBinanceLimitOrder(binanceLimitOrder);
+    public static List<CurrencyPosition> getSellableCurrencyPositions(CurrencyPair currencyPair, Portfolio portfolio, BigDecimal price, boolean sellAll) {
+        return getSellableCurrencyPositions(Util.getCurrency(portfolio, currencyPair.base.getSymbol()), Util.getCurrency(portfolio, currencyPair.counter.getSymbol()), price, sellAll);
+    }
 
-        BinanceLive.INSTANCE.getOrderHistoryLookup().setOrderId(binanceLimitOrder.getOrderId());
-        BinanceTransactions.processBinanceLimitOrder(binanceLimitOrder);
+    public static List<CurrencyPosition> getSellableCurrencyPositions(Currency base, Currency counter, BigDecimal price, boolean sellAll) {
+        List<CurrencyPosition> currencyPositions = new ArrayList<>();
+
+        base.getCurrencyPositions().forEach(position -> {
+            BigDecimal positionValue = Util.getCurrencyPositionValue(position, counter);
+            LOG.trace("positionValue: {}, loss: {}, gain: {}, price: {}", positionValue, positionValue.multiply(Config.INSTANCE.getLoss()), positionValue.multiply(Config.INSTANCE.getGain()), price);
+            if (price.compareTo(positionValue.multiply(Config.INSTANCE.getGain())) > 0 || price.compareTo(positionValue.multiply(Config.INSTANCE.getLoss())) < 0 || sellAll) {
+                LOG.trace("Create sell order for " + position.getQuantity() + " " + base.getSymbol() + " at " + price);
+                currencyPositions.add(position);
+            }
+        });
+        return currencyPositions;
+    }
+
+    private static void processTestTransaction(BigDecimal qty, List<CurrencyPosition> currencyPositions, BinanceLimitOrder binanceLimitOrder) {
+        if (!Config.INSTANCE.getBackTest()) {
+            Database.persistBinanceLimitOrder(binanceLimitOrder);
+            BinanceLive.INSTANCE.getOrderHistoryLookup().setOrderId(binanceLimitOrder.getOrderId());
+        }
+        BinanceTransactions.processBinanceLimitOrder(binanceLimitOrder, currencyPositions);
 
         // This code would normally be handled by the Order websocket feed
         binanceLimitOrder.setStatus(Order.OrderStatus.FILLED);
         binanceLimitOrder.setAveragePrice(BigDecimal.ONE);
         binanceLimitOrder.setCumulativeAmount(qty);
-        BinanceTransactions.processBinanceLimitOrder(binanceLimitOrder);
+        BinanceTransactions.processBinanceLimitOrder(binanceLimitOrder, currencyPositions);
     }
 
     public static void placeSecurityBuyOrder(Broker broker, Security security, BigDecimal qty, BigDecimal price) {

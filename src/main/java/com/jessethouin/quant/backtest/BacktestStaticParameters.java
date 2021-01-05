@@ -3,6 +3,7 @@ package com.jessethouin.quant.backtest;
 import com.jessethouin.quant.beans.Currency;
 import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.beans.Security;
+import com.jessethouin.quant.binance.beans.BinanceLimitOrder;
 import com.jessethouin.quant.broker.Util;
 import com.jessethouin.quant.calculators.Calc;
 import org.apache.logging.log4j.LogManager;
@@ -57,9 +58,11 @@ public class BacktestStaticParameters extends AbstractBacktest {
         BigDecimal portfolioValue = BigDecimal.ZERO;
         switch (CONFIG.getBroker()) {
             case ALPACA_TEST -> portfolioValue = Util.getPortfolioValue(portfolio, c.getBase(), price);
-            case BINANCE_TEST -> portfolioValue = Util.getBalance(portfolio, c.getBase(), c.getCounter(), price).add(Util.getBalance(portfolio, c.getCounter()));
+            case BINANCE_TEST -> portfolioValue = Util.getBalance(portfolio, c.getBase(), c.getCounter(), price)
+                    .add(Util.getBalance(portfolio, c.getCounter()))
+                    .subtract(portfolio.getBinanceLimitOrders().stream().map(BinanceLimitOrder::getFee).reduce(BigDecimal.ZERO, BigDecimal::add));
         }
-        LOG.debug(MessageFormat.format("{0,number,00} : {1,number,00} : {2,number,0.00} : {3,number,0.00} : {4,number,00000.000}", CONFIG.getShortLookback(), CONFIG.getLongLookback(), CONFIG.getLowRisk(), CONFIG.getHighRisk(), portfolioValue));
+        LOG.debug(MessageFormat.format("{0,number,00} : {1,number,00} : {2,number,0.00} : {3,number,0.00} : {4}", CONFIG.getShortLookback(), CONFIG.getLongLookback(), CONFIG.getLowRisk(), CONFIG.getHighRisk(), Util.formatFiat(portfolioValue)));
 
         switch (CONFIG.getBroker()) {
             case ALPACA_TEST -> {
@@ -68,6 +71,7 @@ public class BacktestStaticParameters extends AbstractBacktest {
             case BINANCE_TEST -> {
                 c.getBase().getCurrencyPositions().forEach(position -> LOG.info("base: {}, {} : {}", Util.formatNumber(position.getPrice(), 8), position.getQuantity(), position.getPrice().multiply(position.getQuantity())));
                 c.getCounter().getCurrencyPositions().forEach(position -> LOG.info("counter: {}, {}", Util.formatFiat(position.getPrice()), Util.formatFiat(position.getQuantity())));
+                LOG.info("fees: {}", Util.formatFiat(portfolio.getBinanceLimitOrders().stream().map(BinanceLimitOrder::getFee).reduce(BigDecimal.ZERO, BigDecimal::add)));
             }
         }
     }

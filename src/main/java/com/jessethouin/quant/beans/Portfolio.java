@@ -1,6 +1,7 @@
 package com.jessethouin.quant.beans;
 
 import com.jessethouin.quant.alpaca.beans.AlpacaOrder;
+import com.jessethouin.quant.binance.beans.BinanceLimitOrder;
 
 import javax.persistence.*;
 import java.util.HashSet;
@@ -18,6 +19,8 @@ public class Portfolio {
     private Set<Currency> currencies = new HashSet<>();
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "portfolio", fetch = FetchType.EAGER, orphanRemoval = true)
     private Set<AlpacaOrder> alpacaOrders = new HashSet<>();
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "portfolio", fetch = FetchType.EAGER, orphanRemoval = true)
+    private Set<BinanceLimitOrder> binanceLimitOrders = new HashSet<>();
 
     public Long getPortfolioId() {
         return portfolioId;
@@ -49,5 +52,13 @@ public class Portfolio {
 
     public void setAlpacaOrders(Set<AlpacaOrder> alpacaOrders) {
         this.alpacaOrders = alpacaOrders;
+    }
+
+    public Set<BinanceLimitOrder> getBinanceLimitOrders() {
+        return binanceLimitOrders;
+    }
+
+    public void setBinanceLimitOrders(Set<BinanceLimitOrder> binanceLimitOrders) {
+        this.binanceLimitOrders = binanceLimitOrders;
     }
 }

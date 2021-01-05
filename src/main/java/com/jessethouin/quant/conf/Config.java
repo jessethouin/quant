@@ -20,11 +20,13 @@ public class Config {
     private BigDecimal highRisk;
     private BigDecimal lowRisk;
     private BigDecimal allowance;
-    private double loss;
+    private BigDecimal gain;
+    private BigDecimal loss;
     private int shortLookback;
     private int longLookback;
     private BuyStrategyTypes buyStrategy;
     private SellStrategyTypes sellStrategy;
+    private boolean backTest;
     private String backTestData;
     private boolean backTestDB;
     private int backtestQty;
@@ -47,13 +49,15 @@ public class Config {
             }
             setInitialCash(new BigDecimal(prop.getProperty("initialCash")));
             setAllowance(new BigDecimal(prop.getProperty("allowance")));
-            setLoss(Double.parseDouble(prop.getProperty("loss")));
+            setGain(new BigDecimal(prop.getProperty("gain")));
+            setLoss(new BigDecimal(prop.getProperty("loss")));
             setHighRisk(new BigDecimal(prop.getProperty("highRisk")));
             setLowRisk(new BigDecimal(prop.getProperty("lowRisk")));
             setShortLookback(Integer.parseInt(prop.getProperty("shortLookback")));
             setLongLookback(Integer.parseInt(prop.getProperty("longLookback")));
             setBuyStrategy(BuyStrategyTypes.valueOf(prop.getProperty("buyStrategy")));
             setSellStrategy(SellStrategyTypes.valueOf(prop.getProperty("sellStrategy")));
+            setBackTest(Boolean.parseBoolean(prop.getProperty("backTest")));
             setBackTestData(prop.getProperty("backTestData"));
             setBackTestDB(Boolean.parseBoolean(prop.getProperty("backTestDB")));
             setBacktestQty(Integer.parseInt(prop.getProperty("backtestQty")));
@@ -94,12 +98,20 @@ public class Config {
         this.allowance = allowance;
     }
 
-    public double getLoss() {
+    public BigDecimal getLoss() {
         return loss;
     }
 
-    public void setLoss(double loss) {
+    public void setLoss(BigDecimal loss) {
         this.loss = loss;
+    }
+
+    public BigDecimal getGain() {
+        return gain;
+    }
+
+    public void setGain(BigDecimal gain) {
+        this.gain = gain;
     }
 
     public void setInitialCash(BigDecimal initialCash) {
@@ -136,6 +148,14 @@ public class Config {
 
     public void setSellStrategy(SellStrategyTypes sellStrategy) {
         this.sellStrategy = sellStrategy;
+    }
+
+    public boolean getBackTest() {
+        return backTest;
+    }
+
+    public void setBackTest(boolean backTest) {
+        this.backTest = backTest;
     }
 
     public String getBackTestData() {

@@ -17,6 +17,8 @@ import net.jacobpeterson.domain.alpaca.order.Order;
 import net.jacobpeterson.polygon.rest.exception.PolygonAPIRequestException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.knowm.xchange.binance.dto.meta.exchangeinfo.Filter;
+import org.knowm.xchange.binance.dto.meta.exchangeinfo.Symbol;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.exceptions.CurrencyPairNotValidException;
@@ -27,6 +29,7 @@ import java.math.RoundingMode;
 import java.text.NumberFormat;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 public class Util {
     private static final Logger LOG = LogManager.getLogger(Util.class);
@@ -102,8 +105,8 @@ public class Util {
 
     public static BigDecimal getBudget(Portfolio portfolio, BigDecimal price, BigDecimal allowance, Currency currency, Security security) {
         int scale = security == null ? 8 : 0;
-        BigDecimal currencyBal = getBalance(portfolio, currency).min(Config.INSTANCE.getInitialCash().multiply(Config.INSTANCE.getAllowance()));
-        return currencyBal.multiply(allowance).divide(price, scale, RoundingMode.FLOOR);
+        BigDecimal currencyBal = (getBalance(portfolio, currency).multiply(allowance)).min(Config.INSTANCE.getInitialCash().multiply(allowance));
+        return getBalance(portfolio, currency).multiply(allowance).divide(price, scale, RoundingMode.FLOOR);
     }
 
     public static BigDecimal getMA(List<BigDecimal> intradayPrices, BigDecimal previousMA, int i, int lookback, BigDecimal price) {
@@ -313,5 +316,24 @@ public class Util {
         LOG.debug("Fees in USDT: ${}", feesInBNB.multiply(BNB_USDT));
         LOG.debug("Break even in USDT: {}", breakEven);
         return breakEven;
+    }
+
+    public static BigDecimal getMinTrade(CurrencyPair currencyPair) {
+        BigDecimal[] minTrade = {BigDecimal.ZERO};
+        Symbol[] symbols = BinanceLive.INSTANCE.getBinanceExchangeInfo().getSymbols();
+        List<Symbol> symbolList = Arrays.stream(symbols).filter(symbol -> symbol.getBaseAsset().equals(currencyPair.base.getSymbol()) && symbol.getQuoteAsset().equals(currencyPair.counter.getSymbol())).collect(Collectors.toList());
+        symbolList.forEach(symbol -> {
+            List<Filter> filters = Arrays.stream(symbol.getFilters()).filter(filter -> filter.getFilterType().equals("LOT_SIZE") || filter.getFilterType().equals("MIN_NOTIONAL")).collect(Collectors.toList());
+            filters.forEach(filter -> {
+                BigDecimal lotSize = BigDecimal.ZERO;
+                BigDecimal minNotional = BigDecimal.ZERO;
+                switch (filter.getFilterType()) {
+                    case "LOT_SIZE" -> lotSize = new BigDecimal(filter.getMinQty());
+                    case "MIN_NOTIONAL" -> minNotional = new BigDecimal(filter.getMinNotional());
+                }
+                minTrade[0] = minNotional;
+            });
+        });
+        return minTrade[0];
     }
 }

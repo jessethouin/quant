@@ -29,11 +29,11 @@ public class Calc {
     private BigDecimal qty;
 
     public Calc(Security security, Config config, BigDecimal price) {
-        this(security, security.getCurrency(), security.getCurrency(), config, price, price, price, BigDecimal.ZERO, true);
+        this(security, security.getCurrency(), security.getCurrency(), config, price, price, price, BigDecimal.ZERO, false);
     }
 
     public Calc(Currency base, Currency counter, Config config, BigDecimal price) {
-        this(null, base, counter, config, price, price, price, BigDecimal.ZERO, true);
+        this(null, base, counter, config, price, price, price, BigDecimal.ZERO, false);
     }
 
     public Calc(Security security, Currency base, Currency counter, Config config, BigDecimal price, BigDecimal high, BigDecimal low, BigDecimal spread, boolean buy) {
