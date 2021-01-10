@@ -9,7 +9,7 @@ import java.math.BigDecimal;
 @Table(name = "ALPACA_TRADE_HISTORY")
 public class AlpacaTradeHistory {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long alpacaTradeHistoryId;
     private String ticker; //Ticker of the object
     private Long t; //Nanosecond accuracy SIP Unix Timestamp

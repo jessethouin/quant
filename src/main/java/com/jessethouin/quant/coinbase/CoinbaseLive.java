@@ -37,16 +37,12 @@ public class CoinbaseLive {
                             List<LimitOrder> asks = orderBook.getAsks();
                             asks.sort(Comparator.comparing(LimitOrder::getLimitPrice));
                             List<BigDecimal> askPrices = new ArrayList<>();
-                            asks.forEach(l -> {
-                                askPrices.add(l.getLimitPrice());
-                            });
+                            asks.forEach(l -> askPrices.add(l.getLimitPrice()));
 
                             List<LimitOrder> bids = orderBook.getBids();
                             bids.sort(Comparator.comparing(LimitOrder::getLimitPrice).reversed());
                             List<BigDecimal> bidPrices = new ArrayList<>();
-                            bids.forEach(l -> {
-                                bidPrices.add(l.getLimitPrice());
-                            });
+                            bids.forEach(l -> bidPrices.add(l.getLimitPrice()));
                             LOG.info("spread: {} - {} - {}", askPrices.get(0), askPrices.get(0).subtract(bidPrices.get(0)), bidPrices.get(0));
                         },
                         throwable -> LOG.error("Error in orderBook subscription", throwable));

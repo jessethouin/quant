@@ -10,7 +10,7 @@ import java.util.Date;
 @Table(name = "BINANCE_TRADE_HISTORY")
 public class BinanceTradeHistory {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long tradeId;
     private Date timestamp;
     @Convert(converter = BigDecimalConverter.class)

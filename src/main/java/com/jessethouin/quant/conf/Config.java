@@ -22,6 +22,7 @@ public class Config {
     private BigDecimal allowance;
     private BigDecimal gain;
     private BigDecimal loss;
+    private BigDecimal stopLoss;
     private int shortLookback;
     private int longLookback;
     private BuyStrategyTypes buyStrategy;
@@ -34,6 +35,7 @@ public class Config {
     private List<String> fiatCurrencies;
     private List<String> cryptoCurrencies;
     private Broker broker;
+    private DataFeed dataFeed;
 
     public static final Config INSTANCE = new Config();
 
@@ -51,6 +53,7 @@ public class Config {
             setAllowance(new BigDecimal(prop.getProperty("allowance")));
             setGain(new BigDecimal(prop.getProperty("gain")));
             setLoss(new BigDecimal(prop.getProperty("loss")));
+            setStopLoss(new BigDecimal(prop.getProperty("stopLoss")));
             setHighRisk(new BigDecimal(prop.getProperty("highRisk")));
             setLowRisk(new BigDecimal(prop.getProperty("lowRisk")));
             setShortLookback(Integer.parseInt(prop.getProperty("shortLookback")));
@@ -65,6 +68,7 @@ public class Config {
             setFiatCurrencies(Stream.of(prop.getProperty("fiatCurrencies").split(",", -1)).collect(Collectors.toList()));
             setCryptoCurrencies(Stream.of(prop.getProperty("cryptoCurrencies").split(",", -1)).collect(Collectors.toList()));
             setBroker(Broker.valueOf(prop.getProperty("broker")));
+            setDataFeed(DataFeed.valueOf(prop.getProperty("dataFeed")));
         } catch (IOException e) {
             LOG.error("Unable to read properties file: " + e.getLocalizedMessage());
         }
@@ -104,6 +108,14 @@ public class Config {
 
     public void setLoss(BigDecimal loss) {
         this.loss = loss;
+    }
+
+    public BigDecimal getStopLoss() {
+        return stopLoss;
+    }
+
+    public void setStopLoss(BigDecimal stopLoss) {
+        this.stopLoss = stopLoss;
     }
 
     public BigDecimal getGain() {
@@ -216,5 +228,13 @@ public class Config {
 
     public static Config getTheadSafeConfig() {
         return new Config();
+    }
+
+    public DataFeed getDataFeed() {
+        return dataFeed;
+    }
+
+    public void setDataFeed(DataFeed dataFeed) {
+        this.dataFeed = dataFeed;
     }
 }

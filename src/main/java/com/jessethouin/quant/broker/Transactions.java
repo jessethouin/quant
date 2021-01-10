@@ -24,7 +24,7 @@ public class Transactions {
     private static final Logger LOG = LogManager.getLogger(Transactions.class);
 
     public static void placeBuyOrder(Broker broker, Security security, Currency base, Currency counter, BigDecimal qty, BigDecimal price) {
-        if (qty.equals(BigDecimal.ZERO)) return;
+        if (qty.equals(BigDecimal.ZERO) || qty.compareTo(BigDecimal.ZERO) == 0) return;
 
         if (security != null) {
             placeSecurityBuyOrder(broker, security, qty, price);
@@ -38,6 +38,14 @@ public class Transactions {
             return placeSecuritySellOrder(broker, security, price);
         } else {
             return placeCurrencySellOrder(broker, base, counter, price, false);
+        }
+    }
+
+    public static void placeSellAllOrder(Broker broker, Security security, Currency base, Currency counter, BigDecimal price) {
+        if (security != null) {
+            placeSecuritySellOrder(broker, security, price);
+        } else {
+            placeCurrencySellOrder(broker, base, counter, price, true);
         }
     }
 
@@ -64,7 +72,6 @@ public class Transactions {
 
     public static boolean placeCurrencySellOrder(Broker broker, Currency base, Currency counter, BigDecimal price, boolean sellAll) {
         List<CurrencyPosition> currencyPositions = getSellableCurrencyPositions(base, counter, price, sellAll);
-
         BigDecimal sellQty = currencyPositions.stream().map(CurrencyPosition::getQuantity).reduce(BigDecimal.ZERO, BigDecimal::add);
         if (sellQty.equals(BigDecimal.ZERO)) return false;
 

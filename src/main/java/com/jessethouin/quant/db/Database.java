@@ -87,7 +87,7 @@ public class Database {
     public static Currency getCurrencyFromPortfolio(Portfolio portfolio, String currencySymbol) {
         session.beginTransaction();
         Currency result = (Currency) getSession()
-                .createQuery("from Currency where portfolio_id=:portfolio_id and symbol=:symbol")
+                .createQuery("from Currency where portfolio=:portfolio_id and symbol=:symbol")
                 .setParameter("portfolio_id", portfolio.getPortfolioId())
                 .setParameter("symbol", currencySymbol)
                 .uniqueResult();
@@ -98,7 +98,7 @@ public class Database {
     public static Security getSecurityFromPortfolio(Portfolio portfolio, String securitySymbol) {
         session.beginTransaction();
         Security result = (Security) getSession()
-                .createQuery("from Security where portfolio_id=:portfolio_id and symbol=:symbol")
+                .createQuery("from Security where portfolio=:portfolio_id and symbol=:symbol")
                 .setParameter("portfolio_id", portfolio.getPortfolioId())
                 .setParameter("symbol", securitySymbol)
                 .uniqueResult();

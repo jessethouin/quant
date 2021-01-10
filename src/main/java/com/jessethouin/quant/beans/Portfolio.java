@@ -11,7 +11,7 @@ import java.util.Set;
 @Table(name = "PORTFOLIO")
 public class Portfolio {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long portfolioId;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "portfolio", fetch = FetchType.EAGER, orphanRemoval = true)
     private Set<Security> securities = new HashSet<>();

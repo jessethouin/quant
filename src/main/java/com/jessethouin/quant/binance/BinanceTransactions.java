@@ -46,6 +46,7 @@ public class BinanceTransactions {
                 .orderStatus(Order.OrderStatus.NEW)
                 .originalAmount(qty)
                 .limitPrice(price)
+                .fee(price.multiply(qty).multiply(BigDecimal.valueOf(.00075)))
                 .flag(TimeInForce.GTC)
                 .timestamp(new Date())
                 .build();
@@ -101,26 +102,27 @@ public class BinanceTransactions {
         Currency counter = Util.getCurrencyFromPortfolio(currencyPair.counter.getSymbol(), portfolio);
         BigDecimal limitPrice = binanceLimitOrder.getLimitPrice();
         BigDecimal originalAmount = binanceLimitOrder.getOriginalAmount();
+        BigDecimal fee = binanceLimitOrder.getFee();
 
         switch (binanceLimitOrder.getType()) {
             case BID -> {
                 switch (binanceLimitOrder.getStatus()) {
-                    case NEW -> {
-                        reduceCurrency(counter, originalAmount.multiply(limitPrice), eligibleCurrencyPositions); //todo subtract fees as well
+                    case NEW -> reduceCurrency(counter, originalAmount.multiply(limitPrice), eligibleCurrencyPositions); //todo subtract fees as well
+                    case FILLED -> {
+                        Transactions.addCurrencyPosition(portfolio, originalAmount, base, counter, limitPrice);
+                        reduceCurrency(counter, fee, new ArrayList<>(counter.getCurrencyPositions()));
                     }
-                    case FILLED -> Transactions.addCurrencyPosition(portfolio, originalAmount, base, counter, limitPrice);
                     case CANCELED, EXPIRED, REJECTED, REPLACED -> Transactions.addCurrencyPosition(portfolio, originalAmount.multiply(limitPrice), counter, base, limitPrice);
                 }
             }
             case ASK -> {
                 switch (binanceLimitOrder.getStatus()) {
-                    case NEW -> {
-                        reduceCurrency(base, originalAmount, eligibleCurrencyPositions); //todo subtract fees as well
-                    }
+                    case NEW -> reduceCurrency(base, originalAmount, eligibleCurrencyPositions); //todo subtract fees as well
                     case FILLED -> {
                         BigDecimal filledQty = binanceLimitOrder.getCumulativeAmount();
                         BigDecimal filledAvgPrice = limitPrice.multiply(binanceLimitOrder.getAveragePrice());
                         Transactions.addCurrencyPosition(portfolio, filledQty.multiply(filledAvgPrice), counter, base, filledAvgPrice);
+                        reduceCurrency(counter, fee, new ArrayList<>(counter.getCurrencyPositions()));
                     }
                     case CANCELED, EXPIRED, REJECTED, REPLACED -> Transactions.addCurrencyPosition(portfolio, originalAmount, base, counter, limitPrice);
                 }
@@ -172,9 +174,7 @@ public class BinanceTransactions {
 
         try {
             Map<CurrencyPair, Fee> dynamicTradingFees = accountService.getDynamicTradingFees();
-            dynamicTradingFees.forEach((c, f) -> {
-                LOG.info(c.toString() + " - m : " + f.getMakerFee() + " t : " + f.getTakerFee());
-            });
+            dynamicTradingFees.forEach((c, f) -> LOG.info(c.toString() + " - m : " + f.getMakerFee() + " t : " + f.getTakerFee()));
         } catch (IOException e) {
             LOG.error(e.getLocalizedMessage());
         }

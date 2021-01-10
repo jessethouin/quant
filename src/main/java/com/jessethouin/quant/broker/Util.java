@@ -7,6 +7,8 @@ import com.jessethouin.quant.beans.CurrencyPosition;
 import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.beans.Security;
 import com.jessethouin.quant.binance.BinanceLive;
+import com.jessethouin.quant.binance.BinanceTransactions;
+import com.jessethouin.quant.binance.beans.BinanceLimitOrder;
 import com.jessethouin.quant.calculators.MA;
 import com.jessethouin.quant.calculators.SMA;
 import com.jessethouin.quant.conf.Config;
@@ -21,6 +23,7 @@ import org.knowm.xchange.binance.dto.meta.exchangeinfo.Filter;
 import org.knowm.xchange.binance.dto.meta.exchangeinfo.Symbol;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.marketdata.Ticker;
+import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.exceptions.CurrencyPairNotValidException;
 
 import java.io.IOException;
@@ -105,7 +108,6 @@ public class Util {
 
     public static BigDecimal getBudget(Portfolio portfolio, BigDecimal price, BigDecimal allowance, Currency currency, Security security) {
         int scale = security == null ? 8 : 0;
-        BigDecimal currencyBal = (getBalance(portfolio, currency).multiply(allowance)).min(Config.INSTANCE.getInitialCash().multiply(allowance));
         return getBalance(portfolio, currency).multiply(allowance).divide(price, scale, RoundingMode.FLOOR);
     }
 
@@ -227,7 +229,7 @@ public class Util {
         alpacaOrder.setFilledAvgPrice(order.getFilledAvgPrice());
         alpacaOrder.setStatus(order.getStatus());
         alpacaOrder.setExtendedHours(order.getExtendedHours());
-        alpacaOrder.setLegs(order.getLegs());
+//        alpacaOrder.setLegs(order.getLegs());
         alpacaOrder.setTrailPrice(order.getTrailPrice());
         alpacaOrder.setTrailPercent(order.getTrailPercent());
         alpacaOrder.setHwm(order.getHwm());
@@ -335,5 +337,13 @@ public class Util {
             });
         });
         return minTrade[0];
+    }
+
+    public static BinanceLimitOrder createBinanceLimitOrder(Portfolio portfolio, LimitOrder limitOrder, List<CurrencyPosition> sellableCurrencyPositions) {
+        LOG.info("Creating new BinanceLimitOrder for order {} status {}", limitOrder.getId(), limitOrder.getStatus());
+        BinanceLimitOrder binanceLimitOrder = new BinanceLimitOrder(limitOrder, portfolio);
+        BinanceTransactions.processBinanceLimitOrder(binanceLimitOrder, sellableCurrencyPositions);
+        Database.persistBinanceLimitOrder(binanceLimitOrder);
+        return binanceLimitOrder;
     }
 }

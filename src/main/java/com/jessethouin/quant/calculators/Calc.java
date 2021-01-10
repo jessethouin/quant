@@ -84,8 +84,8 @@ public class Calc {
         } else if (sell) {
             boolean success = Transactions.placeSellOrder(config.getBroker(), getSecurity(), getBase(), getCounter(), getPrice());
             if (success) {
-                setLow(price);
-                setHigh(price);
+                setLow(getPrice());
+                setHigh(getPrice());
             }
             setBuy(true);
         }

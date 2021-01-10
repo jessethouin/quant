@@ -19,7 +19,7 @@ extend the damned thing.
 @Table(name = "BINANCE_LIMIT_ORDER")
 public class BinanceLimitOrder implements Comparable<BinanceLimitOrder> {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long orderId;
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "portfolio_id")

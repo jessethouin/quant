@@ -12,7 +12,7 @@ import java.util.Objects;
 @Table(name = "ALPACA_ORDER")
 public class AlpacaOrder {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long orderId;
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "portfolio_id")
@@ -42,7 +42,7 @@ public class AlpacaOrder {
     private String filledAvgPrice;
     private String status;
     private Boolean extendedHours;
-    private ArrayList<Order> legs;
+//    private ArrayList<Order> legs;
     private String trailPrice;
     private String trailPercent;
     private String hwm;
@@ -77,7 +77,7 @@ public class AlpacaOrder {
         this.filledAvgPrice = order.getFilledAvgPrice();
         this.status = order.getStatus();
         this.extendedHours = order.getExtendedHours();
-        this.legs = order.getLegs();
+//        this.legs = order.getLegs();
         this.trailPrice = order.getTrailPrice();
         this.trailPercent = order.getTrailPercent();
         this.hwm = order.getHwm();
@@ -109,7 +109,7 @@ public class AlpacaOrder {
         this.filledAvgPrice = filledAvgPrice;
         this.status = status;
         this.extendedHours = extendedHours;
-        this.legs = legs;
+//        this.legs = legs;
         this.trailPrice = trailPrice;
         this.trailPercent = trailPercent;
         this.hwm = hwm;
@@ -331,6 +331,7 @@ public class AlpacaOrder {
         this.extendedHours = extendedHours;
     }
 
+/*
     public ArrayList<Order> getLegs() {
         return legs;
     }
@@ -338,6 +339,7 @@ public class AlpacaOrder {
     public void setLegs(ArrayList<Order> legs) {
         this.legs = legs;
     }
+*/
 
     public String getTrailPrice() {
         return trailPrice;
@@ -467,10 +469,12 @@ public class AlpacaOrder {
         sb.append('=');
         sb.append(this.extendedHours == null ? "<null>" : this.extendedHours);
         sb.append(',');
+/*
         sb.append("legs");
         sb.append('=');
         sb.append(this.legs == null ? "<null>" : this.legs);
         sb.append(',');
+*/
         sb.append("trailPrice");
         sb.append('=');
         sb.append(this.trailPrice == null ? "<null>" : this.trailPrice);
@@ -524,7 +528,7 @@ public class AlpacaOrder {
                 Objects.equals(filledAvgPrice, that.filledAvgPrice) &&
                 Objects.equals(status, that.status) &&
                 Objects.equals(extendedHours, that.extendedHours) &&
-                Objects.equals(legs, that.legs) &&
+//                Objects.equals(legs, that.legs) &&
                 Objects.equals(trailPrice, that.trailPrice) &&
                 Objects.equals(trailPercent, that.trailPercent) &&
                 Objects.equals(hwm, that.hwm);
@@ -532,6 +536,6 @@ public class AlpacaOrder {
 
     @Override
     public int hashCode() {
-        return Objects.hash(orderId, portfolio, id, clientOrderId, createdAt, updatedAt, submittedAt, filledAt, expiredAt, canceledAt, failedAt, replacedAt, replacedBy, replaces, assetId, symbol, assetClass, qty, filledQty, type, side, timeInForce, limitPrice, stopPrice, filledAvgPrice, status, extendedHours, legs, trailPrice, trailPercent, hwm);
+        return Objects.hash(orderId, portfolio, id, clientOrderId, createdAt, updatedAt, submittedAt, filledAt, expiredAt, canceledAt, failedAt, replacedAt, replacedBy, replaces, assetId, symbol, assetClass, qty, filledQty, type, side, timeInForce, limitPrice, stopPrice, filledAvgPrice, status, extendedHours/*, legs*/, trailPrice, trailPercent, hwm);
     }
 }
