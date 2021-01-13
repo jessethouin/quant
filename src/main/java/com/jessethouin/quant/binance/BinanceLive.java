@@ -49,6 +49,7 @@ public class BinanceLive {
     private static final BinanceStreamingExchange BINANCE_STREAMING_EXCHANGE;
     private static final BinanceExchangeInfo BINANCE_EXCHANGE_INFO;
     private static final CompositeDisposable COMPOSITE_DISPOSABLE = new CompositeDisposable();
+    private static final Map<CurrencyPair, BigDecimal> MIN_TRADES = new HashMap<>();
 
     static {
         ExchangeSpecification exSpec = new BinanceExchange().getDefaultExchangeSpecification();
@@ -72,12 +73,16 @@ public class BinanceLive {
         return BINANCE_EXCHANGE;
     }
 
-    public OrderHistoryLookup getOrderHistoryLookup() {
-        return orderHistoryLookup;
-    }
-
     public BinanceExchangeInfo getBinanceExchangeInfo() {
         return BINANCE_EXCHANGE_INFO;
+    }
+
+    public Map<CurrencyPair, BigDecimal> getMinTrades() {
+        return MIN_TRADES;
+    }
+
+    public OrderHistoryLookup getOrderHistoryLookup() {
+        return orderHistoryLookup;
     }
 
     public static void doLive() {
@@ -88,6 +93,7 @@ public class BinanceLive {
         Database.persistPortfolio(portfolio);
 
         List<CurrencyPair> currencyPairs = Util.getAllCurrencyPairs(config);
+        currencyPairs.forEach(currencyPair -> MIN_TRADES.put(currencyPair, Util.getMinTrade(currencyPair)));
 
         ProductSubscription.ProductSubscriptionBuilder productSubscriptionBuilder = ProductSubscription.create();
         currencyPairs.forEach(productSubscriptionBuilder::addAll);

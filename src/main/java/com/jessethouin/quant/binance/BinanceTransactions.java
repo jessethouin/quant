@@ -70,8 +70,8 @@ public class BinanceTransactions {
     }
 
     private static BinanceLimitOrder testTransact(Portfolio portfolio, CurrencyPair currencyPair, BigDecimal qty, BigDecimal price, OrderType orderType) {
-        if (!Config.INSTANCE.isBackTest() && qty.multiply(price).compareTo(Util.getMinTrade(currencyPair)) < 0) {
-            LOG.warn("Trade must be minimum of {} for {}. Was {}.", Util.getMinTrade(currencyPair), currencyPair.toString(), qty.multiply(price));
+        if (!Config.INSTANCE.isBackTest() && qty.multiply(price).compareTo(INSTANCE.getMinTrades().get(currencyPair)) < 0) {
+            LOG.warn("Trade must be minimum of {} for {}. Was {}.", INSTANCE.getMinTrades().get(currencyPair), currencyPair.toString(), qty.multiply(price));
             return null;
         }
 

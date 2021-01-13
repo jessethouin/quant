@@ -268,7 +268,7 @@ public class Util {
         Symbol[] symbols = BinanceLive.INSTANCE.getBinanceExchangeInfo().getSymbols();
         List<Symbol> symbolList = Arrays.stream(symbols).filter(symbol -> symbol.getBaseAsset().equals(currencyPair.base.getSymbol()) && symbol.getQuoteAsset().equals(currencyPair.counter.getSymbol())).collect(Collectors.toList());
         symbolList.forEach(symbol -> {
-            List<Filter> filters = Arrays.stream(symbol.getFilters()).filter(filter -> filter.getFilterType().equals("LOT_SIZE") || filter.getFilterType().equals("MIN_NOTIONAL")).collect(Collectors.toList());
+            List<Filter> filters = Arrays.stream(symbol.getFilters()).filter(filter -> filter.getFilterType().equals("MIN_NOTIONAL")).collect(Collectors.toList());
             filters.forEach(filter -> minTrade[0] = new BigDecimal(filter.getMinNotional()));
         });
         return minTrade[0];
