@@ -5,7 +5,6 @@ import com.jessethouin.quant.broker.Util;
 import com.jessethouin.quant.conf.Config;
 import com.jessethouin.quant.db.Database;
 import info.bitrich.xchangestream.binance.BinanceStreamingExchange;
-import info.bitrich.xchangestream.core.StreamingExchangeFactory;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.knowm.xchange.ExchangeSpecification;
@@ -23,14 +22,12 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 public class BinanceCaptureHistory {
     private static final Logger LOG = LogManager.getLogger(BinanceCaptureHistory.class);
     private static final Config config = Config.INSTANCE;
-    private static final BinanceStreamingExchange BINANCE_STREAMING_EXCHANGE;
 
     static {
         ExchangeSpecification strExSpec = new BinanceStreamingExchange().getDefaultExchangeSpecification();
         strExSpec.setUserName("54704697");
         strExSpec.setApiKey("M4gIEsmhsp5MjIkSZRapUUxScnZno56OHwJOvh1Bp3qIxW54FGCZnOxUYneNjVXB");
         strExSpec.setSecretKey("tlAe5qFbA8oVDH0M085pYANzRD0EPHVteicsKk6rlKg1gEdC3j1lkSF3FMpd7jkO");
-        BINANCE_STREAMING_EXCHANGE = (BinanceStreamingExchange) StreamingExchangeFactory.INSTANCE.createExchange(strExSpec);
     }
 
     public static void main(String[] args) {
@@ -53,28 +50,6 @@ public class BinanceCaptureHistory {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-/*
-        ProductSubscription.ProductSubscriptionBuilder productSubscriptionBuilder = ProductSubscription.create().addAll(currencyPair);
-        BINANCE_STREAMING_EXCHANGE.connect(productSubscriptionBuilder.build()).blockingAwait();
-
-        Disposable tradeSub = BINANCE_STREAMING_EXCHANGE.getStreamingMarketDataService()
-                .getTrades(currencyPair)
-                .subscribe(t -> {
-                    ref.price = t.getPrice();
-                    ref.timestamp = t.getTimestamp();
-                    doTheThing(ref);
-                });
-
-        Disposable tickerSub = BINANCE_STREAMING_EXCHANGE.getStreamingMarketDataService()
-                .getTicker(currencyPair)
-                .subscribe(t -> {
-                    ref.price = t.getLast();
-                    ref.timestamp = t.getTimestamp();
-                    doTheThing(ref);
-                });
-*/
-
     }
 
     private static void doTheThing(BinanceLive.Ref ref) {
@@ -82,7 +57,7 @@ public class BinanceCaptureHistory {
 
         ref.shortMAValue = Util.getMA(ref.intradayPrices, ref.previousShortMAValue, ref.count, config.getShortLookback(), ref.price);
         ref.longMAValue = Util.getMA(ref.intradayPrices, ref.previousLongMAValue, ref.count, config.getLongLookback(), ref.price);
-        BinanceTradeHistory binanceTradeHistory = new BinanceTradeHistory.Builder().setTimestamp(ref.timestamp).setMa1(ref.shortMAValue).setMa2(ref.longMAValue).setL(BigDecimal.ZERO).setH(BigDecimal.ZERO).setP(ref.price).build();
+        BinanceTradeHistory binanceTradeHistory = BinanceTradeHistory.builder().timestamp(ref.timestamp).ma1(ref.shortMAValue).ma2(ref.longMAValue).l(BigDecimal.ZERO).h(BigDecimal.ZERO).p(ref.price).build();
         Database.persistTradeHistory(binanceTradeHistory);
         LOG.trace("ma1 {} ma2 {} p {}", ref.shortMAValue, ref.longMAValue, ref.price);
 

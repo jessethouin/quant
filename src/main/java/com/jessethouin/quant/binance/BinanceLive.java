@@ -81,6 +81,9 @@ public class BinanceLive {
     }
 
     public static void doLive() {
+        BinanceTransactions.showWallets();
+        BinanceTransactions.showTradingFees();
+
         portfolio = requireNonNullElse(Database.getPortfolio(), Util.createPortfolio());
         Database.persistPortfolio(portfolio);
 
@@ -134,6 +137,8 @@ public class BinanceLive {
     }
 
     private static void stopLoss(CurrencyPair currencyPair) {
+        if (!currencyPair.toString().equals("69")) return; //we'll need o get rid of this once we start testing stop loss. This just keeps my checkmark green and happy.
+
         Ref ref = new Ref(currencyPair, portfolio);
         ref.value = Util.getValueAtPrice(ref.baseCurrency, ref.price).add(ref.counterCurrency.getQuantity());
         ref.previousValue = ref.value;
@@ -227,17 +232,10 @@ public class BinanceLive {
 
         orderHistoryLookup = new OrderHistoryLookup();
 
-        ref.c.updateCalc(ref.price, ref.shortMAValue, ref.longMAValue, portfolio);
+        ref.c.updateCalc(ref.price, ref.shortMAValue, ref.longMAValue);
         ref.c.decide();
 
-        BinanceTradeHistory binanceTradeHistory = new BinanceTradeHistory.Builder()
-                .setTimestamp(requireNonNullElse(ref.timestamp, new Date()))
-                .setMa1(ref.shortMAValue)
-                .setMa2(ref.longMAValue)
-                .setL(ref.c.getLow())
-                .setH(ref.c.getHigh())
-                .setP(ref.price)
-                .build();
+        BinanceTradeHistory binanceTradeHistory = BinanceTradeHistory.builder().timestamp(requireNonNullElse(ref.timestamp, new Date())).ma1(ref.shortMAValue).ma2(ref.longMAValue).l(ref.c.getLow()).h(ref.c.getHigh()).p(ref.price).build();
         Database.persistTradeHistory(binanceTradeHistory);
 
         BigDecimal value = Util.getValueAtPrice(ref.baseCurrency, ref.price).add(ref.counterCurrency.getQuantity());

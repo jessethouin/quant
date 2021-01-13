@@ -5,12 +5,13 @@ public enum OrderStatus {
     EXPIRED("expired"),
     CANCELED("canceled"); // ugh, Americans. It's CANCELLED!!
 
-    final String status;
+    public final String status;
     OrderStatus(String s) {
         this.status = s;
     }
 
-    public String getStatus() {
-        return status;
+    @Override
+    public String toString() {
+        return this.status;
     }
 }

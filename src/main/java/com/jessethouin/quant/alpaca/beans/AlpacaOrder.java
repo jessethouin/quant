@@ -1,15 +1,18 @@
 package com.jessethouin.quant.alpaca.beans;
 
 import com.jessethouin.quant.beans.Portfolio;
+import lombok.Getter;
+import lombok.Setter;
 import net.jacobpeterson.domain.alpaca.order.Order;
 
 import javax.persistence.*;
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
 import java.util.Objects;
 
 @Entity
 @Table(name = "ALPACA_ORDER")
+@Getter
+@Setter
 public class AlpacaOrder {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -42,7 +45,6 @@ public class AlpacaOrder {
     private String filledAvgPrice;
     private String status;
     private Boolean extendedHours;
-//    private ArrayList<Order> legs;
     private String trailPrice;
     private String trailPercent;
     private String hwm;
@@ -77,294 +79,10 @@ public class AlpacaOrder {
         this.filledAvgPrice = order.getFilledAvgPrice();
         this.status = order.getStatus();
         this.extendedHours = order.getExtendedHours();
-//        this.legs = order.getLegs();
         this.trailPrice = order.getTrailPrice();
         this.trailPercent = order.getTrailPercent();
         this.hwm = order.getHwm();
     }
-
-    public AlpacaOrder(String id, String clientOrderId, ZonedDateTime createdAt, ZonedDateTime updatedAt, ZonedDateTime submittedAt, ZonedDateTime filledAt, ZonedDateTime expiredAt, ZonedDateTime canceledAt, ZonedDateTime failedAt, ZonedDateTime replacedAt, String replacedBy, String replaces, String assetId, String symbol, String assetClass, String qty, String filledQty, String type, String side, String timeInForce, String limitPrice, String stopPrice, String filledAvgPrice, String status, Boolean extendedHours, ArrayList<Order> legs, String trailPrice, String trailPercent, String hwm) {
-        this.id = id;
-        this.clientOrderId = clientOrderId;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.submittedAt = submittedAt;
-        this.filledAt = filledAt;
-        this.expiredAt = expiredAt;
-        this.canceledAt = canceledAt;
-        this.failedAt = failedAt;
-        this.replacedAt = replacedAt;
-        this.replacedBy = replacedBy;
-        this.replaces = replaces;
-        this.assetId = assetId;
-        this.symbol = symbol;
-        this.assetClass = assetClass;
-        this.qty = qty;
-        this.filledQty = filledQty;
-        this.type = type;
-        this.side = side;
-        this.timeInForce = timeInForce;
-        this.limitPrice = limitPrice;
-        this.stopPrice = stopPrice;
-        this.filledAvgPrice = filledAvgPrice;
-        this.status = status;
-        this.extendedHours = extendedHours;
-//        this.legs = legs;
-        this.trailPrice = trailPrice;
-        this.trailPercent = trailPercent;
-        this.hwm = hwm;
-    }
-
-    public long getOrderId() {
-        return orderId;
-    }
-
-    public void setOrderId(long orderId) {
-        this.orderId = orderId;
-    }
-
-    public Portfolio getPortfolio() {
-        return portfolio;
-    }
-
-    public void setPortfolio(Portfolio portfolio) {
-        this.portfolio = portfolio;
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public String getClientOrderId() {
-        return clientOrderId;
-    }
-
-    public void setClientOrderId(String clientOrderId) {
-        this.clientOrderId = clientOrderId;
-    }
-
-    public ZonedDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(ZonedDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public ZonedDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(ZonedDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-
-    public ZonedDateTime getSubmittedAt() {
-        return submittedAt;
-    }
-
-    public void setSubmittedAt(ZonedDateTime submittedAt) {
-        this.submittedAt = submittedAt;
-    }
-
-    public ZonedDateTime getFilledAt() {
-        return filledAt;
-    }
-
-    public void setFilledAt(ZonedDateTime filledAt) {
-        this.filledAt = filledAt;
-    }
-
-    public ZonedDateTime getExpiredAt() {
-        return expiredAt;
-    }
-
-    public void setExpiredAt(ZonedDateTime expiredAt) {
-        this.expiredAt = expiredAt;
-    }
-
-    public ZonedDateTime getCanceledAt() {
-        return canceledAt;
-    }
-
-    public void setCanceledAt(ZonedDateTime canceledAt) {
-        this.canceledAt = canceledAt;
-    }
-
-    public ZonedDateTime getFailedAt() {
-        return failedAt;
-    }
-
-    public void setFailedAt(ZonedDateTime failedAt) {
-        this.failedAt = failedAt;
-    }
-
-    public ZonedDateTime getReplacedAt() {
-        return replacedAt;
-    }
-
-    public void setReplacedAt(ZonedDateTime replacedAt) {
-        this.replacedAt = replacedAt;
-    }
-
-    public String getReplacedBy() {
-        return replacedBy;
-    }
-
-    public void setReplacedBy(String replacedBy) {
-        this.replacedBy = replacedBy;
-    }
-
-    public String getReplaces() {
-        return replaces;
-    }
-
-    public void setReplaces(String replaces) {
-        this.replaces = replaces;
-    }
-
-    public String getAssetId() {
-        return assetId;
-    }
-
-    public void setAssetId(String assetId) {
-        this.assetId = assetId;
-    }
-
-    public String getSymbol() {
-        return symbol;
-    }
-
-    public void setSymbol(String symbol) {
-        this.symbol = symbol;
-    }
-
-    public String getAssetClass() {
-        return assetClass;
-    }
-
-    public void setAssetClass(String assetClass) {
-        this.assetClass = assetClass;
-    }
-
-    public String getQty() {
-        return qty;
-    }
-
-    public void setQty(String qty) {
-        this.qty = qty;
-    }
-
-    public String getFilledQty() {
-        return filledQty;
-    }
-
-    public void setFilledQty(String filledQty) {
-        this.filledQty = filledQty;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public void setType(String type) {
-        this.type = type;
-    }
-
-    public String getSide() {
-        return side;
-    }
-
-    public void setSide(String side) {
-        this.side = side;
-    }
-
-    public String getTimeInForce() {
-        return timeInForce;
-    }
-
-    public void setTimeInForce(String timeInForce) {
-        this.timeInForce = timeInForce;
-    }
-
-    public String getLimitPrice() {
-        return limitPrice;
-    }
-
-    public void setLimitPrice(String limitPrice) {
-        this.limitPrice = limitPrice;
-    }
-
-    public String getStopPrice() {
-        return stopPrice;
-    }
-
-    public void setStopPrice(String stopPrice) {
-        this.stopPrice = stopPrice;
-    }
-
-    public String getFilledAvgPrice() {
-        return filledAvgPrice;
-    }
-
-    public void setFilledAvgPrice(String filledAvgPrice) {
-        this.filledAvgPrice = filledAvgPrice;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public Boolean getExtendedHours() {
-        return extendedHours;
-    }
-
-    public void setExtendedHours(Boolean extendedHours) {
-        this.extendedHours = extendedHours;
-    }
-
-/*
-    public ArrayList<Order> getLegs() {
-        return legs;
-    }
-
-    public void setLegs(ArrayList<Order> legs) {
-        this.legs = legs;
-    }
-*/
-
-    public String getTrailPrice() {
-        return trailPrice;
-    }
-
-    public void setTrailPrice(String trailPrice) {
-        this.trailPrice = trailPrice;
-    }
-
-    public String getTrailPercent() {
-        return trailPercent;
-    }
-
-    public void setTrailPercent(String trailPercent) {
-        this.trailPercent = trailPercent;
-    }
-
-    public String getHwm() {
-        return hwm;
-    }
-
-    public void setHwm(String hwm) {
-        this.hwm = hwm;
-    }
-
 
     public String toString() {
         StringBuilder sb = new StringBuilder();
@@ -469,12 +187,6 @@ public class AlpacaOrder {
         sb.append('=');
         sb.append(this.extendedHours == null ? "<null>" : this.extendedHours);
         sb.append(',');
-/*
-        sb.append("legs");
-        sb.append('=');
-        sb.append(this.legs == null ? "<null>" : this.legs);
-        sb.append(',');
-*/
         sb.append("trailPrice");
         sb.append('=');
         sb.append(this.trailPrice == null ? "<null>" : this.trailPrice);
@@ -528,7 +240,6 @@ public class AlpacaOrder {
                 Objects.equals(filledAvgPrice, that.filledAvgPrice) &&
                 Objects.equals(status, that.status) &&
                 Objects.equals(extendedHours, that.extendedHours) &&
-//                Objects.equals(legs, that.legs) &&
                 Objects.equals(trailPrice, that.trailPrice) &&
                 Objects.equals(trailPercent, that.trailPercent) &&
                 Objects.equals(hwm, that.hwm);
@@ -536,6 +247,6 @@ public class AlpacaOrder {
 
     @Override
     public int hashCode() {
-        return Objects.hash(orderId, portfolio, id, clientOrderId, createdAt, updatedAt, submittedAt, filledAt, expiredAt, canceledAt, failedAt, replacedAt, replacedBy, replaces, assetId, symbol, assetClass, qty, filledQty, type, side, timeInForce, limitPrice, stopPrice, filledAvgPrice, status, extendedHours/*, legs*/, trailPrice, trailPercent, hwm);
+        return Objects.hash(orderId, portfolio, id, clientOrderId, createdAt, updatedAt, submittedAt, filledAt, expiredAt, canceledAt, failedAt, replacedAt, replacedBy, replaces, assetId, symbol, assetClass, qty, filledQty, type, side, timeInForce, limitPrice, stopPrice, filledAvgPrice, status, extendedHours, trailPrice, trailPercent, hwm);
     }
 }

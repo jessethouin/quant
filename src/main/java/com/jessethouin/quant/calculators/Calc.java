@@ -1,7 +1,6 @@
 package com.jessethouin.quant.calculators;
 
 import com.jessethouin.quant.beans.Currency;
-import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.beans.Security;
 import com.jessethouin.quant.broker.Transactions;
 import com.jessethouin.quant.broker.Util;
@@ -138,7 +137,7 @@ public class Calc {
         return getMa1().compareTo(getMa2()) < 0;
     }
 
-    public void updateCalc(BigDecimal price, BigDecimal ma1, BigDecimal ma2, Portfolio portfolio) {
+    public void updateCalc(BigDecimal price, BigDecimal ma1, BigDecimal ma2) {
         setPrice(price);
         if (getLow().equals(BigDecimal.ZERO)) setLow(price);
         if (getHigh().equals(BigDecimal.ZERO)) setHigh(price);

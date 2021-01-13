@@ -1,5 +1,7 @@
 package com.jessethouin.quant.conf;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -12,6 +14,8 @@ import java.util.Properties;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+@Getter
+@Setter
 public class Config {
     private static final Logger LOG = LogManager.getLogger(Config.class);
     InputStream inputStream;
@@ -74,167 +78,7 @@ public class Config {
         }
     }
 
-    public BigDecimal getInitialCash() {
-        return initialCash;
-    }
-
-    public BigDecimal getHighRisk() {
-        return highRisk;
-    }
-
-    public void setHighRisk(BigDecimal highRisk) {
-        this.highRisk = highRisk;
-    }
-
-    public BigDecimal getLowRisk() {
-        return lowRisk;
-    }
-
-    public void setLowRisk(BigDecimal lowRisk) {
-        this.lowRisk = lowRisk;
-    }
-
-    public BigDecimal getAllowance() {
-        return allowance;
-    }
-
-    public void setAllowance(BigDecimal allowance) {
-        this.allowance = allowance;
-    }
-
-    public BigDecimal getLoss() {
-        return loss;
-    }
-
-    public void setLoss(BigDecimal loss) {
-        this.loss = loss;
-    }
-
-    public BigDecimal getStopLoss() {
-        return stopLoss;
-    }
-
-    public void setStopLoss(BigDecimal stopLoss) {
-        this.stopLoss = stopLoss;
-    }
-
-    public BigDecimal getGain() {
-        return gain;
-    }
-
-    public void setGain(BigDecimal gain) {
-        this.gain = gain;
-    }
-
-    public void setInitialCash(BigDecimal initialCash) {
-        this.initialCash = initialCash;
-    }
-
-    public int getShortLookback() {
-        return shortLookback;
-    }
-
-    public void setShortLookback(int shortLookback) {
-        this.shortLookback = shortLookback;
-    }
-
-    public int getLongLookback() {
-        return longLookback;
-    }
-
-    public void setLongLookback(int longLookback) {
-        this.longLookback = longLookback;
-    }
-
-    public BuyStrategyTypes getBuyStrategy() {
-        return buyStrategy;
-    }
-
-    public void setBuyStrategy(BuyStrategyTypes buyStrategy) {
-        this.buyStrategy = buyStrategy;
-    }
-
-    public SellStrategyTypes getSellStrategy() {
-        return sellStrategy;
-    }
-
-    public void setSellStrategy(SellStrategyTypes sellStrategy) {
-        this.sellStrategy = sellStrategy;
-    }
-
-    public boolean getBackTest() {
-        return backTest;
-    }
-
-    public void setBackTest(boolean backTest) {
-        this.backTest = backTest;
-    }
-
-    public String getBackTestData() {
-        return backTestData;
-    }
-
-    public void setBackTestData(String backTestData) {
-        this.backTestData = backTestData;
-    }
-
-    public boolean isBackTestDB() {
-        return backTestDB;
-    }
-
-    public void setBackTestDB(boolean backTestDB) {
-        this.backTestDB = backTestDB;
-    }
-
-    public int getBacktestQty() {
-        return backtestQty;
-    }
-
-    public void setBacktestQty(int backtestQty) {
-        this.backtestQty = backtestQty;
-    }
-
-    public List<String> getSecurities() {
-        return securities;
-    }
-
-    public void setSecurities(List<String> securities) {
-        this.securities = securities;
-    }
-
-    public List<String> getFiatCurrencies() {
-        return fiatCurrencies;
-    }
-
-    public void setFiatCurrencies(List<String> fiatCurrencies) {
-        this.fiatCurrencies = fiatCurrencies;
-    }
-
-    public List<String> getCryptoCurrencies() {
-        return cryptoCurrencies;
-    }
-
-    public void setCryptoCurrencies(List<String> cryptoCurrencies) {
-        this.cryptoCurrencies = cryptoCurrencies;
-    }
-
-    public Broker getBroker() {
-        return broker;
-    }
-
-    public void setBroker(Broker broker) {
-        this.broker = broker;
-    }
-
     public static Config getTheadSafeConfig() {
         return new Config();
-    }
-
-    public DataFeed getDataFeed() {
-        return dataFeed;
-    }
-
-    public void setDataFeed(DataFeed dataFeed) {
-        this.dataFeed = dataFeed;
     }
 }

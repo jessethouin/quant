@@ -2,6 +2,8 @@ package com.jessethouin.quant.binance.beans;
 
 import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.db.BigDecimalConverter;
+import lombok.Getter;
+import lombok.Setter;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.trade.LimitOrder;
 
@@ -17,6 +19,8 @@ extend the damned thing.
 */
 @Entity
 @Table(name = "BINANCE_LIMIT_ORDER")
+@Getter
+@Setter
 public class BinanceLimitOrder implements Comparable<BinanceLimitOrder> {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -24,7 +28,6 @@ public class BinanceLimitOrder implements Comparable<BinanceLimitOrder> {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "portfolio_id")
     private Portfolio portfolio;
-
     private Order.OrderType type;
     @Convert(converter = BigDecimalConverter.class)
     private BigDecimal originalAmount;
@@ -63,118 +66,6 @@ public class BinanceLimitOrder implements Comparable<BinanceLimitOrder> {
         this.leverage = limitOrder.getLeverage();
     }
 
-    public long getOrderId() {
-        return orderId;
-    }
-
-    public void setOrderId(long orderId) {
-        this.orderId = orderId;
-    }
-
-    public Portfolio getPortfolio() {
-        return portfolio;
-    }
-
-    public void setPortfolio(Portfolio portfolio) {
-        this.portfolio = portfolio;
-    }
-
-    public Order.OrderType getType() {
-        return type;
-    }
-
-    public void setType(Order.OrderType type) {
-        this.type = type;
-    }
-
-    public BigDecimal getOriginalAmount() {
-        return originalAmount;
-    }
-
-    public void setOriginalAmount(BigDecimal originalAmount) {
-        this.originalAmount = originalAmount;
-    }
-
-    public String getInstrument() {
-        return instrument;
-    }
-
-    public void setInstrument(String instrument) {
-        this.instrument = instrument;
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public String getUserReference() {
-        return userReference;
-    }
-
-    public void setUserReference(String userReference) {
-        this.userReference = userReference;
-    }
-
-    public Date getTimestamp() {
-        return timestamp;
-    }
-
-    public void setTimestamp(Date timestamp) {
-        this.timestamp = timestamp;
-    }
-
-    public Order.OrderStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(Order.OrderStatus status) {
-        this.status = status;
-    }
-
-    public BigDecimal getCumulativeAmount() {
-        return cumulativeAmount;
-    }
-
-    public void setCumulativeAmount(BigDecimal cumulativeAmount) {
-        this.cumulativeAmount = cumulativeAmount;
-    }
-
-    public BigDecimal getAveragePrice() {
-        return averagePrice;
-    }
-
-    public void setAveragePrice(BigDecimal averagePrice) {
-        this.averagePrice = averagePrice;
-    }
-
-    public BigDecimal getFee() {
-        return fee;
-    }
-
-    public void setFee(BigDecimal fee) {
-        this.fee = fee;
-    }
-
-    public String getLeverage() {
-        return leverage;
-    }
-
-    public void setLeverage(String leverage) {
-        this.leverage = leverage;
-    }
-
-    public BigDecimal getLimitPrice() {
-        return limitPrice;
-    }
-
-    public void setLimitPrice(BigDecimal limitPrice) {
-        this.limitPrice = limitPrice;
-    }
-
     @Override
     public String toString() {
         return "BinanceLimitOrder "
@@ -203,6 +94,14 @@ public class BinanceLimitOrder implements Comparable<BinanceLimitOrder> {
                 + "]";
     }
 
+    private String printLimitPrice() {
+        return limitPrice == null ? null : limitPrice.toPlainString();
+    }
+
+    private static String print(BigDecimal value) {
+        return value == null ? null : value.toPlainString();
+    }
+
     @Override
     public int compareTo(BinanceLimitOrder limitOrder) {
         final int ret;
@@ -215,22 +114,6 @@ public class BinanceLimitOrder implements Comparable<BinanceLimitOrder> {
         }
         return ret;
     }
-
-    private String printLimitPrice() {
-        return limitPrice == null ? null : limitPrice.toPlainString();
-    }
-
-    private static String print(BigDecimal value) {
-        return value == null ? null : value.toPlainString();
-    }
-
-    public BigDecimal getRemainingAmount() {
-        if (cumulativeAmount != null && originalAmount != null) {
-            return originalAmount.subtract(cumulativeAmount);
-        }
-        return originalAmount;
-    }
-
 
     @Override
     public boolean equals(Object o) {

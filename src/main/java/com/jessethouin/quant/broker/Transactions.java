@@ -47,9 +47,7 @@ public class Transactions {
         switch (broker) {
             case COINBASE -> LOG.info("Place COINBASE buy order here");
             case CEXIO -> LOG.info("Place CEXIO buy order here");
-            case BINANCE -> {
-                LOG.info("Placing Binance BUY order for {} of {} at {}", qty, base.getSymbol(), price);
-            }
+            case BINANCE -> LOG.info("Placing Binance BUY order for {} of {} at {}", qty, base.getSymbol(), price);
             case BINANCE_TEST -> {
                 BinanceLimitOrder binanceLimitOrder = BinanceTransactions.buyTestCurrency(base.getPortfolio(), new CurrencyPair(base.getSymbol(), counter.getSymbol()), qty, price);
                 if (binanceLimitOrder == null) return;
@@ -67,9 +65,7 @@ public class Transactions {
         switch (broker) {
             case COINBASE -> LOG.info("Place COINBASE sell order here");
             case CEXIO -> LOG.info("Place CEXIO sell order here");
-            case BINANCE -> {
-                LOG.info("Place BINANCE sell order here");
-            }
+            case BINANCE -> LOG.info("Place BINANCE sell order here");
             case BINANCE_TEST -> {
                 BinanceLimitOrder binanceLimitOrder = BinanceTransactions.sellTestCurrency(base.getPortfolio(), new CurrencyPair(base.getSymbol(), counter.getSymbol()), base.getQuantity(), price);
                 if (binanceLimitOrder == null) return false;
@@ -83,7 +79,7 @@ public class Transactions {
     }
 
     private static void processTestTransaction(BigDecimal qty, BinanceLimitOrder binanceLimitOrder) {
-        if (!Config.INSTANCE.getBackTest()) {
+        if (!Config.INSTANCE.isBackTest()) {
             Database.persistBinanceLimitOrder(binanceLimitOrder);
             BinanceLive.INSTANCE.getOrderHistoryLookup().setOrderId(binanceLimitOrder.getOrderId());
         }

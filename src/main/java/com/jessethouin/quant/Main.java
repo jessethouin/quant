@@ -14,7 +14,7 @@ public class Main {
     private static final Logger LOG = LogManager.getLogger(Main.class);
 
     public static void main(String[] args) throws InterruptedException {
-        if (Config.INSTANCE.getBackTest()) LOG.info("""
+        if (Config.INSTANCE.isBackTest()) LOG.info("""
                 
                 ==============================================================================================
                 =                                                                                            =

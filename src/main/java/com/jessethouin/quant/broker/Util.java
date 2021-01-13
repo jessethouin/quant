@@ -246,12 +246,6 @@ public class Util {
         return numberFormat.format(o);
     }
 
-    public static String formatNumber(Object o, int decimalDigits) {
-        NumberFormat numberFormat = NumberFormat.getNumberInstance();
-        numberFormat.setMaximumFractionDigits(decimalDigits);
-        return numberFormat.format(o);
-    }
-
     public static BigDecimal getBreakEven(BigDecimal qtyBTC) {
         BigDecimal rate = BigDecimal.valueOf(0.0750 / 100);
 
@@ -275,15 +269,7 @@ public class Util {
         List<Symbol> symbolList = Arrays.stream(symbols).filter(symbol -> symbol.getBaseAsset().equals(currencyPair.base.getSymbol()) && symbol.getQuoteAsset().equals(currencyPair.counter.getSymbol())).collect(Collectors.toList());
         symbolList.forEach(symbol -> {
             List<Filter> filters = Arrays.stream(symbol.getFilters()).filter(filter -> filter.getFilterType().equals("LOT_SIZE") || filter.getFilterType().equals("MIN_NOTIONAL")).collect(Collectors.toList());
-            filters.forEach(filter -> {
-                BigDecimal lotSize = BigDecimal.ZERO;
-                BigDecimal minNotional = BigDecimal.ZERO;
-                switch (filter.getFilterType()) {
-                    case "LOT_SIZE" -> lotSize = new BigDecimal(filter.getMinQty());
-                    case "MIN_NOTIONAL" -> minNotional = new BigDecimal(filter.getMinNotional());
-                }
-                minTrade[0] = minNotional;
-            });
+            filters.forEach(filter -> minTrade[0] = new BigDecimal(filter.getMinNotional()));
         });
         return minTrade[0];
     }
@@ -298,13 +284,13 @@ public class Util {
     }
 
     public static void debit(Currency currency, BigDecimal qty) {
-        CurrencyLedger currencyLedger = new CurrencyLedger.Builder().setCurrency(currency).setDebit(qty).setTimestamp(new Date()).build();
+        CurrencyLedger currencyLedger = CurrencyLedger.builder().currency(currency).debit(qty).timestamp(new Date()).build();
         currency.getCurrencyLedgers().add(currencyLedger);
         currency.setQuantity(currency.getQuantity().subtract(qty));
     }
 
     public static void credit(Currency currency, BigDecimal qty) {
-        CurrencyLedger currencyLedger = new CurrencyLedger.Builder().setCurrency(currency).setCredit(qty).setTimestamp(new Date()).build();
+        CurrencyLedger currencyLedger = CurrencyLedger.builder().currency(currency).credit(qty).timestamp(new Date()).build();
         currency.getCurrencyLedgers().add(currencyLedger);
         currency.setQuantity(currency.getQuantity().add(qty));
     }

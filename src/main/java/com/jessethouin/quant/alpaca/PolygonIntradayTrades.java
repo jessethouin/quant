@@ -36,13 +36,6 @@ public class PolygonIntradayTrades {
             final String ticker = "AAPL";
             final int limit = 25000;
 
-/*
-            AggregatesResponse aggregates = polygonAPI.getAggregates("AAPL", 1, Timespan.MINUTE, LocalDate.of(2020, 10, 14), LocalDate.of(2020, 10, 14), true);
-            aggregates.getResults().forEach(a -> {
-                LOG.info(c.incrementAndGet() + " " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss,SSS").format(new Date(a.getT())) + " : " + a.getC());
-            });
-*/
-
             while (timestamp.get() < end) {
 
                 HistoricTradesResponse aapl = polygonAPI.getHistoricTrades(ticker, LocalDate.of(2020, 10, 14), timestamp.get(), 1602720060000000000L, false, limit);

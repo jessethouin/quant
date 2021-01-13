@@ -67,7 +67,7 @@ public class ProcessHistoricIntradayPrices implements Callable<Object> {
                 price = intradayPrices.get(i);
                 shortMAValue = Util.getMA(intradayPrices, previousShortMAValue, i, shortLookback, price);
                 longMAValue = Util.getMA(intradayPrices, previousLongMAValue, i, longLookback, price);
-                c.updateCalc(price, shortMAValue, longMAValue, portfolio);
+                c.updateCalc(price, shortMAValue, longMAValue);
 
                 switch (config.getBroker()) {
                     case ALPACA_TEST -> LOG.trace(MessageFormat.format("{8,number,000} : {0,number,00} : {5,number,000.000} : {1,number,00} : {6,number,000.000} : {7,number,000.000} : {2,number,0.00} : {3,number,0.00} : {4,number,000000.000}", config.getShortLookback(), config.getLongLookback(), config.getLowRisk(), config.getHighRisk(), Util.getPortfolioValue(portfolio, c.getSecurity().getCurrency(), price), shortMAValue, longMAValue, price, i));
@@ -95,7 +95,6 @@ public class ProcessHistoricIntradayPrices implements Callable<Object> {
             case ALPACA_TEST -> portfolioValue = Util.getPortfolioValue(portfolio, c.getBase(), price);
             case BINANCE_TEST -> portfolioValue = Util.getValueAtPrice(c.getBase(), price)
                     .add(c.getCounter().getQuantity());
-//                    .subtract(portfolio.getBinanceLimitOrders().stream().map(BinanceLimitOrder::getFee).reduce(BigDecimal.ZERO, BigDecimal::add));
         }
 
         String msg = MessageFormat.format("{0,number,00} : {1,number,00} : {2,number,0.00} : {3,number,0.00} : {4,number,00000.000}", shortLookback, longLookback, lowRisk, highRisk, portfolioValue);

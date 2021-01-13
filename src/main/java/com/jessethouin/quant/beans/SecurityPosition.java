@@ -1,6 +1,7 @@
 package com.jessethouin.quant.beans;
 
 import com.jessethouin.quant.db.BigDecimalConverter;
+import lombok.*;
 
 import javax.persistence.*;
 import java.math.BigDecimal;
@@ -8,6 +9,11 @@ import java.util.Date;
 
 @Entity
 @Table(name = "SECURITY_POSITION")
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class SecurityPosition {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -20,44 +26,4 @@ public class SecurityPosition {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "security_id")
     private Security security;
-
-    public Long getPositionId() {
-        return positionId;
-    }
-
-    public void setPositionId(long positionId) {
-        this.positionId = positionId;
-    }
-
-    public Date getOpened() {
-        return opened;
-    }
-
-    public void setOpened(Date opened) {
-        this.opened = opened;
-    }
-
-    public BigDecimal getQuantity() {
-        return quantity;
-    }
-
-    public void setQuantity(BigDecimal quantity) {
-        this.quantity = quantity;
-    }
-
-    public BigDecimal getPrice() {
-        return price;
-    }
-
-    public void setPrice(BigDecimal price) {
-        this.price = price;
-    }
-
-    public Security getSecurity() {
-        return security;
-    }
-
-    public void setSecurity(Security security) {
-        this.security = security;
-    }
 }

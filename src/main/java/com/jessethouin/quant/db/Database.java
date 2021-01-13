@@ -1,11 +1,7 @@
 package com.jessethouin.quant.db;
 
 import com.jessethouin.quant.alpaca.beans.AlpacaOrder;
-import com.jessethouin.quant.alpaca.beans.AlpacaTradeHistory;
-import com.jessethouin.quant.beans.Currency;
-import com.jessethouin.quant.beans.CurrencyLedger;
 import com.jessethouin.quant.beans.Portfolio;
-import com.jessethouin.quant.beans.Security;
 import com.jessethouin.quant.binance.beans.BinanceLimitOrder;
 import com.jessethouin.quant.binance.beans.BinanceTradeHistory;
 import com.jessethouin.quant.binance.beans.OrderHistoryLookup;
@@ -17,6 +13,7 @@ import org.hibernate.boot.MetadataSources;
 import org.hibernate.boot.registry.StandardServiceRegistry;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 
+import javax.persistence.Entity;
 import java.util.List;
 
 public class Database {
@@ -85,28 +82,6 @@ public class Database {
         return binanceTradeHistoryList;
     }
 
-    public static Currency getCurrencyFromPortfolio(Portfolio portfolio, String currencySymbol) {
-        session.beginTransaction();
-        Currency result = (Currency) getSession()
-                .createQuery("from Currency where portfolio=:portfolio_id and symbol=:symbol")
-                .setParameter("portfolio_id", portfolio.getPortfolioId())
-                .setParameter("symbol", currencySymbol)
-                .uniqueResult();
-        session.getTransaction().commit();
-        return result;
-    }
-
-    public static Security getSecurityFromPortfolio(Portfolio portfolio, String securitySymbol) {
-        session.beginTransaction();
-        Security result = (Security) getSession()
-                .createQuery("from Security where portfolio=:portfolio_id and symbol=:symbol")
-                .setParameter("portfolio_id", portfolio.getPortfolioId())
-                .setParameter("symbol", securitySymbol)
-                .uniqueResult();
-        session.getTransaction().commit();
-        return result;
-    }
-
     public static void persistPortfolio(Portfolio portfolio) {
         session.beginTransaction();
         session.persist(portfolio);
@@ -118,18 +93,6 @@ public class Database {
         Portfolio result = (Portfolio) getSession().createQuery("from Portfolio").uniqueResult();
         session.getTransaction().commit();
         return result;
-    }
-
-    public static void persistSecurity(Security security) {
-        session.beginTransaction();
-        session.persist(security);
-        session.getTransaction().commit();
-    }
-
-    public static void persistTickerHistory(AlpacaTradeHistory alpacaTradeHistory) {
-        session.beginTransaction();
-        session.persist(alpacaTradeHistory);
-        session.getTransaction().commit();
     }
 
     public static void persistTradeHistory(BinanceTradeHistory binanceTradeHistory) {
@@ -144,9 +107,9 @@ public class Database {
         session.getTransaction().commit();
     }
 
-    public static void persistCurrencyLedger(CurrencyLedger currencyLedger) {
+    public static void persistEntity(Entity t) {
         session.beginTransaction();
-        session.persist(currencyLedger);
+        session.persist(t);
         session.getTransaction().commit();
     }
 }

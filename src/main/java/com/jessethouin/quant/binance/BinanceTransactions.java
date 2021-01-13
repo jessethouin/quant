@@ -70,7 +70,7 @@ public class BinanceTransactions {
     }
 
     private static BinanceLimitOrder testTransact(Portfolio portfolio, CurrencyPair currencyPair, BigDecimal qty, BigDecimal price, OrderType orderType) {
-        if (!Config.INSTANCE.getBackTest() && qty.multiply(price).compareTo(Util.getMinTrade(currencyPair)) < 0) {
+        if (!Config.INSTANCE.isBackTest() && qty.multiply(price).compareTo(Util.getMinTrade(currencyPair)) < 0) {
             LOG.warn("Trade must be minimum of {} for {}. Was {}.", Util.getMinTrade(currencyPair), currencyPair.toString(), qty.multiply(price));
             return null;
         }
@@ -126,7 +126,7 @@ public class BinanceTransactions {
         }
     }
 
-    public void showWallets() {
+    public static void showWallets() {
         BinanceAccountService accountService = (BinanceAccountService) INSTANCE.getBinanceExchange().getAccountService();
 
         try {
@@ -148,7 +148,7 @@ public class BinanceTransactions {
         }
     }
 
-    public void showTradingFees() {
+    public static void showTradingFees() {
         BinanceAccountService accountService = (BinanceAccountService) INSTANCE.getBinanceExchange().getAccountService();
 
         try {

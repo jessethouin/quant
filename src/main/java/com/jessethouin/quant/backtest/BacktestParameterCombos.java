@@ -96,7 +96,8 @@ public class BacktestParameterCombos extends AbstractBacktest {
             }
             es.invokeAll(todo);
             es.shutdown();
-            es.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+            boolean executed = es.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+            if (!executed) LOG.warn("Well, we waited 292 years and it still didn't finish.");
         }
         loopWatch.stop();
         comboProcessingTime = loopWatch.getTime(TimeUnit.MILLISECONDS);

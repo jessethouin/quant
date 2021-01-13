@@ -1,6 +1,5 @@
 package com.jessethouin.quant.binance;
 
-import com.jessethouin.quant.beans.Portfolio;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,12 +21,6 @@ class BinanceTransactionsTest {
     void setUp() {
         exchange = ExchangeFactory.INSTANCE.createExchange(BinanceExchange.class);
         tradeService = (BinanceTradeService) exchange.getTradeService();
-    }
-
-    @Test
-    void buySecurity() throws IOException {
-        Portfolio portfolio = new Portfolio();
-        BinanceTransactions.buyCurrency(portfolio, CurrencyPair.BTC_USDT, BigDecimal.ONE, limitPriceForCurrencyPair(CurrencyPair.BTC_USDT));
     }
 
     @Test
