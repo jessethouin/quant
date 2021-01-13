@@ -128,9 +128,8 @@ public class AlpacaTransactions {
                 null,
                 null
         );
-        AlpacaOrder alpacaOrder = new AlpacaOrder(order, security.getPortfolio());
-//        Database.persistAlpacaOrder(alpacaOrder);
-        return alpacaOrder;
+
+        return new AlpacaOrder(order, security.getPortfolio());
     }
 
     public static void processFilledOrder(AlpacaOrder alpacaOrder) {
@@ -141,10 +140,10 @@ public class AlpacaTransactions {
 
         if (alpacaOrder.getSide().equals(OrderSide.BUY.getAPIName())) {
             Transactions.addSecurityPosition(security, filledQty, filledAvgPrice);
-            Transactions.addCurrencyPosition(portfolio, filledQty.multiply(filledAvgPrice).negate(), security.getCurrency());
+            Util.debit(security.getCurrency(), filledQty.multiply(filledAvgPrice).negate());
         }
         if (alpacaOrder.getSide().equals(OrderSide.SELL.getAPIName())) {
-            Transactions.addCurrencyPosition(portfolio, filledQty.multiply(filledAvgPrice), security.getCurrency());
+            Util.credit(security.getCurrency(), filledQty.multiply(filledAvgPrice));
 
             List<SecurityPosition> remove = new ArrayList<>();
 

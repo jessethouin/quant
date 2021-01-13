@@ -50,15 +50,15 @@ public class BacktestStaticParameters extends AbstractBacktest {
 
             switch (CONFIG.getBroker()) {
                 case ALPACA_TEST -> LOG.trace(MessageFormat.format("{8,number,000} : {0,number,00} : {5,number,000.000} : {1,number,00} : {6,number,000.000} : {7,number,000.000} : {2,number,0.00} : {3,number,0.00} : {4,number,000000.000}", CONFIG.getShortLookback(), CONFIG.getLongLookback(), CONFIG.getLowRisk(), CONFIG.getHighRisk(), Util.getPortfolioValue(portfolio, c.getSecurity().getCurrency(), price), shortMAValue, longMAValue, price, i));
-                case BINANCE_TEST -> LOG.info("{} : ma1 {} : ma2 {} : l {} : h {} : p {} : v {}", i, shortMAValue, longMAValue, c.getLow(), c.getHigh(), price, Util.getBalance(portfolio, c.getBase(), c.getCounter(), price).add(Util.getBalance(portfolio, c.getCounter())));
+                case BINANCE_TEST -> LOG.info("{} : ma1 {} : ma2 {} : l {} : h {} : p {} : v {}", i, shortMAValue, longMAValue, c.getLow(), c.getHigh(), price, Util.getValueAtPrice(c.getBase(), price).add(c.getCounter().getQuantity()));
             }
 
             c.decide();
 
-            BigDecimal value = Util.getBalance(portfolio, c.getBase(), c.getCounter(), price).add(Util.getBalance(portfolio, c.getCounter()));
+            BigDecimal value = Util.getValueAtPrice(c.getBase(), price).add(c.getCounter().getQuantity());
             if (value.compareTo(previousValue.multiply(CONFIG.getStopLoss())) < 0) {
                 LOG.warn("Invoking stop loss.");
-                Transactions.placeCurrencySellOrder(CONFIG.getBroker(), c.getBase(), c.getCounter(), price, true);
+                Transactions.placeCurrencySellOrder(CONFIG.getBroker(), c.getBase(), c.getCounter(), price);
                 System.exit(69); // NICE
             }
 
@@ -70,8 +70,8 @@ public class BacktestStaticParameters extends AbstractBacktest {
         switch (CONFIG.getBroker()) {
             case ALPACA_TEST -> c.getSecurity().getSecurityPositions().forEach(ps -> LOG.info(ps.getPrice() + ", " + ps.getQuantity() + " : " + ps.getPrice().multiply(ps.getQuantity())));
             case BINANCE_TEST -> {
-                c.getBase().getCurrencyPositions().forEach(position -> LOG.info("base   : price: {} - quantity: {} - value: {}", Util.formatFiat(position.getPrice()), position.getQuantity(), Util.formatFiat(position.getPrice().multiply(position.getQuantity()))));
-                c.getCounter().getCurrencyPositions().forEach(position -> LOG.info("counter: price: {} - quantity: {}", Util.formatFiat(position.getPrice()), Util.formatFiat(position.getQuantity())));
+                LOG.info("base   : value: {}", Util.formatFiat(c.getBase().getQuantity()));
+                LOG.info("counter: value: {}", Util.formatFiat(c.getCounter().getQuantity()));
                 LOG.info("orders : {}", portfolio.getBinanceLimitOrders().size());
                 LOG.info("fees   : {}", Util.formatFiat(portfolio.getBinanceLimitOrders().stream().map(BinanceLimitOrder::getFee).reduce(BigDecimal.ZERO, BigDecimal::add)));
             }
@@ -80,9 +80,8 @@ public class BacktestStaticParameters extends AbstractBacktest {
         BigDecimal portfolioValue = BigDecimal.ZERO;
         switch (CONFIG.getBroker()) {
             case ALPACA_TEST -> portfolioValue = Util.getPortfolioValue(portfolio, c.getBase(), price);
-            case BINANCE_TEST -> portfolioValue = Util.getBalance(portfolio, c.getBase(), c.getCounter(), price)
-                    .add(Util.getBalance(portfolio, c.getCounter()))
-                    .subtract(portfolio.getBinanceLimitOrders().stream().map(BinanceLimitOrder::getFee).reduce(BigDecimal.ZERO, BigDecimal::add));
+            case BINANCE_TEST -> portfolioValue = Util.getValueAtPrice(c.getBase(), price).add(c.getCounter().getQuantity());
+//                    .subtract(portfolio.getBinanceLimitOrders().stream().map(BinanceLimitOrder::getFee).reduce(BigDecimal.ZERO, BigDecimal::add));
         }
         LOG.debug(MessageFormat.format("{0,number,00} : {1,number,00} : {2,number,0.00} : {3,number,0.00} : {4}", CONFIG.getShortLookback(), CONFIG.getLongLookback(), CONFIG.getLowRisk(), CONFIG.getHighRisk(), Util.formatFiat(portfolioValue)));
     }

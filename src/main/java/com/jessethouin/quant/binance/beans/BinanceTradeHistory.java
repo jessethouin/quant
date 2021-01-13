@@ -1,6 +1,7 @@
 package com.jessethouin.quant.binance.beans;
 
 import com.jessethouin.quant.db.BigDecimalConverter;
+import lombok.Data;
 
 import javax.persistence.*;
 import java.math.BigDecimal;
@@ -8,6 +9,7 @@ import java.util.Date;
 
 @Entity
 @Table(name = "BINANCE_TRADE_HISTORY")
+@Data
 public class BinanceTradeHistory {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -33,62 +35,6 @@ public class BinanceTradeHistory {
         this.ma2 = ma2;
         this.l = l;
         this.h = h;
-        this.p = p;
-    }
-
-    public long getTradeId() {
-        return tradeId;
-    }
-
-    public void setTradeId(long tradeId) {
-        this.tradeId = tradeId;
-    }
-
-    public Date getTimestamp() {
-        return timestamp;
-    }
-
-    public void setTimestamp(Date timestamp) {
-        this.timestamp = timestamp;
-    }
-
-    public BigDecimal getMa1() {
-        return ma1;
-    }
-
-    public void setMa1(BigDecimal ma1) {
-        this.ma1 = ma1;
-    }
-
-    public BigDecimal getMa2() {
-        return ma2;
-    }
-
-    public void setMa2(BigDecimal ma2) {
-        this.ma2 = ma2;
-    }
-
-    public BigDecimal getL() {
-        return l;
-    }
-
-    public void setL(BigDecimal l) {
-        this.l = l;
-    }
-
-    public BigDecimal getH() {
-        return h;
-    }
-
-    public void setH(BigDecimal h) {
-        this.h = h;
-    }
-
-    public BigDecimal getP() {
-        return p;
-    }
-
-    public void setP(BigDecimal p) {
         this.p = p;
     }
 

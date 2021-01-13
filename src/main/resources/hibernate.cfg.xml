@@ -36,7 +36,7 @@
         <mapping class="com.jessethouin.quant.beans.SecurityPosition"/>
         <mapping class="com.jessethouin.quant.beans.Security"/>
         <mapping class="com.jessethouin.quant.beans.Currency"/>
-        <mapping class="com.jessethouin.quant.beans.CurrencyPosition"/>
+        <mapping class="com.jessethouin.quant.beans.CurrencyLedger"/>
         <mapping class="com.jessethouin.quant.alpaca.beans.AlpacaTradeHistory"/>
         <mapping class="com.jessethouin.quant.alpaca.beans.AlpacaOrder"/>
         <mapping class="com.jessethouin.quant.binance.beans.BinanceLimitOrder"/>

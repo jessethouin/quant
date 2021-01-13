@@ -3,9 +3,7 @@ package com.jessethouin.quant.broker;
 import com.jessethouin.quant.alpaca.AlpacaLive;
 import com.jessethouin.quant.alpaca.beans.AlpacaOrder;
 import com.jessethouin.quant.beans.Currency;
-import com.jessethouin.quant.beans.CurrencyPosition;
-import com.jessethouin.quant.beans.Portfolio;
-import com.jessethouin.quant.beans.Security;
+import com.jessethouin.quant.beans.*;
 import com.jessethouin.quant.binance.BinanceLive;
 import com.jessethouin.quant.binance.BinanceTransactions;
 import com.jessethouin.quant.binance.beans.BinanceLimitOrder;
@@ -22,7 +20,6 @@ import org.apache.logging.log4j.Logger;
 import org.knowm.xchange.binance.dto.meta.exchangeinfo.Filter;
 import org.knowm.xchange.binance.dto.meta.exchangeinfo.Symbol;
 import org.knowm.xchange.currency.CurrencyPair;
-import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.exceptions.CurrencyPairNotValidException;
 
@@ -39,7 +36,7 @@ public class Util {
 
     public static BigDecimal getPortfolioValue(Portfolio portfolio, Currency currency) {
         AtomicReference<BigDecimal> holdings = new AtomicReference<>(BigDecimal.ZERO);
-        holdings.updateAndGet(v -> v.add(getBalance(portfolio, currency)));
+        holdings.updateAndGet(v -> v.add(currency.getQuantity()));
         portfolio.getSecurities().stream().filter(security -> security.getCurrency().equals(currency)).forEach(s -> {
             try {
                 BigDecimal price = BigDecimal.valueOf(AlpacaLive.getInstance().getPolygonAPI().getLastQuote(s.getSymbol()).getLast().getAskprice());
@@ -55,7 +52,7 @@ public class Util {
 
     public static BigDecimal getPortfolioValue(Portfolio portfolio, Currency currency, BigDecimal price) {
         AtomicReference<BigDecimal> holdings = new AtomicReference<>(BigDecimal.ZERO);
-        holdings.updateAndGet(v -> v.add(getBalance(portfolio, currency)));
+        holdings.updateAndGet(v -> v.add(currency.getQuantity()));
         portfolio.getSecurities().stream()
                 .filter(security -> security.getCurrency().equals(currency))
                 .forEach(security -> security.getSecurityPositions()
@@ -63,37 +60,8 @@ public class Util {
         return holdings.get();
     }
 
-    public static BigDecimal getBalance(Portfolio portfolio, Currency currency) {
-        final BigDecimal[] balance = {BigDecimal.ZERO};
-        portfolio.getCurrencies().stream()
-                .filter(c -> c.equals(currency))
-                .forEach(c -> c.getCurrencyPositions()
-                        .forEach(currencyPosition -> balance[0] = balance[0].add(currencyPosition.getQuantity())));
-        return balance[0];
-    }
-
-    public static BigDecimal getBalance(Portfolio portfolio, Currency base, Currency counter, BigDecimal marketPrice) {
-        final BigDecimal[] balance = {BigDecimal.ZERO};
-        portfolio.getCurrencies().stream()
-                .filter(c -> c.equals(base))
-                .forEach(c -> c.getCurrencyPositions()
-                        .forEach(currencyPosition -> balance[0] = balance[0].add(counter == null ? currencyPosition.getQuantity() : currencyPosition.getQuantity().multiply(marketPrice))));
-        return balance[0];
-    }
-
-    public static BigDecimal getHeldSecurity(Security security) {
-        BigDecimal[] v = {BigDecimal.ZERO};
-        security.getSecurityPositions().forEach(securityPosition -> v[0] = v[0].add(securityPosition.getQuantity()));
-        return v[0];
-    }
-
-    public static Set<CurrencyPair> getHeldCurrencyPairs(Portfolio portfolio) {
-        Set<CurrencyPair> currencyPairs = new HashSet<>();
-        portfolio.getCurrencies().forEach(currency -> currency.getCurrencyPositions().forEach(currencyPosition -> {
-            CurrencyPair currencyPair = new CurrencyPair(currencyPosition.getBaseCurrency().getSymbol(), currencyPosition.getCounterCurrency().getSymbol());
-            currencyPairs.add(currencyPair);
-        }));
-        return currencyPairs;
+    public static BigDecimal getValueAtPrice(Currency base, BigDecimal marketPrice) {
+        return base.getQuantity().multiply(marketPrice);
     }
 
     public static List<CurrencyPair> getAllCurrencyPairs(Config config) {
@@ -106,9 +74,9 @@ public class Util {
         return currencyPairs;
     }
 
-    public static BigDecimal getBudget(Portfolio portfolio, BigDecimal price, BigDecimal allowance, Currency currency, Security security) {
+    public static BigDecimal getBudget(BigDecimal price, BigDecimal allowance, Currency currency, Security security) {
         int scale = security == null ? 8 : 0;
-        return getBalance(portfolio, currency).multiply(allowance).divide(price, scale, RoundingMode.FLOOR);
+        return currency.getQuantity().multiply(allowance).divide(price, scale, RoundingMode.FLOOR);
     }
 
     public static BigDecimal getMA(List<BigDecimal> intradayPrices, BigDecimal previousMA, int i, int lookback, BigDecimal price) {
@@ -159,27 +127,10 @@ public class Util {
             Currency currency = new Currency();
             currency.setCurrencyType(CurrencyTypes.FIAT);
             currency.setSymbol(symbol);
+            currency.setQuantity(BigDecimal.ZERO);
             currency.setPortfolio(portfolio);
             Database.persistPortfolio(portfolio);
             return currency;
-        }
-    }
-
-    public static BigDecimal getCurrencyPositionValue(CurrencyPosition currencyPosition, Currency targetCounter) {
-        Currency thisCounter = currencyPosition.getCounterCurrency();
-        BigDecimal thisPrice = currencyPosition.getPrice();
-
-        if (thisCounter.equals(targetCounter)) {
-            return thisPrice;
-        } else {
-            String thisBase = currencyPosition.getBaseCurrency().getSymbol();
-            BigDecimal priceWithThisCounter = getTickerPrice(thisBase, thisCounter.getSymbol());
-            BigDecimal priceWithTargetCounter = getTickerPrice(thisBase, targetCounter.getSymbol());
-            if (priceWithThisCounter != null) {
-                BigDecimal change = thisPrice.divide(priceWithThisCounter, 8, RoundingMode.FLOOR);
-                return priceWithTargetCounter.multiply(change);
-            }
-            return priceWithTargetCounter;
         }
     }
 
@@ -243,9 +194,10 @@ public class Util {
         fiatCurrencies.forEach(c -> {
             Currency currency = new Currency();
             currency.setSymbol(c);
+            currency.setQuantity(BigDecimal.ZERO);
             currency.setCurrencyType(CurrencyTypes.FIAT);
             if (c.equals("USD")) { // default-coded (you're welcome, Pra) for now, until international exchanges are implemented in Alpaca. In other words, ALL securities traded are in USD.
-                Transactions.addCurrencyPosition(portfolio, Config.INSTANCE.getInitialCash(), currency);
+                Util.credit(currency, Config.INSTANCE.getInitialCash());
                 List<String> tickers = Config.INSTANCE.getSecurities();
                 tickers.forEach(t -> {
                     Security security = new Security();
@@ -263,19 +215,15 @@ public class Util {
         cryptoCurrencies.forEach(c -> {
             Currency currency = new Currency();
             currency.setSymbol(c);
+            currency.setQuantity(BigDecimal.ZERO);
             currency.setCurrencyType(CurrencyTypes.CRYPTO);
             currency.setPortfolio(portfolio);
             portfolio.getCurrencies().add(currency);
         });
 
-        try {
-            Currency btc = getCurrencyFromPortfolio("BTC", portfolio);
-            Currency usdt = getCurrencyFromPortfolio("USDT", portfolio);
-            Ticker ticker = BinanceLive.INSTANCE.getBinanceExchange().getMarketDataService().getTicker(CurrencyPair.BTC_USDT);
-            Transactions.addCurrencyPosition(portfolio, Config.INSTANCE.getInitialCash(), usdt, btc, ticker.getLast().subtract(BigDecimal.TEN));
-        } catch (IOException e) {
-            LOG.error("Unable to initialize currencies. {}", e.getLocalizedMessage());
-        }
+        Currency usdt = getCurrencyFromPortfolio("USDT", portfolio);
+        Util.credit(usdt, Config.INSTANCE.getInitialCash());
+
         return portfolio;
     }
 
@@ -288,6 +236,7 @@ public class Util {
     public static Currency getCurrency(Portfolio portfolio, String symbol) {
         Currency currency = new Currency();
         currency.setSymbol(symbol);
+        currency.setQuantity(BigDecimal.ZERO);
         return portfolio.getCurrencies().stream().filter(c -> c.getSymbol().equals(symbol)).findFirst().orElse(currency);
     }
 
@@ -339,11 +288,24 @@ public class Util {
         return minTrade[0];
     }
 
-    public static BinanceLimitOrder createBinanceLimitOrder(Portfolio portfolio, LimitOrder limitOrder, List<CurrencyPosition> sellableCurrencyPositions) {
+    public static BinanceLimitOrder createBinanceLimitOrder(Portfolio portfolio, LimitOrder limitOrder) {
         LOG.info("Creating new BinanceLimitOrder for order {} status {}", limitOrder.getId(), limitOrder.getStatus());
         BinanceLimitOrder binanceLimitOrder = new BinanceLimitOrder(limitOrder, portfolio);
-        BinanceTransactions.processBinanceLimitOrder(binanceLimitOrder, sellableCurrencyPositions);
+        binanceLimitOrder.setStatus(org.knowm.xchange.dto.Order.OrderStatus.NEW);
+        BinanceTransactions.processBinanceLimitOrder(binanceLimitOrder);
         Database.persistBinanceLimitOrder(binanceLimitOrder);
         return binanceLimitOrder;
+    }
+
+    public static void debit(Currency currency, BigDecimal qty) {
+        CurrencyLedger currencyLedger = new CurrencyLedger.Builder().setCurrency(currency).setDebit(qty).setTimestamp(new Date()).build();
+        currency.getCurrencyLedgers().add(currencyLedger);
+        currency.setQuantity(currency.getQuantity().subtract(qty));
+    }
+
+    public static void credit(Currency currency, BigDecimal qty) {
+        CurrencyLedger currencyLedger = new CurrencyLedger.Builder().setCurrency(currency).setCredit(qty).setTimestamp(new Date()).build();
+        currency.getCurrencyLedgers().add(currencyLedger);
+        currency.setQuantity(currency.getQuantity().add(qty));
     }
 }

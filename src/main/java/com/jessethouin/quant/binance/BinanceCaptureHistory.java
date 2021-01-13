@@ -84,7 +84,7 @@ public class BinanceCaptureHistory {
         ref.longMAValue = Util.getMA(ref.intradayPrices, ref.previousLongMAValue, ref.count, config.getLongLookback(), ref.price);
         BinanceTradeHistory binanceTradeHistory = new BinanceTradeHistory.Builder().setTimestamp(ref.timestamp).setMa1(ref.shortMAValue).setMa2(ref.longMAValue).setL(BigDecimal.ZERO).setH(BigDecimal.ZERO).setP(ref.price).build();
         Database.persistTradeHistory(binanceTradeHistory);
-        LOG.info("ma1 {} ma2 {} p {}", ref.shortMAValue, ref.longMAValue, ref.price);
+        LOG.trace("ma1 {} ma2 {} p {}", ref.shortMAValue, ref.longMAValue, ref.price);
 
         ref.previousShortMAValue = ref.shortMAValue;
         ref.previousLongMAValue = ref.longMAValue;

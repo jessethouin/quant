@@ -50,10 +50,12 @@ class DatabaseTest {
 
         Currency usd1 = new Currency();
         usd1.setSymbol("USD");
+        usd1.setQuantity(BigDecimal.ZERO);
         usd1.setCurrencyType(CurrencyTypes.FIAT);
 
         Currency usd2 = new Currency();
         usd2.setSymbol("USD");
+        usd2.setQuantity(BigDecimal.ZERO);
         usd2.setCurrencyType(CurrencyTypes.FIAT);
 
         portfolio.getCurrencies().add(usd1);
@@ -73,24 +75,20 @@ class DatabaseTest {
 
         Currency usd = new Currency();
         usd.setSymbol("USD");
+        usd.setQuantity(BigDecimal.ZERO);
         usd.setCurrencyType(CurrencyTypes.FIAT);
 
         Currency cad = new Currency();
         cad.setSymbol("CAD");
+        cad.setQuantity(BigDecimal.ZERO);
         cad.setCurrencyType(CurrencyTypes.FIAT);
 
-        CurrencyPosition currencyPosition = new CurrencyPosition();
-        currencyPosition.setQuantity(new BigDecimal("23000"));
-        currencyPosition.setOpened(new Date());
-        currencyPosition.setCounterCurrency(cad);
-        currencyPosition.setPrice(new BigDecimal("30071.12"));
-        currencyPosition.setBaseCurrency(usd);
-
-        usd.getCurrencyPositions().add(currencyPosition);
         usd.setPortfolio(portfolio);
         cad.setPortfolio(portfolio);
         portfolio.getCurrencies().add(usd);
         portfolio.getCurrencies().add(cad);
+
+        Util.credit(usd, BigDecimal.valueOf(23000));
 
         Set<Security> securities = new HashSet<>();
         Arrays.stream(new String[]{"F", "IBM"}).iterator().forEachRemaining(t -> {
@@ -118,7 +116,7 @@ class DatabaseTest {
         savePortfolio(portfolio);
 
         Currency currencyFromPortfolio = Util.getCurrencyFromPortfolio(usd.getSymbol(), portfolio);
-        System.out.println("USD positions in portfolio: " + currencyFromPortfolio.getCurrencyPositions().size());
+        System.out.println("USD positions in portfolio: " + currencyFromPortfolio.getQuantity());
         Database.closeSession();
 
         Session session = sessionFactory.openSession();
@@ -129,7 +127,7 @@ class DatabaseTest {
             ((Portfolio) result).getCurrencies().forEach(c -> {
                 System.out.printf("\t\tSymbol: %s\n", c.getSymbol());
                 System.out.printf("\t\t\tType: %s\n", c.getCurrencyType());
-                c.getCurrencyPositions().forEach(p -> System.out.printf("\t\t\tQuantity: %f\n\t\t\tCounter Currency: %s\n\t\t\tCounter Price: %f\n", p.getQuantity(), p.getCounterCurrency().getSymbol(), p.getPrice()));
+                System.out.printf("\t\t\tQuantity: %s\n", c.getQuantity());
             });
             System.out.println("\tSecurities: " + ((Portfolio) result).getSecurities().size());
             ((Portfolio) result).getSecurities().forEach(s -> {

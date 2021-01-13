@@ -1,10 +1,8 @@
 package com.jessethouin.quant.binance;
 
 import com.jessethouin.quant.beans.Currency;
-import com.jessethouin.quant.beans.CurrencyPosition;
 import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.binance.beans.BinanceLimitOrder;
-import com.jessethouin.quant.broker.Transactions;
 import com.jessethouin.quant.broker.Util;
 import com.jessethouin.quant.conf.Config;
 import com.jessethouin.quant.db.Database;
@@ -21,7 +19,8 @@ import org.knowm.xchange.dto.trade.LimitOrder;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.Date;
+import java.util.Map;
 
 import static com.jessethouin.quant.binance.BinanceLive.INSTANCE;
 import static org.knowm.xchange.binance.dto.trade.OrderType.LIMIT;
@@ -92,10 +91,6 @@ public class BinanceTransactions {
     }
 
     public static void processBinanceLimitOrder(BinanceLimitOrder binanceLimitOrder) {
-        processBinanceLimitOrder(binanceLimitOrder, Collections.emptyList());
-    }
-
-    public static void processBinanceLimitOrder(BinanceLimitOrder binanceLimitOrder, List<CurrencyPosition> eligibleCurrencyPositions) {
         Portfolio portfolio = binanceLimitOrder.getPortfolio();
         CurrencyPair currencyPair = new CurrencyPair(binanceLimitOrder.getInstrument());
         Currency base = Util.getCurrencyFromPortfolio(currencyPair.base.getSymbol(), portfolio);
@@ -107,44 +102,28 @@ public class BinanceTransactions {
         switch (binanceLimitOrder.getType()) {
             case BID -> {
                 switch (binanceLimitOrder.getStatus()) {
-                    case NEW -> reduceCurrency(counter, originalAmount.multiply(limitPrice), eligibleCurrencyPositions); //todo subtract fees as well
+                    case NEW -> Util.debit(counter, originalAmount.multiply(limitPrice));
                     case FILLED -> {
-                        Transactions.addCurrencyPosition(portfolio, originalAmount, base, counter, limitPrice);
-                        reduceCurrency(counter, fee, new ArrayList<>(counter.getCurrencyPositions()));
+                        Util.credit(base, originalAmount);
+                        Util.debit(counter, fee);
                     }
-                    case CANCELED, EXPIRED, REJECTED, REPLACED -> Transactions.addCurrencyPosition(portfolio, originalAmount.multiply(limitPrice), counter, base, limitPrice);
+                    case CANCELED, EXPIRED, REJECTED, REPLACED -> Util.credit(counter, originalAmount.multiply(limitPrice));
                 }
             }
             case ASK -> {
                 switch (binanceLimitOrder.getStatus()) {
-                    case NEW -> reduceCurrency(base, originalAmount, eligibleCurrencyPositions); //todo subtract fees as well
+                    case NEW -> Util.debit(base, originalAmount);
                     case FILLED -> {
                         BigDecimal filledQty = binanceLimitOrder.getCumulativeAmount();
                         BigDecimal filledAvgPrice = limitPrice.multiply(binanceLimitOrder.getAveragePrice());
-                        Transactions.addCurrencyPosition(portfolio, filledQty.multiply(filledAvgPrice), counter, base, filledAvgPrice);
-                        reduceCurrency(counter, fee, new ArrayList<>(counter.getCurrencyPositions()));
+                        Util.credit(counter, filledQty.multiply(filledAvgPrice));
+                        Util.debit(counter, fee);
                     }
-                    case CANCELED, EXPIRED, REJECTED, REPLACED -> Transactions.addCurrencyPosition(portfolio, originalAmount, base, counter, limitPrice);
+                    case CANCELED, EXPIRED, REJECTED, REPLACED -> Util.credit(base, originalAmount);
                 }
             }
             default -> LOG.warn("binanceLimitOrder type unknown: {}", binanceLimitOrder.getType());
         }
-    }
-
-    private static void reduceCurrency(Currency currency, BigDecimal removeQty, List<CurrencyPosition> remove) {
-        BigDecimal[] qty = {removeQty};
-        remove.sort(Comparator.comparing(CurrencyPosition::getPrice).reversed());
-
-        remove.forEach(currencyPosition -> {
-            BigDecimal currencyPositionQuantity = currencyPosition.getQuantity();
-            if (currencyPositionQuantity.compareTo(qty[0]) <= 0) {
-                currency.getCurrencyPositions().remove(currencyPosition);
-                qty[0] = qty[0].subtract(currencyPositionQuantity);
-            } else {
-                currencyPosition.setQuantity(currencyPositionQuantity.subtract(qty[0]));
-                qty[0] = BigDecimal.ZERO;
-            }
-        });
     }
 
     public void showWallets() {

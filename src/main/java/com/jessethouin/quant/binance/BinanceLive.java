@@ -1,7 +1,6 @@
 package com.jessethouin.quant.binance;
 
 import com.jessethouin.quant.beans.Currency;
-import com.jessethouin.quant.beans.CurrencyPosition;
 import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.binance.beans.BinanceLimitOrder;
 import com.jessethouin.quant.binance.beans.BinanceTradeHistory;
@@ -81,14 +80,6 @@ public class BinanceLive {
         return BINANCE_EXCHANGE_INFO;
     }
 
-    public static Portfolio getPortfolio() {
-        return portfolio;
-    }
-
-    public static void setPortfolio(Portfolio portfolio) {
-        BinanceLive.portfolio = portfolio;
-    }
-
     public static void doLive() {
         portfolio = requireNonNullElse(Database.getPortfolio(), Util.createPortfolio());
         Database.persistPortfolio(portfolio);
@@ -120,12 +111,9 @@ public class BinanceLive {
                         BinanceLimitOrder binanceLimitOrder;
                         LimitOrder limitOrder = (LimitOrder) order;
                         switch (order.getStatus()) {
-                            case NEW -> {
-                                List<CurrencyPosition> sellableCurrencyPositions = Transactions.getSellableCurrencyPositions(currencyPair, portfolio, limitOrder.getLimitPrice(), false);
-                                Util.createBinanceLimitOrder(portfolio, limitOrder, sellableCurrencyPositions);
-                            }
+                            case NEW -> Util.createBinanceLimitOrder(portfolio, limitOrder);
                             case FILLED -> {
-                                binanceLimitOrder = Objects.requireNonNullElse(Database.getBinanceLimitOrder(limitOrder.getId()), Util.createBinanceLimitOrder(portfolio, limitOrder, Collections.emptyList()));
+                                binanceLimitOrder = Objects.requireNonNullElse(Database.getBinanceLimitOrder(limitOrder.getId()), Util.createBinanceLimitOrder(portfolio, limitOrder));
                                 binanceLimitOrder.setStatus(FILLED);
                                 binanceLimitOrder.setAveragePrice(limitOrder.getAveragePrice());
                                 binanceLimitOrder.setCumulativeAmount(limitOrder.getCumulativeAmount());
@@ -133,7 +121,7 @@ public class BinanceLive {
                                 Database.persistBinanceLimitOrder(binanceLimitOrder);
                             }
                             case CANCELED -> {
-                                binanceLimitOrder = Objects.requireNonNullElse(Database.getBinanceLimitOrder(limitOrder.getId()), Util.createBinanceLimitOrder(portfolio, limitOrder, Collections.emptyList()));
+                                binanceLimitOrder = Objects.requireNonNullElse(Database.getBinanceLimitOrder(limitOrder.getId()), Util.createBinanceLimitOrder(portfolio, limitOrder));
                                 binanceLimitOrder.setStatus(CANCELED);
                                 BinanceTransactions.processBinanceLimitOrder(binanceLimitOrder);
                                 Database.persistBinanceLimitOrder(binanceLimitOrder);
@@ -147,13 +135,14 @@ public class BinanceLive {
 
     private static void stopLoss(CurrencyPair currencyPair) {
         Ref ref = new Ref(currencyPair, portfolio);
-        BigDecimal value = Util.getBalance(portfolio, ref.baseCurrency, ref.counterCurrency, ref.price).add(Util.getBalance(portfolio, ref.counterCurrency));
-        ref.previousValue = value;
+        ref.value = Util.getValueAtPrice(ref.baseCurrency, ref.price).add(ref.counterCurrency.getQuantity());
+        ref.previousValue = ref.value;
 
         Disposable tickerSub = BINANCE_STREAMING_EXCHANGE.getStreamingMarketDataService().getTicker(currencyPair).subscribe(ticker -> {
-                    if (value.compareTo(ref.previousValue.multiply(config.getStopLoss())) < 0)
-                        Transactions.placeCurrencySellOrder(config.getBroker(), ref.baseCurrency, ref.counterCurrency, ticker.getLast(), true);
-                    ref.previousValue = value;
+                    ref.value = Util.getValueAtPrice(ref.baseCurrency, ref.price).add(ref.counterCurrency.getQuantity());
+                    if (ref.value.compareTo(ref.previousValue.multiply(config.getStopLoss())) < 0)
+                        Transactions.placeCurrencySellOrder(config.getBroker(), ref.baseCurrency, ref.counterCurrency, ticker.getLast());
+                    ref.previousValue = ref.value;
                 },
                 throwable -> LOG.error("Error in ticket subscription (stop loss)", throwable));
 
@@ -251,7 +240,7 @@ public class BinanceLive {
                 .build();
         Database.persistTradeHistory(binanceTradeHistory);
 
-        BigDecimal value = Util.getBalance(portfolio, ref.baseCurrency, ref.counterCurrency, ref.price).add(Util.getBalance(portfolio, ref.counterCurrency));
+        BigDecimal value = Util.getValueAtPrice(ref.baseCurrency, ref.price).add(ref.counterCurrency.getQuantity());
 
         orderHistoryLookup.setTradeId(binanceTradeHistory.getTradeId());
         orderHistoryLookup.setValue(value);
@@ -277,6 +266,7 @@ public class BinanceLive {
         BigDecimal price = BigDecimal.ZERO;
         BigDecimal previousShortMAValue = BigDecimal.ZERO;
         BigDecimal previousLongMAValue = BigDecimal.ZERO;
+        BigDecimal value = BigDecimal.ZERO;
         BigDecimal previousValue = BigDecimal.ZERO;
         Date timestamp;
 

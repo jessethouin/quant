@@ -72,7 +72,7 @@ public class AlpacaLive {
             LOG.info("\t" + alpacaAccount.toString().replace(",", ",\n\t"));
 
             LOG.info("Portfolio Cash:");
-            portfolio.getCurrencies().forEach(c -> LOG.info("\t{} : {}", c.getSymbol(), Util.getBalance(portfolio, c)));
+            portfolio.getCurrencies().forEach(c -> LOG.info("\t{} : {}", c.getSymbol(), c.getQuantity()));
             portfolio.getSecurities().forEach(security -> LOG.info("Open position:" + alpacaLive.getOpenPosition(security.getSymbol())));
 
             Objects.requireNonNull(alpacaLive.getClosedOrders()).forEach(o -> LOG.info("Closed Orders:" + o.toString()));

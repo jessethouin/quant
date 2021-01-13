@@ -3,6 +3,7 @@ package com.jessethouin.quant.db;
 import com.jessethouin.quant.alpaca.beans.AlpacaOrder;
 import com.jessethouin.quant.alpaca.beans.AlpacaTradeHistory;
 import com.jessethouin.quant.beans.Currency;
+import com.jessethouin.quant.beans.CurrencyLedger;
 import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.beans.Security;
 import com.jessethouin.quant.binance.beans.BinanceLimitOrder;
@@ -140,6 +141,12 @@ public class Database {
     public static void persistOrderHistoryLookup(OrderHistoryLookup orderHistoryLookup) {
         session.beginTransaction();
         session.persist(orderHistoryLookup);
+        session.getTransaction().commit();
+    }
+
+    public static void persistCurrencyLedger(CurrencyLedger currencyLedger) {
+        session.beginTransaction();
+        session.persist(currencyLedger);
         session.getTransaction().commit();
     }
 }

@@ -6,11 +6,15 @@ import com.jessethouin.quant.beans.Security;
 import com.jessethouin.quant.broker.Transactions;
 import com.jessethouin.quant.broker.Util;
 import com.jessethouin.quant.conf.Config;
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.math.BigDecimal;
 
+@Getter
+@Setter
 public class Calc {
     private static final Logger LOG = LogManager.getLogger(Calc.class);
 
@@ -93,8 +97,8 @@ public class Calc {
 
     private boolean buy1() {
         return getMa1().compareTo(getMa2()) > 0 &&
-                getMa1().compareTo(getLow().add(getSpread().multiply(config.getLowRisk()))) > 0 &&
-                getMa1().compareTo(getHigh().subtract(getSpread().multiply(config.getHighRisk()))) < 0;
+                getPrice().compareTo(getLow().add(getSpread().multiply(config.getLowRisk()))) > 0 &&
+                getPrice().compareTo(getHigh().subtract(getSpread().multiply(config.getHighRisk()))) < 0;
     }
 
     private boolean buy2() {
@@ -104,8 +108,8 @@ public class Calc {
     }
 
     private boolean buy3() {
-        return getMa1().compareTo(getLow().add(getSpread().multiply(config.getLowRisk()))) > 0 &&
-                getMa1().compareTo(getHigh().subtract(getSpread().multiply(config.getHighRisk()))) < 0;
+        return getPrice().compareTo(getLow().add(getSpread().multiply(config.getLowRisk()))) > 0 &&
+                getPrice().compareTo(getHigh().subtract(getSpread().multiply(config.getHighRisk()))) < 0;
     }
 
     private boolean buy4() {
@@ -138,84 +142,8 @@ public class Calc {
         setPrice(price);
         if (getLow().equals(BigDecimal.ZERO)) setLow(price);
         if (getHigh().equals(BigDecimal.ZERO)) setHigh(price);
-        setQty(Util.getBudget(portfolio, price, config.getAllowance(), getCounter(), getSecurity()));
+        setQty(Util.getBudget(price, config.getAllowance(), getCounter(), getSecurity()));
         setMa1(ma1);
         setMa2(ma2);
-    }
-
-    public BigDecimal getQty() {
-        return qty;
-    }
-
-    public void setQty(BigDecimal qty) {
-        this.qty = qty;
-    }
-
-    public Security getSecurity() {
-        return security;
-    }
-
-    public BigDecimal getPrice() {
-        return price;
-    }
-
-    public Currency getBase() {
-        return base;
-    }
-
-    public Currency getCounter() {
-        return counter;
-    }
-
-    public void setPrice(BigDecimal price) {
-        this.price = price;
-    }
-
-    public BigDecimal getMa1() {
-        return ma1;
-    }
-
-    public void setMa1(BigDecimal ma1) {
-        this.ma1 = ma1;
-    }
-
-    public BigDecimal getMa2() {
-        return ma2;
-    }
-
-    public void setMa2(BigDecimal ma2) {
-        this.ma2 = ma2;
-    }
-
-    public BigDecimal getHigh() {
-        return high;
-    }
-
-    public void setHigh(BigDecimal high) {
-        this.high = high;
-    }
-
-    public BigDecimal getLow() {
-        return low;
-    }
-
-    public void setLow(BigDecimal low) {
-        this.low = low;
-    }
-
-    public BigDecimal getSpread() {
-        return spread;
-    }
-
-    public void setSpread(BigDecimal spread) {
-        this.spread = spread;
-    }
-
-    public boolean isBuy() {
-        return buy;
-    }
-
-    public void setBuy(boolean buy) {
-        this.buy = buy;
     }
 }
