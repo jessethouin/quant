@@ -13,7 +13,6 @@ import org.hibernate.boot.MetadataSources;
 import org.hibernate.boot.registry.StandardServiceRegistry;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 
-import javax.persistence.Entity;
 import java.util.List;
 
 public class Database {
@@ -107,7 +106,7 @@ public class Database {
         session.getTransaction().commit();
     }
 
-    public static void persistEntity(Entity t) {
+    public static void persistEntity(Object t) {
         session.beginTransaction();
         session.persist(t);
         session.getTransaction().commit();

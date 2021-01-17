@@ -27,6 +27,7 @@ public class Config {
     private BigDecimal gain;
     private BigDecimal loss;
     private BigDecimal stopLoss;
+    private BigDecimal fee;
     private int shortLookback;
     private int longLookback;
     private BuyStrategyTypes buyStrategy;
@@ -35,6 +36,8 @@ public class Config {
     private String backTestData;
     private boolean backTestDB;
     private int backtestQty;
+    private boolean backtestAllowance;
+    private boolean backtestStrategy;
     private List<String> securities;
     private List<String> fiatCurrencies;
     private List<String> cryptoCurrencies;
@@ -58,6 +61,7 @@ public class Config {
             setGain(new BigDecimal(prop.getProperty("gain")));
             setLoss(new BigDecimal(prop.getProperty("loss")));
             setStopLoss(new BigDecimal(prop.getProperty("stopLoss")));
+            setFee(new BigDecimal(prop.getProperty("fee")));
             setHighRisk(new BigDecimal(prop.getProperty("highRisk")));
             setLowRisk(new BigDecimal(prop.getProperty("lowRisk")));
             setShortLookback(Integer.parseInt(prop.getProperty("shortLookback")));
@@ -68,6 +72,8 @@ public class Config {
             setBackTestData(prop.getProperty("backTestData"));
             setBackTestDB(Boolean.parseBoolean(prop.getProperty("backTestDB")));
             setBacktestQty(Integer.parseInt(prop.getProperty("backtestQty")));
+            setBacktestAllowance(Boolean.parseBoolean(prop.getProperty("backtestAllowance")));
+            setBacktestStrategy(Boolean.parseBoolean(prop.getProperty("backtestStrategy")));
             setSecurities(Stream.of(prop.getProperty("securities").split(",", -1)).collect(Collectors.toList()));
             setFiatCurrencies(Stream.of(prop.getProperty("fiatCurrencies").split(",", -1)).collect(Collectors.toList()));
             setCryptoCurrencies(Stream.of(prop.getProperty("cryptoCurrencies").split(",", -1)).collect(Collectors.toList()));

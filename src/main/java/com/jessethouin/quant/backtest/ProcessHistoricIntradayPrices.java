@@ -1,39 +1,54 @@
 package com.jessethouin.quant.backtest;
 
+import com.jessethouin.quant.backtest.beans.BacktestParameterResults;
 import com.jessethouin.quant.beans.Currency;
 import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.beans.Security;
 import com.jessethouin.quant.broker.Transactions;
 import com.jessethouin.quant.broker.Util;
 import com.jessethouin.quant.calculators.Calc;
+import com.jessethouin.quant.conf.BuyStrategyTypes;
 import com.jessethouin.quant.conf.Config;
+import com.jessethouin.quant.conf.SellStrategyTypes;
+import net.jacobpeterson.alpaca.enums.OrderSide;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.knowm.xchange.dto.Order;
 
 import java.math.BigDecimal;
 import java.text.MessageFormat;
+import java.util.Date;
 import java.util.List;
-import java.util.concurrent.Callable;
 
-public class ProcessHistoricIntradayPrices implements Callable<Object> {
+import static com.jessethouin.quant.backtest.BacktestParameterCombos.QUEUE;
+
+public class ProcessHistoricIntradayPrices implements Runnable {
     private static final Logger LOG = LogManager.getLogger(ProcessHistoricIntradayPrices.class);
+    final BuyStrategyTypes buyStrategyType;
+    final SellStrategyTypes sellStrategyType;
     final int shortLookback;
     final int longLookback;
     final BigDecimal highRisk;
     final BigDecimal lowRisk;
+    final BigDecimal allowance;
     final List<BigDecimal> intradayPrices;
 
-    public ProcessHistoricIntradayPrices(int shortLookback, int longLookback, BigDecimal highRisk, BigDecimal lowRisk, List<BigDecimal> intradayPrices) {
+    public ProcessHistoricIntradayPrices(BuyStrategyTypes buyStrategyType, SellStrategyTypes sellStrategyType, int shortLookback, int longLookback, BigDecimal highRisk, BigDecimal lowRisk, BigDecimal allowance, List<BigDecimal> intradayPrices) {
+        this.buyStrategyType = buyStrategyType;
+        this.sellStrategyType = sellStrategyType;
         this.shortLookback = shortLookback;
         this.longLookback = longLookback;
         this.highRisk = highRisk;
         this.lowRisk = lowRisk;
+        this.allowance = allowance;
         this.intradayPrices = intradayPrices;
     }
 
     @Override
-    public BigDecimal call() {
+    public void run() {
         Config config = Config.getTheadSafeConfig();
+        config.setBuyStrategy(buyStrategyType);
+        config.setSellStrategy(sellStrategyType);
         config.setShortLookback(shortLookback);
         config.setLongLookback(longLookback);
         config.setLowRisk(lowRisk);
@@ -77,8 +92,10 @@ public class ProcessHistoricIntradayPrices implements Callable<Object> {
                 c.decide();
 
                 BigDecimal value = Util.getValueAtPrice(c.getBase(), price).add(c.getCounter().getQuantity());
+                if (i == 0) previousValue = value;
                 if (value.compareTo(previousValue.multiply(config.getStopLoss())) < 0) {
                     Transactions.placeCurrencySellOrder(config.getBroker(), c.getBase(), c.getCounter(), price);
+                    LOG.error("Stop Loss");
                     System.exit(69); // NICE
                 }
 
@@ -91,16 +108,38 @@ public class ProcessHistoricIntradayPrices implements Callable<Object> {
         }
 
         BigDecimal portfolioValue = BigDecimal.ZERO;
+        BigDecimal bids = BigDecimal.ZERO;
         switch (config.getBroker()) {
-            case ALPACA_TEST -> portfolioValue = Util.getPortfolioValue(portfolio, c.getBase(), price);
-            case BINANCE_TEST -> portfolioValue = Util.getValueAtPrice(c.getBase(), price)
-                    .add(c.getCounter().getQuantity());
+            case ALPACA_TEST -> {
+                portfolioValue = Util.getPortfolioValue(portfolio, c.getBase(), price);
+                bids = BigDecimal.valueOf(portfolio.getAlpacaOrders().stream().filter(alpacaOrder -> alpacaOrder.getType().equals(OrderSide.BUY.getAPIName())).count());
+            }
+            case BINANCE_TEST -> {
+                portfolioValue = Util.getValueAtPrice(c.getBase(), price).add(c.getCounter().getQuantity());
+                bids = BigDecimal.valueOf(portfolio.getBinanceLimitOrders().stream().filter(binanceLimitOrder -> binanceLimitOrder.getType().equals(Order.OrderType.BID)).count());
+            }
         }
 
-        String msg = MessageFormat.format("{0,number,00} : {1,number,00} : {2,number,0.00} : {3,number,0.00} : {4,number,00000.000}", shortLookback, longLookback, lowRisk, highRisk, portfolioValue);
+        BacktestParameterResults backtestParameterResults = BacktestParameterResults.builder()
+                .allowance(config.getAllowance())
+                .gain(config.getGain())
+                .loss(config.getLoss())
+                .stopLoss(config.getStopLoss())
+                .buyStrategyType(buyStrategyType)
+                .sellStrategyType(sellStrategyType)
+                .lowRisk(lowRisk)
+                .highRisk(highRisk)
+                .shortLookback(shortLookback)
+                .longLookback(longLookback)
+                .timestamp(new Date())
+                .bids(bids)
+                .value(portfolioValue)
+                .build();
+
+        QUEUE.offer(backtestParameterResults);
+
+        String msg = MessageFormat.format("{5}/{6} : {7} : {0,number,00} : {1,number,00} : {2,number,0.00} : {3,number,0.00} : {4,number,00000.000}", shortLookback, longLookback, lowRisk, highRisk, portfolioValue, buyStrategyType, sellStrategyType, allowance);
         LOG.trace(msg);
         BacktestParameterCombos.updateBest(msg, portfolioValue);
-
-        return portfolioValue;
     }
 }
