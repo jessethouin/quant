@@ -180,7 +180,6 @@ public class Util {
         alpacaOrder.setFilledAvgPrice(order.getFilledAvgPrice());
         alpacaOrder.setStatus(order.getStatus());
         alpacaOrder.setExtendedHours(order.getExtendedHours());
-//        alpacaOrder.setLegs(order.getLegs());
         alpacaOrder.setTrailPrice(order.getTrailPrice());
         alpacaOrder.setTrailPercent(order.getTrailPercent());
         alpacaOrder.setHwm(order.getHwm());

@@ -20,7 +20,7 @@ import java.text.MessageFormat;
 import java.util.Date;
 import java.util.List;
 
-import static com.jessethouin.quant.backtest.BacktestParameterCombos.QUEUE;
+import static com.jessethouin.quant.backtest.BacktestParameterCombos.BACKTEST_RESULTS_QUEUE;
 
 public class ProcessHistoricIntradayPrices implements Runnable {
     private static final Logger LOG = LogManager.getLogger(ProcessHistoricIntradayPrices.class);
@@ -53,6 +53,7 @@ public class ProcessHistoricIntradayPrices implements Runnable {
         config.setLongLookback(longLookback);
         config.setLowRisk(lowRisk);
         config.setHighRisk(highRisk);
+        config.setAllowance(allowance);
 
         Portfolio portfolio = Util.createPortfolio();
 
@@ -121,7 +122,8 @@ public class ProcessHistoricIntradayPrices implements Runnable {
         }
 
         BacktestParameterResults backtestParameterResults = BacktestParameterResults.builder()
-                .allowance(config.getAllowance())
+                .timestamp(new Date())
+                .allowance(allowance)
                 .gain(config.getGain())
                 .loss(config.getLoss())
                 .stopLoss(config.getStopLoss())
@@ -131,12 +133,11 @@ public class ProcessHistoricIntradayPrices implements Runnable {
                 .highRisk(highRisk)
                 .shortLookback(shortLookback)
                 .longLookback(longLookback)
-                .timestamp(new Date())
                 .bids(bids)
                 .value(portfolioValue)
                 .build();
 
-        QUEUE.offer(backtestParameterResults);
+        BACKTEST_RESULTS_QUEUE.offer(backtestParameterResults);
 
         String msg = MessageFormat.format("{5}/{6} : {7} : {0,number,00} : {1,number,00} : {2,number,0.00} : {3,number,0.00} : {4,number,00000.000}", shortLookback, longLookback, lowRisk, highRisk, portfolioValue, buyStrategyType, sellStrategyType, allowance);
         LOG.trace(msg);

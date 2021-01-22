@@ -36,12 +36,12 @@ public class BinanceCaptureHistory {
 
         try {
             BinanceMarketDataService marketDataService = (BinanceMarketDataService) BinanceLive.INSTANCE.getBinanceExchange().getMarketDataService();
-            long time = LocalDateTime.parse("2020-06-01T00:00:00").atZone(ZoneId.of("UTC")).toInstant().toEpochMilli();
+            long time = LocalDateTime.parse("2020-12-31T23:59:59").atZone(ZoneId.of("UTC")).toInstant().toEpochMilli();
 
             Session session = Database.getSession();
             session.beginTransaction();
 
-            for (int i = config.getBacktestQty(); i > -1; i = i - 500) {
+            for (int i = config.getBacktestQty(); i > -1; i -= 500) {
                 marketDataService.klines(currencyPair, KlineInterval.m1, 500, time - MINUTES.toMillis(i), time - MINUTES.toMillis(Math.max(i - 500, 0))).forEach(binanceKline -> {
                     BinanceTradeHistory binanceTradeHistory = BinanceTradeHistory.builder().timestamp(new Date(binanceKline.getCloseTime())).ma1(BigDecimal.ZERO).ma2(BigDecimal.ZERO).l(BigDecimal.ZERO).h(BigDecimal.ZERO).p(binanceKline.getClosePrice()).build();
                     session.persist(binanceTradeHistory);

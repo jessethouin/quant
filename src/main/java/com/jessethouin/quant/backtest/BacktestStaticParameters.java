@@ -67,6 +67,8 @@ public class BacktestStaticParameters extends AbstractBacktest {
             previousValue = value;
         }
 
+        AbstractBacktest.logMarketChange(intradayPrices.get(intradayPrices.size() - 1), intradayPrices.get(0), LOG);
+
         switch (CONFIG.getBroker()) {
             case ALPACA_TEST -> c.getSecurity().getSecurityPositions().forEach(ps -> LOG.info(ps.getPrice() + ", " + ps.getQuantity() + " : " + ps.getPrice().multiply(ps.getQuantity())));
             case BINANCE_TEST -> {
@@ -81,7 +83,6 @@ public class BacktestStaticParameters extends AbstractBacktest {
         switch (CONFIG.getBroker()) {
             case ALPACA_TEST -> portfolioValue = Util.getPortfolioValue(portfolio, c.getBase(), price);
             case BINANCE_TEST -> portfolioValue = Util.getValueAtPrice(c.getBase(), price).add(c.getCounter().getQuantity());
-//                    .subtract(portfolio.getBinanceLimitOrders().stream().map(BinanceLimitOrder::getFee).reduce(BigDecimal.ZERO, BigDecimal::add));
         }
         LOG.debug(MessageFormat.format("{0,number,00} : {1,number,00} : {2,number,0.00} : {3,number,0.00} : {4}", CONFIG.getShortLookback(), CONFIG.getLongLookback(), CONFIG.getLowRisk(), CONFIG.getHighRisk(), Util.formatFiat(portfolioValue)));
     }

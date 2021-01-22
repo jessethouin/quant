@@ -13,6 +13,7 @@ import org.hibernate.boot.MetadataSources;
 import org.hibernate.boot.registry.StandardServiceRegistry;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 
+import java.util.Date;
 import java.util.List;
 
 public class Database {
@@ -77,6 +78,17 @@ public class Database {
     public static List<BinanceTradeHistory> getBinanceTradeHistory(int limit) {
         session.beginTransaction();
         List<BinanceTradeHistory> binanceTradeHistoryList = getSession().createQuery("from BinanceTradeHistory", BinanceTradeHistory.class).setMaxResults(limit).getResultList();
+        session.getTransaction().commit();
+        return binanceTradeHistoryList;
+    }
+
+    public static List<BinanceTradeHistory> getBinanceTradeHistory(Date start, Date end) {
+        session.beginTransaction();
+        List<BinanceTradeHistory> binanceTradeHistoryList = getSession()
+                .createQuery("from BinanceTradeHistory where timestamp between :s and :e", BinanceTradeHistory.class)
+                .setParameter("s", start)
+                .setParameter("e", end)
+                .getResultList();
         session.getTransaction().commit();
         return binanceTradeHistoryList;
     }

@@ -16,6 +16,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.*;
 
 class DatabaseTest {
@@ -163,5 +165,12 @@ class DatabaseTest {
     void getBinanceLimitOrder() {
         BinanceLimitOrder binanceLimitOrder = Database.getBinanceLimitOrder("4089390235");
         Assertions.assertEquals(binanceLimitOrder.getInstrument(), "BTC/USDT");
+    }
+
+    @Test
+    void getBinanceTradeHistory() {
+        LocalDateTime start = LocalDateTime.parse("2020-07-01T00:00:00");
+        LocalDateTime end = LocalDateTime.parse("2020-07-10T00:00:00");
+        Assertions.assertTrue(Database.getBinanceTradeHistory(Date.from(start.toInstant(ZoneOffset.UTC)), Date.from(end.toInstant(ZoneOffset.UTC))).size() > 0);
     }
 }

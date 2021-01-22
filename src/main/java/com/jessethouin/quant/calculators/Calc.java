@@ -62,9 +62,9 @@ public class Calc {
             return;
         }
 
-        setSpread(getHigh().subtract(getLow()));
-
         if (getMa1().signum() == 0 || getMa2().signum() == 0) return;
+
+        setSpread(getHigh().subtract(getLow()));
 
         boolean buy = switch (config.getBuyStrategy()) {
             case BUY1 -> buy1();
@@ -81,7 +81,7 @@ public class Calc {
             case SELL5 -> sell5();
         };
 
-        if (buy && isBuy()) {
+        if (buy) {
             Transactions.placeBuyOrder(config.getBroker(), getSecurity(), getBase(), getCounter(), getQty(), getPrice());
             setBuy(false);
         } else if (sell) {
@@ -97,22 +97,26 @@ public class Calc {
     private boolean buy1() {
         return getMa1().compareTo(getMa2()) > 0 &&
                 getPrice().compareTo(getLow().add(getSpread().multiply(config.getLowRisk()))) > 0 &&
-                getPrice().compareTo(getHigh().subtract(getSpread().multiply(config.getHighRisk()))) < 0;
+                getPrice().compareTo(getHigh().subtract(getSpread().multiply(config.getHighRisk()))) < 0 &&
+                isBuy();
     }
 
     private boolean buy2() {
         return getPrice().compareTo(getLow().add(getSpread().multiply(config.getLowRisk()))) > 0 &&
                 getPrice().compareTo(getLow().add(getSpread().multiply(config.getLowRisk().multiply(BigDecimal.valueOf(3))))) < 0 &&
-                getPrice().compareTo(getHigh().subtract(getSpread().multiply(config.getHighRisk()))) < 0;
+                getPrice().compareTo(getHigh().subtract(getSpread().multiply(config.getHighRisk()))) < 0 &&
+                isBuy();
     }
 
     private boolean buy3() {
         return getPrice().compareTo(getLow().add(getSpread().multiply(config.getLowRisk()))) > 0 &&
-                getPrice().compareTo(getHigh().subtract(getSpread().multiply(config.getHighRisk()))) < 0;
+                getPrice().compareTo(getHigh().subtract(getSpread().multiply(config.getHighRisk()))) < 0 &&
+                isBuy();
     }
 
     private boolean buy4() {
-        return getMa1().compareTo(getMa2()) > 0;
+        return getMa1().compareTo(getMa2()) > 0 &&
+                isBuy();
     }
 
     private boolean sell1() {

@@ -45,7 +45,7 @@ public class BinanceTransactions {
                 .orderStatus(Order.OrderStatus.NEW)
                 .originalAmount(qty)
                 .limitPrice(price)
-                .fee(price.multiply(qty).multiply(BigDecimal.valueOf(.00075)))
+                .fee(price.multiply(qty).multiply(Config.INSTANCE.getFee()))
                 .flag(TimeInForce.GTC)
                 .timestamp(new Date())
                 .build();
