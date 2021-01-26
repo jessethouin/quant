@@ -23,7 +23,7 @@ public class BacktestStaticParameters extends AbstractBacktest {
 
         BigDecimal shortMAValue;
         BigDecimal longMAValue;
-        BigDecimal price = intradayPrices.get(0);
+        BigDecimal price = INTRADAY_PRICES.get(0);
         BigDecimal previousShortMAValue = BigDecimal.ZERO;
         BigDecimal previousLongMAValue = BigDecimal.ZERO;
         BigDecimal previousValue = BigDecimal.ZERO;
@@ -42,10 +42,10 @@ public class BacktestStaticParameters extends AbstractBacktest {
             default -> throw new IllegalStateException("Unexpected value: " + CONFIG.getBroker());
         }
 
-        for (int i = 0; i < intradayPrices.size(); i++) {
-            price = intradayPrices.get(i);
-            shortMAValue = Util.getMA(intradayPrices, previousShortMAValue, i, CONFIG.getShortLookback(), price);
-            longMAValue = Util.getMA(intradayPrices, previousLongMAValue, i, CONFIG.getLongLookback(), price);
+        for (int i = 0; i < INTRADAY_PRICES.size(); i++) {
+            price = INTRADAY_PRICES.get(i);
+            shortMAValue = Util.getMA(INTRADAY_PRICES, previousShortMAValue, i, CONFIG.getShortLookback(), price);
+            longMAValue = Util.getMA(INTRADAY_PRICES, previousLongMAValue, i, CONFIG.getLongLookback(), price);
             c.updateCalc(price, shortMAValue, longMAValue);
 
             switch (CONFIG.getBroker()) {
@@ -67,7 +67,7 @@ public class BacktestStaticParameters extends AbstractBacktest {
             previousValue = value;
         }
 
-        AbstractBacktest.logMarketChange(intradayPrices.get(intradayPrices.size() - 1), intradayPrices.get(0), LOG);
+        AbstractBacktest.logMarketChange(INTRADAY_PRICES.get(INTRADAY_PRICES.size() - 1), INTRADAY_PRICES.get(0), LOG);
 
         switch (CONFIG.getBroker()) {
             case ALPACA_TEST -> c.getSecurity().getSecurityPositions().forEach(ps -> LOG.info(ps.getPrice() + ", " + ps.getQuantity() + " : " + ps.getPrice().multiply(ps.getQuantity())));

@@ -1,7 +1,6 @@
 package com.jessethouin.quant.backtest;
 
 import com.jessethouin.quant.backtest.beans.BacktestParameterResults;
-import com.jessethouin.quant.broker.TimedExecutor;
 import com.jessethouin.quant.conf.BuyStrategyTypes;
 import com.jessethouin.quant.conf.SellStrategyTypes;
 import com.jessethouin.quant.db.Database;
@@ -15,19 +14,18 @@ import java.math.RoundingMode;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.Arrays;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.Comparator;
+import java.util.concurrent.*;
 
 public class BacktestParameterCombos extends AbstractBacktest {
     public static final ConcurrentLinkedQueue<BacktestParameterResults> BACKTEST_RESULTS_QUEUE = new ConcurrentLinkedQueue<>();
-    public static final ConcurrentLinkedQueue<ProcessHistoricIntradayPrices> BACKTEST_QUEUE = new ConcurrentLinkedQueue<>();
-    private static final TimedExecutor PROCESS_EXECUTOR_SERVICE = TimedExecutor.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2);
+    private static final ThreadPoolExecutor PROCESS_EXECUTOR_SERVICE = (ThreadPoolExecutor) Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2);
 
     private static final Logger LOG = LogManager.getLogger(BacktestParameterCombos.class);
     private static String best = "";
     private static BigDecimal bestv = BigDecimal.ZERO;
+
+    static int count = 0;
 
     public static void findBestCombos(String[] args) {
         StopWatch watch = new StopWatch();
@@ -63,20 +61,20 @@ public class BacktestParameterCombos extends AbstractBacktest {
         populateIntradayPrices();
         getAllowanceCombos(minMALookback, maxMALookback, riskMax, riskIncrement);
 
-        LOG.info(MessageFormat.format("{0} combinations to be tested.", BACKTEST_QUEUE.size()));
+        LOG.info(MessageFormat.format("{0} combinations to be tested.", count));
 
-        BigDecimal initialBacktestQueueSize = BigDecimal.valueOf(BACKTEST_QUEUE.size());
+        BigDecimal initialBacktestQueueSize = BigDecimal.valueOf(count);
         ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor();
 
         timer.scheduleAtFixedRate(() -> {
+            BacktestParameterResults backtestParameterResults = BACKTEST_RESULTS_QUEUE.stream().max(Comparator.comparing(BacktestParameterResults::getTimestamp)).orElse(null);
+            if (backtestParameterResults == null) return;
+            int currentLong = backtestParameterResults.getLongLookback();
+            int currentShort = backtestParameterResults.getShortLookback();
             BigDecimal currentBacktestQueueSize = initialBacktestQueueSize.subtract(BigDecimal.valueOf(PROCESS_EXECUTOR_SERVICE.getCompletedTaskCount()));
-            System.out.print(MessageFormat.format("{0,number,percent} complete. {1} remaining.\r", currentBacktestQueueSize.divide(initialBacktestQueueSize, 4, RoundingMode.HALF_UP), getRemainingTimeUnits(currentBacktestQueueSize)));
-        }, 0, 1, TimeUnit.SECONDS);
-
-        while (BACKTEST_QUEUE.peek() != null) {
-            PROCESS_EXECUTOR_SERVICE.execute(BACKTEST_QUEUE.poll());
-        }
-
+            BigDecimal percentRemaining = currentBacktestQueueSize.divide(initialBacktestQueueSize, 8, RoundingMode.HALF_UP);
+            System.out.print(MessageFormat.format("{2}/{3} {0,number,percent} {1} remaining. ({4}, {5})\r", percentRemaining, getRemainingTimeUnits(BigDecimal.valueOf(count), percentRemaining, BigDecimal.valueOf(watch.getTime(TimeUnit.MILLISECONDS))), currentBacktestQueueSize, initialBacktestQueueSize, currentShort, currentLong));
+        }, 0, 2, TimeUnit.SECONDS);
 
         try {
             PROCESS_EXECUTOR_SERVICE.shutdown();
@@ -86,11 +84,12 @@ public class BacktestParameterCombos extends AbstractBacktest {
             LOG.error(e.getLocalizedMessage());
         }
 
+        timer.shutdown();
         persistComboResults();
 
         LOG.info(MessageFormat.format("\n\nThe best combination of parameters is\n\t{0}\nwith a value of ${1}\n", getBest(), getBestv()));
 
-        logMarketChange(intradayPrices.get(intradayPrices.size() - 1), intradayPrices.get(0), LOG);
+        logMarketChange(INTRADAY_PRICES.get(INTRADAY_PRICES.size() - 1), INTRADAY_PRICES.get(0), LOG);
 
         watch.stop();
         Duration elapsedTime = Duration.ofMillis(watch.getTime(TimeUnit.MILLISECONDS));
@@ -99,7 +98,7 @@ public class BacktestParameterCombos extends AbstractBacktest {
 
     private static void getAllowanceCombos(int minMALookback, int maxMALookback, BigDecimal riskMax, BigDecimal riskIncrement) {
         if (CONFIG.isBacktestAllowance()) {
-            for (BigDecimal i = BigDecimal.valueOf(.1); i.compareTo(BigDecimal.ONE) <= 0; i = i.add(BigDecimal.valueOf(.1))) {
+            for (BigDecimal i = riskIncrement; i.compareTo(riskMax) <= 0; i = i.add(riskIncrement)) {
                 getBuySellCombos(minMALookback, maxMALookback, riskMax, riskIncrement, i);
             }
         } else {
@@ -128,12 +127,15 @@ public class BacktestParameterCombos extends AbstractBacktest {
 
     private static void getMACombos(BuyStrategyTypes buyStrategyType, SellStrategyTypes sellStrategyType, int minMALookback, int maxMALookback, BigDecimal riskMax, BigDecimal riskIncrement, BigDecimal allowance) throws InterruptedException {
         int shortLookback;
-        int longLookback = 0;
-        while (++longLookback <= maxMALookback) {
-            shortLookback = minMALookback;
-            while (++shortLookback < longLookback) { // there's no need to test equal short and long tail MAs because they will never separate or converge. That's why this is < and not <=.
+        int longLookback = minMALookback;
+        while (longLookback <= maxMALookback) {
+//            shortLookback = minMALookback;
+            shortLookback = longLookback - 10; //having a difference of more than 10 has not proven to be profitable
+            while (shortLookback < longLookback) { // there's no need to test equal short and long tail MAs because they will never separate or converge. That's why this is < and not <=.
                 getRiskCombos(buyStrategyType, sellStrategyType, riskMax, riskIncrement, shortLookback, longLookback, allowance);
+                shortLookback++;
             }
+            longLookback++;
         }
     }
 
@@ -141,12 +143,13 @@ public class BacktestParameterCombos extends AbstractBacktest {
         BigDecimal lowRisk;
         BigDecimal highRisk = BigDecimal.ZERO;
         while (highRisk.compareTo(riskMax) < 0) {
-            highRisk = highRisk.add(riskIncrement);
             lowRisk = BigDecimal.ZERO;
             while (lowRisk.compareTo(riskMax) < 0) {
+                count++;
+                PROCESS_EXECUTOR_SERVICE.execute(new ProcessHistoricIntradayPrices(buyStrategyType, sellStrategyType, shortLookback, longLookback, highRisk, lowRisk, allowance));
                 lowRisk = lowRisk.add(riskIncrement);
-                BACKTEST_QUEUE.offer(new ProcessHistoricIntradayPrices(buyStrategyType, sellStrategyType, shortLookback, longLookback, highRisk, lowRisk, allowance, intradayPrices));
             }
+            highRisk = highRisk.add(riskIncrement);
         }
     }
 
@@ -162,10 +165,9 @@ public class BacktestParameterCombos extends AbstractBacktest {
         session.getTransaction().commit();
     }
 
-    private static String getRemainingTimeUnits(BigDecimal currentBacktestQueueSize) {
-        BigDecimal avgProcessingTime = BigDecimal.valueOf(PROCESS_EXECUTOR_SERVICE.getMedianExecutionTime());
-        BigDecimal remainingTime = avgProcessingTime.multiply(currentBacktestQueueSize);
-
+    private static String getRemainingTimeUnits(BigDecimal t, BigDecimal r, BigDecimal c) {
+        if  (r.compareTo(BigDecimal.ONE) >= 0) return "Calculating remaining time...";
+        BigDecimal remainingTime = (t.multiply(r)).multiply((c).divide((BigDecimal.ONE.subtract(r)).multiply(t), 8, RoundingMode.HALF_UP));
         Duration timeLeft = Duration.ofMillis(remainingTime.longValue());
         return String.format("%02d:%02d:%02d", timeLeft.toHours(), timeLeft.toMinutesPart(), timeLeft.toSecondsPart());
     }

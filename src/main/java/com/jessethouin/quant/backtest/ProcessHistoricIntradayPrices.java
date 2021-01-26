@@ -18,9 +18,9 @@ import org.knowm.xchange.dto.Order;
 import java.math.BigDecimal;
 import java.text.MessageFormat;
 import java.util.Date;
-import java.util.List;
 
 import static com.jessethouin.quant.backtest.BacktestParameterCombos.BACKTEST_RESULTS_QUEUE;
+import static com.jessethouin.quant.backtest.BacktestParameterCombos.INTRADAY_PRICES;
 
 public class ProcessHistoricIntradayPrices implements Runnable {
     private static final Logger LOG = LogManager.getLogger(ProcessHistoricIntradayPrices.class);
@@ -31,9 +31,8 @@ public class ProcessHistoricIntradayPrices implements Runnable {
     final BigDecimal highRisk;
     final BigDecimal lowRisk;
     final BigDecimal allowance;
-    final List<BigDecimal> intradayPrices;
 
-    public ProcessHistoricIntradayPrices(BuyStrategyTypes buyStrategyType, SellStrategyTypes sellStrategyType, int shortLookback, int longLookback, BigDecimal highRisk, BigDecimal lowRisk, BigDecimal allowance, List<BigDecimal> intradayPrices) {
+    public ProcessHistoricIntradayPrices(BuyStrategyTypes buyStrategyType, SellStrategyTypes sellStrategyType, int shortLookback, int longLookback, BigDecimal highRisk, BigDecimal lowRisk, BigDecimal allowance) {
         this.buyStrategyType = buyStrategyType;
         this.sellStrategyType = sellStrategyType;
         this.shortLookback = shortLookback;
@@ -41,7 +40,6 @@ public class ProcessHistoricIntradayPrices implements Runnable {
         this.highRisk = highRisk;
         this.lowRisk = lowRisk;
         this.allowance = allowance;
-        this.intradayPrices = intradayPrices;
     }
 
     @Override
@@ -59,7 +57,7 @@ public class ProcessHistoricIntradayPrices implements Runnable {
 
         BigDecimal shortMAValue;
         BigDecimal longMAValue;
-        BigDecimal price = intradayPrices.get(0);
+        BigDecimal price = INTRADAY_PRICES.get(0);
         BigDecimal previousShortMAValue = BigDecimal.ZERO;
         BigDecimal previousLongMAValue = BigDecimal.ZERO;
         BigDecimal previousValue = BigDecimal.ZERO;
@@ -78,11 +76,11 @@ public class ProcessHistoricIntradayPrices implements Runnable {
             default -> throw new IllegalStateException("Unexpected value: " + config.getBroker());
         }
 
-        for (int i = 0; i < intradayPrices.size(); i++) {
+        for (int i = 0; i < INTRADAY_PRICES.size(); i++) {
             try {
-                price = intradayPrices.get(i);
-                shortMAValue = Util.getMA(intradayPrices, previousShortMAValue, i, shortLookback, price);
-                longMAValue = Util.getMA(intradayPrices, previousLongMAValue, i, longLookback, price);
+                price = INTRADAY_PRICES.get(i);
+                shortMAValue = Util.getMA(INTRADAY_PRICES, previousShortMAValue, i, shortLookback, price);
+                longMAValue = Util.getMA(INTRADAY_PRICES, previousLongMAValue, i, longLookback, price);
                 c.updateCalc(price, shortMAValue, longMAValue);
 
                 switch (config.getBroker()) {
