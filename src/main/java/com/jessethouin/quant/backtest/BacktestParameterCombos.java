@@ -18,14 +18,21 @@ import java.util.Comparator;
 import java.util.concurrent.*;
 
 public class BacktestParameterCombos extends AbstractBacktest {
-    public static final ConcurrentLinkedQueue<BacktestParameterResults> BACKTEST_RESULTS_QUEUE = new ConcurrentLinkedQueue<>();
-    private static final ThreadPoolExecutor PROCESS_EXECUTOR_SERVICE = (ThreadPoolExecutor) Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2);
-
     private static final Logger LOG = LogManager.getLogger(BacktestParameterCombos.class);
-    private static String best = "";
-    private static BigDecimal bestv = BigDecimal.ZERO;
+
+    public static final ConcurrentLinkedQueue<BacktestParameterResults> BACKTEST_RESULTS_QUEUE = new ConcurrentLinkedQueue<>();
+    private static ThreadPoolExecutor processExecutorService = (ThreadPoolExecutor) Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2);
+    private static BacktestParameterResults bestv = BacktestParameterResults.builder().value(BigDecimal.ZERO).build();
+    private static BacktestParameterResults lastBestv = bestv;
 
     static int count = 0;
+    static boolean save = true;
+
+    public static BacktestParameterResults findBestCombo() {
+        save = false;
+        findBestCombos(new String[]{"1870", "1875", "1.00", "0.25"});
+        return bestv;
+    }
 
     public static void findBestCombos(String[] args) {
         StopWatch watch = new StopWatch();
@@ -41,8 +48,7 @@ public class BacktestParameterCombos extends AbstractBacktest {
             return;
         }
 
-        if (args.length == 0)
-            LOG.info(MessageFormat.format("Using default values for minMALookback {0}, maxMALookback {1}, riskMax {2}, and riskIncrement {3}.", minMALookback, maxMALookback, riskMax, riskIncrement));
+        if (args.length == 0) LOG.info(MessageFormat.format("Using default values for minMALookback {0}, maxMALookback {1}, riskMax {2}, and riskIncrement {3}.", minMALookback, maxMALookback, riskMax, riskIncrement));
 
         for (int i = 0; i < args.length; i++) {
             switch (i) {
@@ -58,37 +64,36 @@ public class BacktestParameterCombos extends AbstractBacktest {
             return;
         }
 
+        count = 0;
+        bestv = BacktestParameterResults.builder().value(BigDecimal.ZERO).build();
+        lastBestv = bestv;
+        processExecutorService = (ThreadPoolExecutor) Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2);
+        BACKTEST_RESULTS_QUEUE.clear();
         populateIntradayPrices();
-        getAllowanceCombos(minMALookback, maxMALookback, riskMax, riskIncrement);
+
+        getAllowanceCombos(minMALookback, maxMALookback, riskMax, riskIncrement); // and that, kids, is how I met your mother; this is where the magic happens; give a little slappy, make daddy happy
 
         LOG.info(MessageFormat.format("{0} combinations to be tested.", count));
 
         BigDecimal initialBacktestQueueSize = BigDecimal.valueOf(count);
-        ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor();
+        ScheduledExecutorService statusScheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
 
-        timer.scheduleAtFixedRate(() -> {
-            BacktestParameterResults backtestParameterResults = BACKTEST_RESULTS_QUEUE.stream().max(Comparator.comparing(BacktestParameterResults::getTimestamp)).orElse(null);
-            if (backtestParameterResults == null) return;
-            int currentLong = backtestParameterResults.getLongLookback();
-            int currentShort = backtestParameterResults.getShortLookback();
-            BigDecimal currentBacktestQueueSize = initialBacktestQueueSize.subtract(BigDecimal.valueOf(PROCESS_EXECUTOR_SERVICE.getCompletedTaskCount()));
-            BigDecimal percentRemaining = currentBacktestQueueSize.divide(initialBacktestQueueSize, 8, RoundingMode.HALF_UP);
-            System.out.print(MessageFormat.format("{2}/{3} {0,number,percent} {1} remaining. ({4}, {5})\r", percentRemaining, getRemainingTimeUnits(BigDecimal.valueOf(count), percentRemaining, BigDecimal.valueOf(watch.getTime(TimeUnit.MILLISECONDS))), currentBacktestQueueSize, initialBacktestQueueSize, currentShort, currentLong));
-        }, 0, 2, TimeUnit.SECONDS);
+        logStatus(watch, initialBacktestQueueSize, statusScheduledExecutorService);
 
         try {
-            PROCESS_EXECUTOR_SERVICE.shutdown();
-            boolean executed = PROCESS_EXECUTOR_SERVICE.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
-            if (!executed) LOG.warn("Well, we waited 292 years and it still didn't finish. Probably a leak somewhere.");
+            processExecutorService.shutdown();
+            boolean executed = processExecutorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+            if (!executed)
+                LOG.warn("Well, we waited 292 years and it still didn't finish. Probably a leak somewhere.");
         } catch (InterruptedException e) {
             LOG.error(e.getLocalizedMessage());
         }
 
-        timer.shutdown();
+        statusScheduledExecutorService.shutdown();
+        bestv = BACKTEST_RESULTS_QUEUE.stream().max(Comparator.comparing(BacktestParameterResults::getValue)).orElse(BacktestParameterResults.builder().value(BigDecimal.ZERO).build());
+        LOG.info(MessageFormat.format("\n\nThe best combination of parameters is\n\t{0}\nwith a value of ${1}\n", bestv, bestv.getValue()));
+
         persistComboResults();
-
-        LOG.info(MessageFormat.format("\n\nThe best combination of parameters is\n\t{0}\nwith a value of ${1}\n", getBest(), getBestv()));
-
         logMarketChange(INTRADAY_PRICES.get(INTRADAY_PRICES.size() - 1), INTRADAY_PRICES.get(0), LOG);
 
         watch.stop();
@@ -109,13 +114,12 @@ public class BacktestParameterCombos extends AbstractBacktest {
     private static void getBuySellCombos(int minMALookback, int maxMALookback, BigDecimal riskMax, BigDecimal riskIncrement, BigDecimal allowance) {
         if (CONFIG.isBacktestStrategy()) {
             Arrays.stream(BuyStrategyTypes.values()).forEach(buyStrategyType -> Arrays.stream(SellStrategyTypes.values()).forEach(sellStrategyType -> {
-                        try {
-                            getMACombos(buyStrategyType, sellStrategyType, minMALookback, maxMALookback, riskMax, riskIncrement, allowance);
-                        } catch (InterruptedException e) {
-                            LOG.error(e.getMessage());
-                        }
-                    }
-            ));
+                try {
+                    getMACombos(buyStrategyType, sellStrategyType, minMALookback, maxMALookback, riskMax, riskIncrement, allowance);
+                } catch (InterruptedException e) {
+                    LOG.error(e.getMessage());
+                }
+            }));
         } else {
             try {
                 getMACombos(CONFIG.getBuyStrategy(), CONFIG.getSellStrategy(), minMALookback, maxMALookback, riskMax, riskIncrement, allowance);
@@ -130,7 +134,7 @@ public class BacktestParameterCombos extends AbstractBacktest {
         int longLookback = minMALookback;
         while (longLookback <= maxMALookback) {
 //            shortLookback = minMALookback;
-            shortLookback = longLookback - 10; //having a difference of more than 10 has not proven to be profitable
+            shortLookback = longLookback - 3; //having a difference of more than x has not proven to be profitable
             while (shortLookback < longLookback) { // there's no need to test equal short and long tail MAs because they will never separate or converge. That's why this is < and not <=.
                 getRiskCombos(buyStrategyType, sellStrategyType, riskMax, riskIncrement, shortLookback, longLookback, allowance);
                 shortLookback++;
@@ -140,20 +144,38 @@ public class BacktestParameterCombos extends AbstractBacktest {
     }
 
     private static void getRiskCombos(BuyStrategyTypes buyStrategyType, SellStrategyTypes sellStrategyType, BigDecimal riskMax, BigDecimal riskIncrement, int shortLookback, int longLookback, BigDecimal allowance) {
-        BigDecimal lowRisk;
-        BigDecimal highRisk = BigDecimal.ZERO;
-        while (highRisk.compareTo(riskMax) < 0) {
-            lowRisk = BigDecimal.ZERO;
-            while (lowRisk.compareTo(riskMax) < 0) {
+        BigDecimal highRisk = CONFIG.isBacktestHighRisk() ? BigDecimal.ZERO : CONFIG.getHighRisk();
+        do {
+            BigDecimal lowRisk = CONFIG.isBacktestLowRisk() ? BigDecimal.ZERO : CONFIG.getLowRisk();
+            do {
+                processExecutorService.execute(new ProcessHistoricIntradayPrices(buyStrategyType, sellStrategyType, shortLookback, longLookback, highRisk, lowRisk, allowance));
                 count++;
-                PROCESS_EXECUTOR_SERVICE.execute(new ProcessHistoricIntradayPrices(buyStrategyType, sellStrategyType, shortLookback, longLookback, highRisk, lowRisk, allowance));
                 lowRisk = lowRisk.add(riskIncrement);
-            }
+            } while (CONFIG.isBacktestLowRisk() && lowRisk.compareTo(riskMax) <= 0);
             highRisk = highRisk.add(riskIncrement);
-        }
+        } while (CONFIG.isBacktestHighRisk() && highRisk.compareTo(riskMax) <= 0);
+    }
+
+    private static void logStatus(StopWatch watch, BigDecimal initialBacktestQueueSize, ScheduledExecutorService timer) {
+        timer.scheduleAtFixedRate(() -> {
+            BacktestParameterResults backtestParameterResults = BACKTEST_RESULTS_QUEUE.stream().max(Comparator.comparing(BacktestParameterResults::getTimestamp)).orElse(null);
+            if (backtestParameterResults == null)
+                return;
+            int currentLong = backtestParameterResults.getLongLookback();
+            int currentShort = backtestParameterResults.getShortLookback();
+            BigDecimal currentBacktestQueueSize = initialBacktestQueueSize.subtract(BigDecimal.valueOf(processExecutorService.getCompletedTaskCount()));
+            BigDecimal percentRemaining = currentBacktestQueueSize.divide(initialBacktestQueueSize, 8, RoundingMode.HALF_UP);
+            bestv = BACKTEST_RESULTS_QUEUE.stream().max(Comparator.comparing(BacktestParameterResults::getValue)).orElse(BacktestParameterResults.builder().value(BigDecimal.ZERO).build());
+            if (bestv != lastBestv)
+                LOG.info(MessageFormat.format("\n\nHomer Simpson: The best combination of parameters SO FAR is\n\t{0}\nwith a value of ${1}\n", bestv, bestv.getValue()));
+            lastBestv = bestv;
+            System.out.print(MessageFormat.format("{2}/{3} {0,number,percent} {1} remaining. ({4}, {5} - {6})\r", percentRemaining, getRemainingTimeUnits(BigDecimal.valueOf(count), percentRemaining, BigDecimal.valueOf(watch.getTime(TimeUnit.MILLISECONDS))), currentBacktestQueueSize, initialBacktestQueueSize, currentShort, currentLong, bestv.getValue()));
+        }, 0, 1, TimeUnit.SECONDS);
     }
 
     private static void persistComboResults() {
+        if (!save)
+            return;
         LOG.trace("Writing results to the database. Please wait.");
         BacktestParameterResults r;
         Session session = Database.getSession();
@@ -166,33 +188,10 @@ public class BacktestParameterCombos extends AbstractBacktest {
     }
 
     private static String getRemainingTimeUnits(BigDecimal t, BigDecimal r, BigDecimal c) {
-        if  (r.compareTo(BigDecimal.ONE) >= 0) return "Calculating remaining time...";
+        if (r.compareTo(BigDecimal.ONE) >= 0)
+            return "Calculating remaining time...";
         BigDecimal remainingTime = (t.multiply(r)).multiply((c).divide((BigDecimal.ONE.subtract(r)).multiply(t), 8, RoundingMode.HALF_UP));
         Duration timeLeft = Duration.ofMillis(remainingTime.longValue());
         return String.format("%02d:%02d:%02d", timeLeft.toHours(), timeLeft.toMinutesPart(), timeLeft.toSecondsPart());
-    }
-
-    private static BigDecimal getBestv() {
-        return bestv;
-    }
-
-    private static synchronized void setBestv(BigDecimal bestv) {
-        BacktestParameterCombos.bestv = bestv;
-        LOG.info(MessageFormat.format("\n\nHomer Simpson: The best combination of parameters SO FAR is\n\t{0}\nwith a value of ${1}\n", getBest(), getBestv()));
-    }
-
-    private static String getBest() {
-        return best;
-    }
-
-    private static synchronized void setBest(String best) {
-        BacktestParameterCombos.best = best;
-    }
-
-    public static synchronized void updateBest(String msg, BigDecimal v) {
-        if (v.compareTo(getBestv()) > 0) {
-            setBest(msg);
-            setBestv(v);
-        }
     }
 }

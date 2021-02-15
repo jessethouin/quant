@@ -79,8 +79,8 @@ public class ProcessHistoricIntradayPrices implements Runnable {
         for (int i = 0; i < INTRADAY_PRICES.size(); i++) {
             try {
                 price = INTRADAY_PRICES.get(i);
-                shortMAValue = Util.getMA(INTRADAY_PRICES, previousShortMAValue, i, shortLookback, price);
-                longMAValue = Util.getMA(INTRADAY_PRICES, previousLongMAValue, i, longLookback, price);
+                shortMAValue = Util.getMA(previousShortMAValue, shortLookback, price);
+                longMAValue = Util.getMA(previousLongMAValue, longLookback, price);
                 c.updateCalc(price, shortMAValue, longMAValue);
 
                 switch (config.getBroker()) {
@@ -93,9 +93,9 @@ public class ProcessHistoricIntradayPrices implements Runnable {
                 BigDecimal value = Util.getValueAtPrice(c.getBase(), price).add(c.getCounter().getQuantity());
                 if (i == 0) previousValue = value;
                 if (value.compareTo(previousValue.multiply(config.getStopLoss())) < 0) {
-                    Transactions.placeCurrencySellOrder(config.getBroker(), c.getBase(), c.getCounter(), price);
-                    LOG.error("Stop Loss");
-                    System.exit(69); // NICE
+                    Transactions.placeSellOrder(config.getBroker(), null, c.getBase(), c.getCounter(), price);
+                    LOG.error("Stop Loss {} {} {} {} {} {}", config.getShortLookback(), config.getLongLookback(), config.getLowRisk(), config.getHighRisk(), value, previousValue);
+                    return;
                 }
 
                 previousShortMAValue = shortMAValue;
@@ -122,8 +122,6 @@ public class ProcessHistoricIntradayPrices implements Runnable {
         BacktestParameterResults backtestParameterResults = BacktestParameterResults.builder()
                 .timestamp(new Date())
                 .allowance(allowance)
-                .gain(config.getGain())
-                .loss(config.getLoss())
                 .stopLoss(config.getStopLoss())
                 .buyStrategyType(buyStrategyType)
                 .sellStrategyType(sellStrategyType)
@@ -137,8 +135,7 @@ public class ProcessHistoricIntradayPrices implements Runnable {
 
         BACKTEST_RESULTS_QUEUE.offer(backtestParameterResults);
 
-        String msg = MessageFormat.format("{5}/{6} : {7} : {0,number,00} : {1,number,00} : {2,number,0.00} : {3,number,0.00} : {4,number,00000.000}", shortLookback, longLookback, lowRisk, highRisk, portfolioValue, buyStrategyType, sellStrategyType, allowance);
-        LOG.trace(msg);
-        BacktestParameterCombos.updateBest(msg, portfolioValue);
+//        String msg = MessageFormat.format("{5}/{6} : {7} : {0,number,00} : {1,number,00} : {2,number,0.00} : {3,number,0.00} : {4,number,00000.000}", shortLookback, longLookback, lowRisk, highRisk, portfolioValue, buyStrategyType, sellStrategyType, allowance);
+//        LOG.info(msg);
     }
 }

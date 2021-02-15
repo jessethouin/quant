@@ -2,7 +2,9 @@ package com.jessethouin.quant.db;
 
 import com.jessethouin.quant.alpaca.AlpacaLive;
 import com.jessethouin.quant.beans.Currency;
-import com.jessethouin.quant.beans.*;
+import com.jessethouin.quant.beans.Portfolio;
+import com.jessethouin.quant.beans.Security;
+import com.jessethouin.quant.beans.SecurityPosition;
 import com.jessethouin.quant.binance.beans.BinanceLimitOrder;
 import com.jessethouin.quant.broker.Util;
 import com.jessethouin.quant.conf.CurrencyTypes;
@@ -172,5 +174,11 @@ class DatabaseTest {
         LocalDateTime start = LocalDateTime.parse("2020-07-01T00:00:00");
         LocalDateTime end = LocalDateTime.parse("2020-07-10T00:00:00");
         Assertions.assertTrue(Database.getBinanceTradeHistory(Date.from(start.toInstant(ZoneOffset.UTC)), Date.from(end.toInstant(ZoneOffset.UTC))).size() > 0);
+    }
+
+    @Test
+    void getLatestBinanceTradeHistoryEntry() {
+        Date maxDate = Database.getLatestBinanceTradeHistoryDate();
+        Assertions.assertNotNull(maxDate);
     }
 }

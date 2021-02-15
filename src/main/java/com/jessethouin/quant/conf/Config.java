@@ -27,8 +27,6 @@ public class Config {
     private BigDecimal highRisk;
     private BigDecimal lowRisk;
     private BigDecimal allowance;
-    private BigDecimal gain;
-    private BigDecimal loss;
     private BigDecimal stopLoss;
     private BigDecimal fee;
     private int shortLookback;
@@ -39,8 +37,13 @@ public class Config {
     private int backtestQty;
     private Date backtestStart;
     private Date backtestEnd;
+    private boolean backtestLowRisk;
+    private boolean backtestHighRisk;
     private boolean backtestAllowance;
     private boolean backtestStrategy;
+    private boolean recalibrate;
+    private int recalibrateFreq;
+    private int recalibrateHours;
     private List<String> securities;
     private List<String> fiatCurrencies;
     private List<String> cryptoCurrencies;
@@ -61,8 +64,6 @@ public class Config {
             }
             setInitialCash(new BigDecimal(prop.getProperty("initialCash")));
             setAllowance(new BigDecimal(prop.getProperty("allowance")));
-            setGain(new BigDecimal(prop.getProperty("gain")));
-            setLoss(new BigDecimal(prop.getProperty("loss")));
             setStopLoss(new BigDecimal(prop.getProperty("stopLoss")));
             setFee(new BigDecimal(prop.getProperty("fee")));
             setHighRisk(new BigDecimal(prop.getProperty("highRisk")));
@@ -75,8 +76,13 @@ public class Config {
             setBacktestQty(Integer.parseInt(prop.getProperty("backtestQty")));
             setBacktestStart(Date.from(LocalDateTime.parse(prop.getProperty("backtestStart")).toInstant(ZoneOffset.UTC)));
             setBacktestEnd(Date.from(LocalDateTime.parse(prop.getProperty("backtestEnd")).toInstant(ZoneOffset.UTC)));
+            setBacktestLowRisk(Boolean.parseBoolean(prop.getProperty("backtestLowRisk")));
+            setBacktestHighRisk(Boolean.parseBoolean(prop.getProperty("backtestHighRisk")));
             setBacktestAllowance(Boolean.parseBoolean(prop.getProperty("backtestAllowance")));
             setBacktestStrategy(Boolean.parseBoolean(prop.getProperty("backtestStrategy")));
+            setRecalibrate(Boolean.parseBoolean(prop.getProperty("recalibrate")));
+            setRecalibrateFreq(Integer.parseInt(prop.getProperty("recalibrateFreq")));
+            setRecalibrateHours(Integer.parseInt(prop.getProperty("recalibrateHours")));
             setSecurities(Stream.of(prop.getProperty("securities").split(",", -1)).collect(Collectors.toList()));
             setFiatCurrencies(Stream.of(prop.getProperty("fiatCurrencies").split(",", -1)).collect(Collectors.toList()));
             setCryptoCurrencies(Stream.of(prop.getProperty("cryptoCurrencies").split(",", -1)).collect(Collectors.toList()));

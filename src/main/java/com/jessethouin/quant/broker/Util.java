@@ -2,13 +2,16 @@ package com.jessethouin.quant.broker;
 
 import com.jessethouin.quant.alpaca.AlpacaLive;
 import com.jessethouin.quant.alpaca.beans.AlpacaOrder;
+import com.jessethouin.quant.backtest.BacktestParameterCombos;
+import com.jessethouin.quant.backtest.beans.BacktestParameterResults;
 import com.jessethouin.quant.beans.Currency;
-import com.jessethouin.quant.beans.*;
+import com.jessethouin.quant.beans.CurrencyLedger;
+import com.jessethouin.quant.beans.Portfolio;
+import com.jessethouin.quant.beans.Security;
 import com.jessethouin.quant.binance.BinanceLive;
 import com.jessethouin.quant.binance.BinanceTransactions;
 import com.jessethouin.quant.binance.beans.BinanceLimitOrder;
 import com.jessethouin.quant.calculators.MA;
-import com.jessethouin.quant.calculators.SMA;
 import com.jessethouin.quant.conf.Config;
 import com.jessethouin.quant.conf.CurrencyTypes;
 import com.jessethouin.quant.conf.MATypes;
@@ -27,6 +30,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.NumberFormat;
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -79,12 +83,9 @@ public class Util {
         return currency.getQuantity().multiply(allowance).divide(price, scale, RoundingMode.FLOOR);
     }
 
-    public static BigDecimal getMA(List<BigDecimal> intradayPrices, BigDecimal previousMA, int i, int lookback, BigDecimal price) {
-        BigDecimal ma;
-        if (i < lookback) ma = BigDecimal.ZERO;
-        else if (i == lookback) ma = SMA.sma(intradayPrices.subList(0, i), lookback);
-        else ma = MA.ma(price, previousMA, lookback, MATypes.TEMA);
-        return ma;
+    public static BigDecimal getMA(BigDecimal previousMA, int lookback, BigDecimal price) {
+        if (previousMA == null || previousMA.compareTo(BigDecimal.ZERO) == 0 || previousMA.compareTo(BigDecimal.valueOf(0)) == 0) previousMA = price;
+        return MA.ma(price, previousMA, lookback, MATypes.TEMA);
     }
 
     /**
@@ -292,5 +293,20 @@ public class Util {
         CurrencyLedger currencyLedger = CurrencyLedger.builder().currency(currency).credit(qty).timestamp(new Date()).build();
         currency.getCurrencyLedgers().add(currencyLedger);
         currency.setQuantity(currency.getQuantity().add(qty));
+    }
+
+    public static void relacibrate(Config config) {
+        config.setBackTest(true);
+        BacktestParameterResults bestCombo = BacktestParameterCombos.findBestCombo();
+        config.setLowRisk(bestCombo.getLowRisk());
+        config.setHighRisk(bestCombo.getHighRisk());
+        config.setShortLookback(bestCombo.getShortLookback());
+        config.setLongLookback(bestCombo.getLongLookback());
+        config.setAllowance(bestCombo.getAllowance());
+        config.setBuyStrategy(bestCombo.getBuyStrategyType());
+        config.setSellStrategy(bestCombo.getSellStrategyType());
+        config.setBacktestStart(new Date(config.getBacktestStart().getTime() + Duration.ofMinutes(config.getRecalibrateFreq()).toMillis()));
+        config.setBacktestEnd(new Date(config.getBacktestEnd().getTime() + Duration.ofMinutes(config.getRecalibrateFreq()).toMillis()));
+        config.setBackTest(false);
     }
 }

@@ -140,8 +140,8 @@ public class AlpacaLive {
                         price = BigDecimal.valueOf(p);
                         if (count < config.getLongLookback()) intradayPrices.add(price);
 
-                        shortMAValue = Util.getMA(intradayPrices, previousShortMAValue, count, config.getShortLookback(), price);
-                        longMAValue = Util.getMA(intradayPrices, previousLongMAValue, count, config.getLongLookback(), price);
+                        shortMAValue = Util.getMA(previousShortMAValue, config.getShortLookback(), price);
+                        longMAValue = Util.getMA(previousLongMAValue, config.getLongLookback(), price);
                         c.updateCalc(price, shortMAValue, longMAValue);
                         c.decide();
                         LOG.debug(MessageFormat.format("{0,number,000} : ma1 {1,number,000.0000} : ma2 {2,number,000.0000} : l {3,number,000.0000}: h {4,number,000.0000}: p {5,number,000.0000} : {6,number,00000.0000}", count, shortMAValue, longMAValue, c.getLow(), c.getHigh(), price, Util.getPortfolioValue(portfolio, s.getCurrency(), price)));

@@ -16,6 +16,7 @@ import java.util.Date;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString
 public class BacktestParameterResults {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -27,10 +28,6 @@ public class BacktestParameterResults {
     int longLookback;
     @Convert(converter = BigDecimalConverter.class)
     BigDecimal allowance;
-    @Convert(converter = BigDecimalConverter.class)
-    BigDecimal gain;
-    @Convert(converter = BigDecimalConverter.class)
-    BigDecimal loss;
     @Convert(converter = BigDecimalConverter.class)
     BigDecimal stopLoss;
     @Convert(converter = BigDecimalConverter.class)

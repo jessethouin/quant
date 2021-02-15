@@ -12,9 +12,15 @@
         <maven.compiler.source>15</maven.compiler.source>
         <maven.compiler.target>15</maven.compiler.target>
         <version.maven-install-plugin>3.0.0-M1</version.maven-install-plugin>
-        <version.knowm>5.0.4</version.knowm>
+        <version.knowm>5.0.7-SNAPSHOT</version.knowm>
     </properties>
-
+    <repositories>
+        <repository>
+            <id>sonatype-oss-snapshot</id>
+            <snapshots/>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </repository>
+    </repositories>
     <dependencies>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
@@ -114,7 +120,7 @@
         <dependency>
             <groupId>org.knowm.xchange</groupId>
             <artifactId>xchange-cexio</artifactId>
-            <version>5.0.4</version>
+            <version>${version.knowm}</version>
         </dependency>
         <dependency>
             <groupId>org.knowm.xchange</groupId>

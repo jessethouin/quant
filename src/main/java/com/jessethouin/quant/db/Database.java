@@ -93,6 +93,13 @@ public class Database {
         return binanceTradeHistoryList;
     }
 
+    public static Date getLatestBinanceTradeHistoryDate() {
+        session.beginTransaction();
+        Date maxDate = getSession().createQuery("select max(timestamp) from BinanceTradeHistory", Date.class).getSingleResult();
+        session.getTransaction().commit();
+        return maxDate;
+    }
+
     public static void persistPortfolio(Portfolio portfolio) {
         session.beginTransaction();
         session.persist(portfolio);

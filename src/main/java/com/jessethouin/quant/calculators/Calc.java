@@ -96,7 +96,6 @@ public class Calc {
 
     private boolean buy1() {
         return getMa1().compareTo(getMa2()) > 0 &&
-                getPrice().compareTo(getLow().add(getSpread().multiply(config.getLowRisk()))) > 0 &&
                 getPrice().compareTo(getHigh().subtract(getSpread().multiply(config.getHighRisk()))) < 0 &&
                 isBuy();
     }

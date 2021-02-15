@@ -41,7 +41,7 @@ public class Transactions {
         }
     }
 
-    public static void placeCurrencyBuyOrder(Broker broker, Currency base, Currency counter, BigDecimal qty, BigDecimal price) {
+    private static void placeCurrencyBuyOrder(Broker broker, Currency base, Currency counter, BigDecimal qty, BigDecimal price) {
         LOG.trace("Create buy order for " + qty + " " + base.getSymbol() + " at " + price);
 
         switch (broker) {
@@ -59,7 +59,7 @@ public class Transactions {
         }
     }
 
-    public static boolean placeCurrencySellOrder(Broker broker, Currency base, Currency counter, BigDecimal price) {
+    private static boolean placeCurrencySellOrder(Broker broker, Currency base, Currency counter, BigDecimal price) {
         if (base.getQuantity().compareTo(BigDecimal.ZERO) == 0) return false;
 
         switch (broker) {
@@ -92,7 +92,7 @@ public class Transactions {
         BinanceTransactions.processBinanceLimitOrder(binanceLimitOrder);
     }
 
-    public static void placeSecurityBuyOrder(Broker broker, Security security, BigDecimal qty, BigDecimal price) {
+    private static void placeSecurityBuyOrder(Broker broker, Security security, BigDecimal qty, BigDecimal price) {
         LOG.trace("Create buy order for " + qty + " " + security.getSymbol() + " at " + price);
 
         switch (broker) {
@@ -112,7 +112,7 @@ public class Transactions {
         }
     }
 
-    public static boolean placeSecuritySellOrder(Broker broker, Security security, BigDecimal price, boolean sellAll) {
+    private static boolean placeSecuritySellOrder(Broker broker, Security security, BigDecimal price, boolean sellAll) {
         BigDecimal[] qty = {BigDecimal.ZERO};
 
         security.getSecurityPositions().forEach(position -> {
@@ -143,7 +143,7 @@ public class Transactions {
         return true;
     }
 
-    public static boolean placeSecuritySellOrder(Broker broker, Security security, BigDecimal price) {
+    private static boolean placeSecuritySellOrder(Broker broker, Security security, BigDecimal price) {
         return placeSecuritySellOrder(broker, security, price, false);
     }
 

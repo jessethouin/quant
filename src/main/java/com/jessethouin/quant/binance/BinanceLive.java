@@ -8,7 +8,6 @@ import com.jessethouin.quant.binance.beans.OrderHistoryLookup;
 import com.jessethouin.quant.broker.Transactions;
 import com.jessethouin.quant.broker.Util;
 import com.jessethouin.quant.calculators.Calc;
-import com.jessethouin.quant.calculators.SMA;
 import com.jessethouin.quant.conf.Config;
 import com.jessethouin.quant.db.Database;
 import info.bitrich.xchangestream.binance.BinanceStreamingExchange;
@@ -31,17 +30,18 @@ import org.knowm.xchange.dto.trade.LimitOrder;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Duration;
 import java.util.*;
 
 import static java.util.Objects.requireNonNullElse;
-import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.concurrent.TimeUnit.*;
 import static org.knowm.xchange.dto.Order.OrderStatus.CANCELED;
 import static org.knowm.xchange.dto.Order.OrderStatus.FILLED;
 
 public class BinanceLive {
     private static final Logger LOG = LogManager.getLogger(BinanceLive.class);
     public static final BinanceLive INSTANCE = new BinanceLive();
-    private static final Config config = Config.INSTANCE;
+    private static final Config CONFIG = Config.INSTANCE;
     private static Portfolio portfolio;
     private static OrderHistoryLookup orderHistoryLookup;
 
@@ -64,6 +64,10 @@ public class BinanceLive {
         strExSpec.setApiKey("M4gIEsmhsp5MjIkSZRapUUxScnZno56OHwJOvh1Bp3qIxW54FGCZnOxUYneNjVXB");
         strExSpec.setSecretKey("tlAe5qFbA8oVDH0M085pYANzRD0EPHVteicsKk6rlKg1gEdC3j1lkSF3FMpd7jkO");
         BINANCE_STREAMING_EXCHANGE = (BinanceStreamingExchange) StreamingExchangeFactory.INSTANCE.createExchange(strExSpec);
+
+        long start = new Date().getTime();
+        CONFIG.setBacktestStart(new Date(start - Duration.ofHours(CONFIG.getRecalibrateHours()).toMillis()));
+        CONFIG.setBacktestEnd(new Date(start));
     }
 
     private BinanceLive() {
@@ -87,12 +91,12 @@ public class BinanceLive {
 
     public static void doLive() {
         BinanceTransactions.showWallets();
-        BinanceTransactions.showTradingFees();
+//        BinanceTransactions.showTradingFees();
 
         portfolio = requireNonNullElse(Database.getPortfolio(), Util.createPortfolio());
         Database.persistPortfolio(portfolio);
 
-        List<CurrencyPair> currencyPairs = Util.getAllCurrencyPairs(config);
+        List<CurrencyPair> currencyPairs = Util.getAllCurrencyPairs(CONFIG);
         currencyPairs.forEach(currencyPair -> MIN_TRADES.put(currencyPair, Util.getMinTrade(currencyPair)));
 
         ProductSubscription.ProductSubscriptionBuilder productSubscriptionBuilder = ProductSubscription.create();
@@ -103,7 +107,7 @@ public class BinanceLive {
         currencyPairs.forEach(BinanceLive::subscribeToOrderUpdates);
         currencyPairs.forEach(BinanceLive::stopLoss);
 
-        switch (config.getDataFeed()) {
+        switch (CONFIG.getDataFeed()) {
             case KLINE -> currencyPairs.forEach(BinanceLive::subscribeToCurrencyKline);
             case TRADE -> currencyPairs.forEach(BinanceLive::subscribeToCurrencyTrades);
             case TICKER -> currencyPairs.forEach(BinanceLive::subscribeToCurrencyTicker);
@@ -151,8 +155,8 @@ public class BinanceLive {
 
         Disposable tickerSub = BINANCE_STREAMING_EXCHANGE.getStreamingMarketDataService().getTicker(currencyPair).subscribe(ticker -> {
                     ref.value = Util.getValueAtPrice(ref.baseCurrency, ref.price).add(ref.counterCurrency.getQuantity());
-                    if (ref.value.compareTo(ref.previousValue.multiply(config.getStopLoss())) < 0)
-                        Transactions.placeCurrencySellOrder(config.getBroker(), ref.baseCurrency, ref.counterCurrency, ticker.getLast());
+                    if (ref.value.compareTo(ref.previousValue.multiply(CONFIG.getStopLoss())) < 0)
+                        Transactions.placeSellOrder(CONFIG.getBroker(), null, ref.baseCurrency, ref.counterCurrency, ticker.getLast());
                     ref.previousValue = ref.value;
                 },
                 throwable -> LOG.error("Error in ticket subscription (stop loss)", throwable));
@@ -162,13 +166,13 @@ public class BinanceLive {
 
     private static void subscribeToCurrencyKline(CurrencyPair currencyPair) {
         BinanceMarketDataService marketDataService = (BinanceMarketDataService) BINANCE_EXCHANGE.getMarketDataService();
-
         Ref ref = new Ref(currencyPair, portfolio);
+
         try {
-            marketDataService.klines(currencyPair, KlineInterval.m1, 99, null, null).stream().map(BinanceKline::getClosePrice).forEach(ref.intradayPrices::add);
-            ref.count = ref.intradayPrices.size();
-            ref.previousShortMAValue = SMA.sma(ref.intradayPrices.subList(ref.count - config.getShortLookback(), ref.count), config.getShortLookback());
-            ref.previousLongMAValue = SMA.sma(ref.intradayPrices.subList(ref.count - config.getLongLookback(), ref.count), config.getLongLookback());
+            long now = new Date().getTime();
+            for (long i = HOURS.toMinutes(CONFIG.getRecalibrateHours()); i > -1; i -= 500) {
+                marketDataService.klines(currencyPair, KlineInterval.m1, 500, now - MINUTES.toMillis(i), now - MINUTES.toMillis(Math.max(i - 500, 0))).stream().map(BinanceKline::getClosePrice).forEach(ref.intradayPrices::add);
+            }
         } catch (IOException e) {
             LOG.error(e.getMessage());
         }
@@ -176,6 +180,12 @@ public class BinanceLive {
         new Timer().scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
+                synchronized (this) {
+                    if (CONFIG.isRecalibrate() && ref.count % CONFIG.getRecalibrateFreq() == 0) {
+                        Util.relacibrate(CONFIG);
+                    }
+                }
+
                 try {
                     BinanceKline binanceKline = marketDataService.lastKline(currencyPair, KlineInterval.m1);
                     ref.price = binanceKline.getClosePrice();
@@ -231,10 +241,8 @@ public class BinanceLive {
     }
 
     private static void doTheThing(Ref ref) {
-        if (ref.count < config.getLongLookback()) ref.intradayPrices.add(ref.price);
-
-        ref.shortMAValue = Util.getMA(ref.intradayPrices, ref.previousShortMAValue, ref.count, config.getShortLookback(), ref.price);
-        ref.longMAValue = Util.getMA(ref.intradayPrices, ref.previousLongMAValue, ref.count, config.getLongLookback(), ref.price);
+        ref.shortMAValue = Util.getMA(ref.previousShortMAValue, CONFIG.getShortLookback(), ref.price);
+        ref.longMAValue = Util.getMA(ref.previousLongMAValue, CONFIG.getLongLookback(), ref.price);
 
         orderHistoryLookup = new OrderHistoryLookup();
 
@@ -277,7 +285,7 @@ public class BinanceLive {
         Ref(CurrencyPair currencyPair, Portfolio portfolio) {
             this.baseCurrency = Util.getCurrencyFromPortfolio(currencyPair.base.getSymbol(), portfolio);
             this.counterCurrency = Util.getCurrencyFromPortfolio(currencyPair.counter.getSymbol(), portfolio);
-            c = new Calc(baseCurrency, counterCurrency, config, BigDecimal.ZERO);
+            c = new Calc(baseCurrency, counterCurrency, CONFIG, BigDecimal.ZERO);
         }
     }
 }
