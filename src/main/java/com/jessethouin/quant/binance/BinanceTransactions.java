@@ -39,7 +39,10 @@ public class BinanceTransactions {
     }
 
     private static void transact(Portfolio portfolio, CurrencyPair currencyPair, BigDecimal qty, BigDecimal price, OrderType orderType) {
-        if (qty.equals(BigDecimal.ZERO)) return;
+        if (qty.multiply(price).compareTo(INSTANCE.getMinTrades().get(currencyPair)) < 0) {
+            LOG.warn("Trade must be minimum of {} for {}. Was {}.", INSTANCE.getMinTrades().get(currencyPair), currencyPair.toString(), qty.multiply(price));
+            return;
+        }
 
         LimitOrder limitOrder = new LimitOrder.Builder(orderType, currencyPair)
                 .orderStatus(Order.OrderStatus.NEW)
@@ -50,6 +53,7 @@ public class BinanceTransactions {
                 .timestamp(new Date())
                 .build();
         try {
+//            INSTANCE.getBinanceExchange().getTradeService().placeLimitOrder(limitOrder);
             ((BinanceTradeService) INSTANCE.getBinanceExchange().getTradeService()).placeTestOrder(LIMIT, limitOrder, limitOrder.getLimitPrice(), null);
             BinanceLimitOrder binanceLimitOrder = new BinanceLimitOrder(limitOrder, portfolio);
             BinanceLive.INSTANCE.getOrderHistoryLookup().setOrderId(binanceLimitOrder.getOrderId());

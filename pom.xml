@@ -12,7 +12,7 @@
         <maven.compiler.source>15</maven.compiler.source>
         <maven.compiler.target>15</maven.compiler.target>
         <version.maven-install-plugin>3.0.0-M1</version.maven-install-plugin>
-        <version.knowm>5.0.7-SNAPSHOT</version.knowm>
+        <version.knowm>5.0.6</version.knowm>
     </properties>
     <repositories>
         <repository>
@@ -101,6 +101,12 @@
             <scope>compile</scope>
         </dependency>
         <!-- End Alpaca -->
+
+        <dependency>
+            <groupId>com.binance.api</groupId>
+            <artifactId>binance-api-client</artifactId>
+            <version>1.0.1</version>
+        </dependency>
 
         <dependency>
             <groupId>org.knowm.xchange</groupId>

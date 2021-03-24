@@ -30,7 +30,7 @@ public class BacktestParameterCombos extends AbstractBacktest {
 
     public static BacktestParameterResults findBestCombo() {
         save = false;
-        findBestCombos(new String[]{"1870", "1875", "1.00", "0.25"});
+        findBestCombos(new String[]{"1000", "2000", "1.00", "0.25"});
         return bestv;
     }
 
@@ -180,9 +180,16 @@ public class BacktestParameterCombos extends AbstractBacktest {
         BacktestParameterResults r;
         Session session = Database.getSession();
         session.beginTransaction();
+        int i = 0;
         while (BACKTEST_RESULTS_QUEUE.peek() != null) {
             r = BACKTEST_RESULTS_QUEUE.poll();
+            r.setStart(CONFIG.getBacktestStart());
+            r.setEnd(CONFIG.getBacktestEnd());
             session.persist(r);
+            if (i++ % 500 == 0) {
+                session.getTransaction().commit();
+                session.beginTransaction();
+            }
         }
         session.getTransaction().commit();
     }

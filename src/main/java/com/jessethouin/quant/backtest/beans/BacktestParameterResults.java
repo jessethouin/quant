@@ -22,6 +22,8 @@ public class BacktestParameterResults {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long backtestId;
     private Date timestamp;
+    private Date start;
+    private Date end;
     BuyStrategyTypes buyStrategyType;
     SellStrategyTypes sellStrategyType;
     int shortLookback;

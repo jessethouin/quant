@@ -22,17 +22,15 @@ public class BacktestStaticParameters extends AbstractBacktest {
 
     public static void runBacktest() {
         populateIntradayPrices();
-        List<BigDecimal> intradayPrices = new ArrayList<>(INTRADAY_PRICES);
+        List<BigDecimal> intradayPrices = new ArrayList<>(INTRADAY_PRICES); // INTRADAY_PRICES will change if recalibrate is set to true, so we copy the values to a thread-safe local List
 
         long start = CONFIG.getBacktestStart().getTime();
         CONFIG.setBacktestStart(new Date(start - Duration.ofHours(CONFIG.getRecalibrateHours()).toMillis()));
         CONFIG.setBacktestEnd(new Date(start));
 
-        BigDecimal shortMAValue;
-        BigDecimal longMAValue;
+        BigDecimal shortMAValue = BigDecimal.ZERO;
+        BigDecimal longMAValue = BigDecimal.ZERO;
         BigDecimal price = intradayPrices.get(0);
-        BigDecimal previousShortMAValue = BigDecimal.ZERO;
-        BigDecimal previousLongMAValue = BigDecimal.ZERO;
         BigDecimal previousValue = BigDecimal.ZERO;
 
         Portfolio portfolio = Util.createPortfolio();
@@ -54,8 +52,8 @@ public class BacktestStaticParameters extends AbstractBacktest {
             if (CONFIG.isRecalibrate() && i % CONFIG.getRecalibrateFreq() == 0) Util.relacibrate(CONFIG);
 
             price = intradayPrices.get(i);
-            shortMAValue = Util.getMA(previousShortMAValue, CONFIG.getShortLookback(), price);
-            longMAValue = Util.getMA(previousLongMAValue, CONFIG.getLongLookback(), price);
+            shortMAValue = Util.getMA(shortMAValue, CONFIG.getShortLookback(), price);
+            longMAValue = Util.getMA(longMAValue, CONFIG.getLongLookback(), price);
             c.updateCalc(price, shortMAValue, longMAValue);
 
             switch (CONFIG.getBroker()) {
@@ -66,8 +64,6 @@ public class BacktestStaticParameters extends AbstractBacktest {
             c.decide();
 
             previousValue = stopLoss(price, previousValue, c);
-            previousShortMAValue = shortMAValue;
-            previousLongMAValue = longMAValue;
         }
 
         AbstractBacktest.logMarketChange(intradayPrices.get(intradayPrices.size() - 1), intradayPrices.get(0), LOG);
@@ -99,5 +95,4 @@ public class BacktestStaticParameters extends AbstractBacktest {
         }
         return value;
     }
-
 }

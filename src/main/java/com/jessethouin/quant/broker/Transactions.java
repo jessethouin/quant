@@ -47,12 +47,15 @@ public class Transactions {
         switch (broker) {
             case COINBASE -> LOG.info("Place COINBASE buy order here");
             case CEXIO -> LOG.info("Place CEXIO buy order here");
-            case BINANCE -> LOG.info("Placing Binance BUY order for {} of {} at {}", qty, base.getSymbol(), price);
+            case BINANCE -> {
+                LOG.info("Placing Binance BUY LIMIT order for {} of {} at {}", qty, base.getSymbol(), price);
+                BinanceTransactions.buyCurrency(base.getPortfolio(), new CurrencyPair(base.getSymbol(), counter.getSymbol()), qty, price);
+            }
             case BINANCE_TEST -> {
+                LOG.trace("Placing Binance TEST BUY LIMIT order for {} of {} at {}", qty, base.getSymbol(), price);
                 BinanceLimitOrder binanceLimitOrder = BinanceTransactions.buyTestCurrency(base.getPortfolio(), new CurrencyPair(base.getSymbol(), counter.getSymbol()), qty, price);
                 if (binanceLimitOrder == null) return;
 
-                LOG.trace("Placing Binance TEST BUY LIMIT order for {} of {} at {}", qty, base.getSymbol(), price);
                 processTestTransaction(qty, binanceLimitOrder);
             }
             default -> throw new IllegalStateException("Unexpected broker: " + broker);
@@ -65,12 +68,15 @@ public class Transactions {
         switch (broker) {
             case COINBASE -> LOG.info("Place COINBASE sell order here");
             case CEXIO -> LOG.info("Place CEXIO sell order here");
-            case BINANCE -> LOG.info("Place BINANCE sell order here");
+            case BINANCE -> {
+                LOG.trace("Placing Binance SELL LIMIT Order for {} of {} at {}", base.getQuantity(), base.getSymbol(), price);
+                BinanceTransactions.sellCurrency(base.getPortfolio(), new CurrencyPair(base.getSymbol(), counter.getSymbol()), base.getQuantity(), price);
+            }
             case BINANCE_TEST -> {
+                LOG.trace("Placing Binance TEST SELL LIMIT Order for {} of {} at {}", base.getQuantity(), base.getSymbol(), price);
                 BinanceLimitOrder binanceLimitOrder = BinanceTransactions.sellTestCurrency(base.getPortfolio(), new CurrencyPair(base.getSymbol(), counter.getSymbol()), base.getQuantity(), price);
                 if (binanceLimitOrder == null) return false;
 
-                LOG.trace("Placing Binance TEST SELL LIMIT Order for {} of {} at {}", base.getQuantity(), base.getSymbol(), price);
                 processTestTransaction(base.getQuantity(), binanceLimitOrder);
             }
             default -> throw new IllegalStateException("Unexpected broker: " + broker);

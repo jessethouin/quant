@@ -275,6 +275,11 @@ public class Util {
     }
 
     public static BinanceLimitOrder createBinanceLimitOrder(Portfolio portfolio, LimitOrder limitOrder) {
+        BinanceLimitOrder existingBinanceLimitOrder = Database.getBinanceLimitOrder(limitOrder.getId());
+        if (existingBinanceLimitOrder != null) {
+            LOG.info("Order {} exists.", limitOrder.getId());
+            return existingBinanceLimitOrder;
+        }
         LOG.info("Creating new BinanceLimitOrder for order {} status {}", limitOrder.getId(), limitOrder.getStatus());
         BinanceLimitOrder binanceLimitOrder = new BinanceLimitOrder(limitOrder, portfolio);
         binanceLimitOrder.setStatus(org.knowm.xchange.dto.Order.OrderStatus.NEW);
@@ -296,7 +301,6 @@ public class Util {
     }
 
     public static void relacibrate(Config config) {
-        config.setBackTest(true);
         BacktestParameterResults bestCombo = BacktestParameterCombos.findBestCombo();
         config.setLowRisk(bestCombo.getLowRisk());
         config.setHighRisk(bestCombo.getHighRisk());
@@ -307,6 +311,5 @@ public class Util {
         config.setSellStrategy(bestCombo.getSellStrategyType());
         config.setBacktestStart(new Date(config.getBacktestStart().getTime() + Duration.ofMinutes(config.getRecalibrateFreq()).toMillis()));
         config.setBacktestEnd(new Date(config.getBacktestEnd().getTime() + Duration.ofMinutes(config.getRecalibrateFreq()).toMillis()));
-        config.setBackTest(false);
     }
 }
