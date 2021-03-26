@@ -5,7 +5,6 @@ import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.binance.beans.BinanceLimitOrder;
 import com.jessethouin.quant.broker.Util;
 import com.jessethouin.quant.conf.Config;
-import com.jessethouin.quant.db.Database;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.knowm.xchange.binance.dto.trade.TimeInForce;
@@ -55,11 +54,15 @@ public class BinanceTransactions {
         try {
 //            INSTANCE.getBinanceExchange().getTradeService().placeLimitOrder(limitOrder);
             ((BinanceTradeService) INSTANCE.getBinanceExchange().getTradeService()).placeTestOrder(LIMIT, limitOrder, limitOrder.getLimitPrice(), null);
-            BinanceLimitOrder binanceLimitOrder = new BinanceLimitOrder(limitOrder, portfolio);
-            BinanceLive.INSTANCE.getOrderHistoryLookup().setOrderId(binanceLimitOrder.getOrderId());
-            Database.persistBinanceLimitOrder(binanceLimitOrder);
             LOG.debug("Limit Order: " + limitOrder.toString());
+
+/*
+            BinanceLimitOrder binanceLimitOrder = new BinanceLimitOrder(limitOrder, portfolio);
+            portfolio.getBinanceLimitOrders().add(binanceLimitOrder);
+            Database.persistBinanceLimitOrder(binanceLimitOrder);
+            BinanceLive.INSTANCE.getOrderHistoryLookup().setOrderId(binanceLimitOrder.getOrderId());
             LOG.debug("Binance Limit order: " + binanceLimitOrder.toString().replace(",", ",\n\t"));
+*/
         } catch (IOException e) {
             LOG.error(e.getLocalizedMessage());
         }
