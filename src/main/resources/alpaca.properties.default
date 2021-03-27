@@ -9,6 +9,6 @@ secret =
 base_api_url = https://paper-api.alpaca.markets
 
 #prod
-#secret = 8smMcfGy6LfCNDFBBsosG0xDyajQKnGW2D5UOrq1
-#key_id = AK6W1EDXF346L78M4ZCN
+#secret =
+#key_id =
 #base_api_url = https://api.alpaca.markets

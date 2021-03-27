@@ -29,10 +29,6 @@ public class ProcessHistoricIntradayPrices implements Runnable {
     final BigDecimal highRisk;
     final BigDecimal lowRisk;
     final BigDecimal allowance;
-/*
-    final Date backtestStart;
-    final Date backtestEnd;
-*/
 
     public ProcessHistoricIntradayPrices(BuyStrategyTypes buyStrategyType, SellStrategyTypes sellStrategyType, int shortLookback, int longLookback, BigDecimal highRisk, BigDecimal lowRisk, BigDecimal allowance) {
         this.buyStrategyType = buyStrategyType;
@@ -118,8 +114,5 @@ public class ProcessHistoricIntradayPrices implements Runnable {
                 .build();
 
         BACKTEST_RESULTS_QUEUE.offer(backtestParameterResults);
-
-//        String msg = MessageFormat.format("{5}/{6} : {7} : {0,number,00} : {1,number,00} : {2,number,0.00} : {3,number,0.00} : {4,number,00000.000}", shortLookback, longLookback, lowRisk, highRisk, portfolioValue, buyStrategyType, sellStrategyType, allowance);
-//        LOG.info(msg);
     }
 }

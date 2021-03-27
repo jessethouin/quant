@@ -32,7 +32,6 @@ public class AlpacaTransactions {
         try {
             Order order = alpacaAPI.requestNewLimitOrder(security.getSymbol(), qty.intValue(), OrderSide.BUY, OrderTimeInForce.DAY, price.doubleValue(), false);
             AlpacaOrder alpacaOrder = new AlpacaOrder(order, security.getPortfolio());
-//            Database.persistAlpacaOrder(alpacaOrder);
             LOG.info("Buy order: " + alpacaOrder.toString().replace(",", ",\n\t"));
             return;
         } catch (AlpacaAPIRequestException e) {
@@ -74,9 +73,7 @@ public class AlpacaTransactions {
                 null,
                 null
         );
-        AlpacaOrder alpacaOrder = new AlpacaOrder(order, security.getPortfolio());
-//        Database.persistAlpacaOrder(alpacaOrder);
-        return alpacaOrder;
+        return new AlpacaOrder(order, security.getPortfolio());
     }
 
     public static void placeSecuritySellOrder(Security security, BigDecimal qty, BigDecimal price) {
@@ -169,7 +166,5 @@ public class AlpacaTransactions {
 
             });
         }
-
-//        Database.persistPortfolio(portfolio);
     }
 }
