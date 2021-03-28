@@ -9,7 +9,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.knowm.xchange.binance.dto.trade.TimeInForce;
 import org.knowm.xchange.binance.service.BinanceAccountService;
-import org.knowm.xchange.binance.service.BinanceTradeService;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderType;
@@ -18,11 +17,11 @@ import org.knowm.xchange.dto.trade.LimitOrder;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Date;
 import java.util.Map;
 
 import static com.jessethouin.quant.binance.BinanceLive.INSTANCE;
-import static org.knowm.xchange.binance.dto.trade.OrderType.LIMIT;
 import static org.knowm.xchange.dto.Order.OrderType.ASK;
 import static org.knowm.xchange.dto.Order.OrderType.BID;
 
@@ -45,25 +44,16 @@ public class BinanceTransactions {
 
         LimitOrder limitOrder = new LimitOrder.Builder(orderType, currencyPair)
                 .orderStatus(Order.OrderStatus.NEW)
-                .originalAmount(qty)
-                .limitPrice(price)
-                .fee(price.multiply(qty).multiply(Config.INSTANCE.getFee()))
+                .originalAmount(qty.setScale(6, RoundingMode.FLOOR))
+                .limitPrice(price.setScale(8, RoundingMode.FLOOR))
+                .fee(price.multiply(qty).multiply(Config.INSTANCE.getFee()).setScale(8, RoundingMode.HALF_UP))
                 .flag(TimeInForce.GTC)
                 .timestamp(new Date())
                 .build();
         try {
-//            INSTANCE.getBinanceExchange().getTradeService().placeLimitOrder(limitOrder);
-            ((BinanceTradeService) INSTANCE.getBinanceExchange().getTradeService()).placeTestOrder(LIMIT, limitOrder, limitOrder.getLimitPrice(), null);
             LOG.debug("Limit Order: " + limitOrder.toString());
-
-/*
-            BinanceLimitOrder binanceLimitOrder = new BinanceLimitOrder(limitOrder, portfolio);
-            portfolio.getBinanceLimitOrders().add(binanceLimitOrder);
-            Database.persistBinanceLimitOrder(binanceLimitOrder);
-            BinanceLive.INSTANCE.getOrderHistoryLookup().setOrderId(binanceLimitOrder.getOrderId());
-            LOG.debug("Binance Limit order: " + binanceLimitOrder.toString().replace(",", ",\n\t"));
-*/
-        } catch (IOException e) {
+            INSTANCE.getBinanceExchange().getTradeService().placeLimitOrder(limitOrder);
+        } catch (Exception e) {
             LOG.error(e.getLocalizedMessage());
         }
     }
@@ -86,7 +76,7 @@ public class BinanceTransactions {
                 .orderStatus(Order.OrderStatus.NEW)
                 .originalAmount(qty)
                 .limitPrice(price)
-                .fee(price.multiply(qty).multiply(Config.INSTANCE.getFee()))
+                .fee(price.multiply(qty).multiply(Config.INSTANCE.getFee()).setScale(8, RoundingMode.HALF_UP))
                 .flag(TimeInForce.GTC)
                 .timestamp(new Date())
                 .build();

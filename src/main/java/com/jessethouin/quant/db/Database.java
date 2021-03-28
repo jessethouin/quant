@@ -9,6 +9,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
 import org.hibernate.boot.MetadataSources;
 import org.hibernate.boot.registry.StandardServiceRegistry;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
@@ -75,14 +76,8 @@ public class Database {
         return result;
     }
 
-    public static List<BinanceTradeHistory> getBinanceTradeHistory(int limit) {
-        session.beginTransaction();
-        List<BinanceTradeHistory> binanceTradeHistoryList = getSession().createQuery("from BinanceTradeHistory", BinanceTradeHistory.class).setMaxResults(limit).getResultList();
-        session.getTransaction().commit();
-        return binanceTradeHistoryList;
-    }
-
     public static List<BinanceTradeHistory> getBinanceTradeHistory(Date start, Date end) {
+        Transaction transaction = session.getTransaction();
         session.beginTransaction();
         List<BinanceTradeHistory> binanceTradeHistoryList = getSession()
                 .createQuery("from BinanceTradeHistory where timestamp between :s and :e", BinanceTradeHistory.class)
@@ -122,12 +117,6 @@ public class Database {
     public static void persistOrderHistoryLookup(OrderHistoryLookup orderHistoryLookup) {
         session.beginTransaction();
         session.persist(orderHistoryLookup);
-        session.getTransaction().commit();
-    }
-
-    public static void persistEntity(Object t) {
-        session.beginTransaction();
-        session.persist(t);
         session.getTransaction().commit();
     }
 }

@@ -82,8 +82,6 @@ public class AlpacaTransactions {
         AlpacaAPI alpacaAPI = AlpacaLive.getInstance().getAlpacaAPI();
         try {
             Order order = alpacaAPI.requestNewLimitOrder(security.getSymbol(), qty.intValue(), OrderSide.SELL, OrderTimeInForce.DAY, price.doubleValue(), false);
-            AlpacaOrder alpacaOrder = new AlpacaOrder(order, security.getPortfolio());
-//            Database.persistAlpacaOrder(alpacaOrder);
             LOG.info("Sell order: " + order.toString().replace(",", ",\n\t"));
             return;
         } catch (AlpacaAPIRequestException e) {

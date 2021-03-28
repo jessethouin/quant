@@ -113,23 +113,17 @@ public class BacktestParameterCombos extends AbstractBacktest {
 
     private static void getBuySellCombos(int minMALookback, int maxMALookback, BigDecimal riskMax, BigDecimal riskIncrement, BigDecimal allowance) {
         if (CONFIG.isBacktestStrategy()) {
-            Arrays.stream(BuyStrategyTypes.values()).forEach(buyStrategyType -> Arrays.stream(SellStrategyTypes.values()).forEach(sellStrategyType -> {
-                try {
-                    getMACombos(buyStrategyType, sellStrategyType, minMALookback, maxMALookback, riskMax, riskIncrement, allowance);
-                } catch (InterruptedException e) {
-                    LOG.error(e.getMessage());
-                }
-            }));
+            Arrays.stream(BuyStrategyTypes.values()).forEach(
+                    buyStrategyType -> Arrays.stream(SellStrategyTypes.values()).forEach(
+                            sellStrategyType -> getMACombos(buyStrategyType, sellStrategyType, minMALookback, maxMALookback, riskMax, riskIncrement, allowance)
+                    )
+            );
         } else {
-            try {
-                getMACombos(CONFIG.getBuyStrategy(), CONFIG.getSellStrategy(), minMALookback, maxMALookback, riskMax, riskIncrement, allowance);
-            } catch (InterruptedException e) {
-                LOG.error(e.getMessage());
-            }
+            getMACombos(CONFIG.getBuyStrategy(), CONFIG.getSellStrategy(), minMALookback, maxMALookback, riskMax, riskIncrement, allowance);
         }
     }
 
-    private static void getMACombos(BuyStrategyTypes buyStrategyType, SellStrategyTypes sellStrategyType, int minMALookback, int maxMALookback, BigDecimal riskMax, BigDecimal riskIncrement, BigDecimal allowance) throws InterruptedException {
+    private static void getMACombos(BuyStrategyTypes buyStrategyType, SellStrategyTypes sellStrategyType, int minMALookback, int maxMALookback, BigDecimal riskMax, BigDecimal riskIncrement, BigDecimal allowance) {
         int shortLookback;
         int longLookback = minMALookback;
         while (longLookback <= maxMALookback) {
