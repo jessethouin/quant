@@ -5,12 +5,9 @@ import com.jessethouin.quant.alpaca.beans.AlpacaOrder;
 import com.jessethouin.quant.beans.Currency;
 import com.jessethouin.quant.beans.Security;
 import com.jessethouin.quant.beans.SecurityPosition;
-import com.jessethouin.quant.binance.BinanceLive;
 import com.jessethouin.quant.binance.BinanceTransactions;
 import com.jessethouin.quant.binance.beans.BinanceLimitOrder;
 import com.jessethouin.quant.conf.Broker;
-import com.jessethouin.quant.conf.Config;
-import com.jessethouin.quant.db.Database;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.knowm.xchange.currency.CurrencyPair;
@@ -56,7 +53,7 @@ public class Transactions {
                 BinanceLimitOrder binanceLimitOrder = BinanceTransactions.buyTestCurrency(base.getPortfolio(), new CurrencyPair(base.getSymbol(), counter.getSymbol()), qty, price);
                 if (binanceLimitOrder == null) return;
 
-                processTestTransaction(qty, binanceLimitOrder);
+                BinanceTransactions.processTestTransaction(qty, binanceLimitOrder);
             }
             default -> throw new IllegalStateException("Unexpected broker: " + broker);
         }
@@ -77,25 +74,11 @@ public class Transactions {
                 BinanceLimitOrder binanceLimitOrder = BinanceTransactions.sellTestCurrency(base.getPortfolio(), new CurrencyPair(base.getSymbol(), counter.getSymbol()), base.getQuantity(), price);
                 if (binanceLimitOrder == null) return false;
 
-                processTestTransaction(base.getQuantity(), binanceLimitOrder);
+                BinanceTransactions.processTestTransaction(base.getQuantity(), binanceLimitOrder);
             }
             default -> throw new IllegalStateException("Unexpected broker: " + broker);
         }
         return true;
-    }
-
-    private static void processTestTransaction(BigDecimal qty, BinanceLimitOrder binanceLimitOrder) {
-        if (!Config.INSTANCE.isBackTest()) {
-            Database.persistBinanceLimitOrder(binanceLimitOrder);
-            BinanceLive.INSTANCE.getOrderHistoryLookup().setOrderId(binanceLimitOrder.getOrderId());
-        }
-        BinanceTransactions.processBinanceLimitOrder(binanceLimitOrder);
-
-        // This code would normally be handled by the Order websocket feed
-        binanceLimitOrder.setStatus(Order.OrderStatus.FILLED);
-        binanceLimitOrder.setAveragePrice(BigDecimal.ONE);
-        binanceLimitOrder.setCumulativeAmount(qty);
-        BinanceTransactions.processBinanceLimitOrder(binanceLimitOrder);
     }
 
     private static void placeSecurityBuyOrder(Broker broker, Security security, BigDecimal qty, BigDecimal price) {
@@ -151,6 +134,10 @@ public class Transactions {
 
     private static boolean placeSecuritySellOrder(Broker broker, Security security, BigDecimal price) {
         return placeSecuritySellOrder(broker, security, price, false);
+    }
+
+    private static boolean placeSecuritySellAllOrder(Broker broker, Security security, BigDecimal price) {
+        return placeSecuritySellOrder(broker, security, price, true);
     }
 
     public static void addSecurityPosition(Security security, BigDecimal qty, BigDecimal price) {
