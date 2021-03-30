@@ -117,7 +117,7 @@ public class BinanceLive {
         recalibrate();
 
         List<CurrencyPair> currencyPairs = Util.getAllCurrencyPairs(CONFIG);
-        currencyPairs.forEach(currencyPair -> MIN_TRADES.put(currencyPair, Util.getMinTrade(currencyPair)));
+        currencyPairs.forEach(currencyPair -> MIN_TRADES.put(currencyPair, BinanceUtil.getMinTrade(currencyPair)));
 
         ProductSubscription.ProductSubscriptionBuilder productSubscriptionBuilder = ProductSubscription.create();
         currencyPairs.forEach(productSubscriptionBuilder::addAll);
@@ -290,9 +290,9 @@ public class BinanceLive {
             BinanceLimitOrder binanceLimitOrder;
             LimitOrder limitOrder = (LimitOrder) order;
             switch (order.getStatus()) {
-                case NEW -> Util.createBinanceLimitOrder(portfolio, limitOrder);
+                case NEW -> BinanceUtil.createBinanceLimitOrder(portfolio, limitOrder);
                 case FILLED -> {
-                    binanceLimitOrder = Objects.requireNonNullElse(binanceLimitOrderRepository.getById(limitOrder.getId()), Util.createBinanceLimitOrder(portfolio, limitOrder));
+                    binanceLimitOrder = Objects.requireNonNullElse(binanceLimitOrderRepository.getById(limitOrder.getId()), BinanceUtil.createBinanceLimitOrder(portfolio, limitOrder));
                     binanceLimitOrder.setStatus(FILLED);
                     binanceLimitOrder.setAveragePrice(limitOrder.getAveragePrice());
                     binanceLimitOrder.setCumulativeAmount(limitOrder.getCumulativeAmount());
@@ -300,7 +300,7 @@ public class BinanceLive {
                     binanceLimitOrderRepository.save(binanceLimitOrder);
                 }
                 case CANCELED -> {
-                    binanceLimitOrder = Objects.requireNonNullElse(binanceLimitOrderRepository.getById(limitOrder.getId()), Util.createBinanceLimitOrder(portfolio, limitOrder));
+                    binanceLimitOrder = Objects.requireNonNullElse(binanceLimitOrderRepository.getById(limitOrder.getId()), BinanceUtil.createBinanceLimitOrder(portfolio, limitOrder));
                     binanceLimitOrder.setStatus(CANCELED);
                     BinanceTransactions.processBinanceLimitOrder(binanceLimitOrder);
                     binanceLimitOrderRepository.save(binanceLimitOrder);

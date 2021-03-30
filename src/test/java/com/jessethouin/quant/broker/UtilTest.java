@@ -1,5 +1,6 @@
 package com.jessethouin.quant.broker;
 
+import com.jessethouin.quant.binance.BinanceUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.Assertions;
@@ -13,12 +14,12 @@ class UtilTest {
 
     @Test
     void getTickerPrice() {
-        BigDecimal validPair = Util.getTickerPrice("ETH", "BTC");
+        BigDecimal validPair = BinanceUtil.getTickerPrice("ETH", "BTC");
         System.out.println(validPair);
         Assertions.assertNotNull(validPair);
         Assertions.assertTrue(validPair.compareTo(BigDecimal.ZERO) > 0);
 
-        BigDecimal invalidPair = Util.getTickerPrice("BTC", "ETH");
+        BigDecimal invalidPair = BinanceUtil.getTickerPrice("BTC", "ETH");
         System.out.println(invalidPair);
         Assertions.assertNotNull(invalidPair);
         Assertions.assertTrue(invalidPair.compareTo(BigDecimal.ZERO) > 0);
@@ -26,14 +27,14 @@ class UtilTest {
 
     @Test
     void getBreakEven() {
-        BigDecimal breakEven = Util.getBreakEven(BigDecimal.valueOf(0.000584));
+        BigDecimal breakEven = BinanceUtil.getBreakEven(BigDecimal.valueOf(0.000584));
         LOG.info("Break even: {}", breakEven);
         Assertions.assertTrue(breakEven.compareTo(BigDecimal.ZERO) > 0);
     }
 
     @Test
     void getMinTrade() {
-        BigDecimal minTrade = Util.getMinTrade(CurrencyPair.BTC_USDT);
+        BigDecimal minTrade = BinanceUtil.getMinTrade(CurrencyPair.BTC_USDT);
         LOG.info("Min Trade: {}", minTrade);
         Assertions.assertTrue(minTrade.compareTo(BigDecimal.ZERO) > 0);
     }

@@ -170,7 +170,7 @@ public class AlpacaLive {
                         Order order = tradeUpdateMessage.getData().getOrder();
                         LOG.info(order.toString());
                         AlpacaOrder alpacaOrder = alpacaOrderRepository.getById(order.getId()); //todo: check for null. What if it didn't make it into the database on order creation?
-                        Util.updateAlpacaOrder(alpacaOrder, order);
+                        AlpacaUtil.updateAlpacaOrder(alpacaOrder, order);
                         switch (com.jessethouin.quant.conf.OrderStatus.valueOf(alpacaOrder.getStatus())) {
                             case FILLED -> AlpacaTransactions.processFilledOrder(alpacaOrder);
                             case CANCELED -> LOG.info("Order canceled");
