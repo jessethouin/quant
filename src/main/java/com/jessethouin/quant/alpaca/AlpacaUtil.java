@@ -5,6 +5,9 @@ import com.jessethouin.quant.alpaca.beans.repos.AlpacaOrderRepository;
 import net.jacobpeterson.domain.alpaca.order.Order;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
+import java.time.ZonedDateTime;
+
 @Component
 public class AlpacaUtil {
     public static AlpacaOrderRepository alpacaOrderRepository;
@@ -42,4 +45,5 @@ public class AlpacaUtil {
         alpacaOrder.setHwm(order.getHwm());
         alpacaOrderRepository.save(alpacaOrder);
     }
+
 }

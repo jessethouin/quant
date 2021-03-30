@@ -1,20 +1,16 @@
 package com.jessethouin.quant.broker;
 
 import com.jessethouin.quant.alpaca.AlpacaTransactions;
-import com.jessethouin.quant.alpaca.beans.AlpacaOrder;
 import com.jessethouin.quant.beans.Currency;
 import com.jessethouin.quant.beans.Security;
 import com.jessethouin.quant.beans.SecurityPosition;
 import com.jessethouin.quant.binance.BinanceTransactions;
-import com.jessethouin.quant.binance.beans.BinanceLimitOrder;
 import com.jessethouin.quant.conf.Broker;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.knowm.xchange.currency.CurrencyPair;
-import org.knowm.xchange.dto.Order;
 
 import java.math.BigDecimal;
-import java.time.ZonedDateTime;
 import java.util.Date;
 
 public class Transactions {
@@ -50,10 +46,7 @@ public class Transactions {
             }
             case BINANCE_TEST -> {
                 LOG.trace("Placing Binance TEST BUY LIMIT order for {} of {} at {}", qty, base.getSymbol(), price);
-                BinanceLimitOrder binanceLimitOrder = BinanceTransactions.buyTestCurrency(base.getPortfolio(), new CurrencyPair(base.getSymbol(), counter.getSymbol()), qty, price);
-                if (binanceLimitOrder == null) return;
-
-                BinanceTransactions.processTestTransaction(qty, binanceLimitOrder);
+                BinanceTransactions.buyTestCurrency(base.getPortfolio(), new CurrencyPair(base.getSymbol(), counter.getSymbol()), qty, price);
             }
             default -> throw new IllegalStateException("Unexpected broker: " + broker);
         }
@@ -71,10 +64,7 @@ public class Transactions {
             }
             case BINANCE_TEST -> {
                 LOG.trace("Placing Binance TEST SELL LIMIT Order for {} of {} at {}", base.getQuantity(), base.getSymbol(), price);
-                BinanceLimitOrder binanceLimitOrder = BinanceTransactions.sellTestCurrency(base.getPortfolio(), new CurrencyPair(base.getSymbol(), counter.getSymbol()), base.getQuantity(), price);
-                if (binanceLimitOrder == null) return false;
-
-                BinanceTransactions.processTestTransaction(base.getQuantity(), binanceLimitOrder);
+                BinanceTransactions.sellTestCurrency(base.getPortfolio(), new CurrencyPair(base.getSymbol(), counter.getSymbol()), base.getQuantity(), price);
             }
             default -> throw new IllegalStateException("Unexpected broker: " + broker);
         }
@@ -87,15 +77,7 @@ public class Transactions {
         switch (broker) {
             case ALPACA -> AlpacaTransactions.placeSecurityBuyOrder(security, qty, price);
             case ALPACA_TEST -> {
-                AlpacaOrder alpacaOrder = AlpacaTransactions.placeTestSecurityBuyOrder(security, qty, price);
-
-                // This code would normally be handled by the Order websocket feed
-                if (alpacaOrder == null) return;
-                alpacaOrder.setStatus(Order.OrderStatus.FILLED.toString());
-                alpacaOrder.setFilledAt(ZonedDateTime.now());
-                alpacaOrder.setFilledQty(qty.toPlainString());
-                alpacaOrder.setFilledAvgPrice(price.toPlainString());
-                AlpacaTransactions.processFilledOrder(alpacaOrder);
+                AlpacaTransactions.placeTestSecurityBuyOrder(security, qty, price);
             }
             default -> throw new IllegalStateException("Unexpected broker: " + broker);
         }
@@ -117,15 +99,7 @@ public class Transactions {
         switch (broker) {
             case ALPACA -> AlpacaTransactions.placeSecuritySellOrder(security, sellQty, price);
             case ALPACA_TEST -> {
-                AlpacaOrder alpacaOrder = AlpacaTransactions.placeTestSecuritySellOrder(security, sellQty, price);
-
-                // This code would normally be handled by the Order websocket feed
-                if (alpacaOrder == null) return false;
-                alpacaOrder.setStatus(Order.OrderStatus.FILLED.toString());
-                alpacaOrder.setFilledAt(ZonedDateTime.now());
-                alpacaOrder.setFilledQty(sellQty.toPlainString());
-                alpacaOrder.setFilledAvgPrice(price.toPlainString());
-                AlpacaTransactions.processFilledOrder(alpacaOrder);
+                AlpacaTransactions.placeTestSecuritySellOrder(security, sellQty, price);
             }
             default -> throw new IllegalStateException("Unexpected broker: " + broker);
         }
