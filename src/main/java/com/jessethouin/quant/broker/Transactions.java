@@ -46,7 +46,7 @@ public class Transactions {
             case CEXIO -> LOG.info("Place CEXIO buy order here");
             case BINANCE -> {
                 LOG.info("Placing Binance BUY LIMIT order for {} of {} at {}", qty, base.getSymbol(), price);
-                BinanceTransactions.buyCurrency(base.getPortfolio(), new CurrencyPair(base.getSymbol(), counter.getSymbol()), qty, price);
+                BinanceTransactions.buyCurrency(new CurrencyPair(base.getSymbol(), counter.getSymbol()), qty, price);
             }
             case BINANCE_TEST -> {
                 LOG.trace("Placing Binance TEST BUY LIMIT order for {} of {} at {}", qty, base.getSymbol(), price);
@@ -67,7 +67,7 @@ public class Transactions {
             case CEXIO -> LOG.info("Place CEXIO sell order here");
             case BINANCE -> {
                 LOG.trace("Placing Binance SELL LIMIT Order for {} of {} at {}", base.getQuantity(), base.getSymbol(), price);
-                BinanceTransactions.sellCurrency(base.getPortfolio(), new CurrencyPair(base.getSymbol(), counter.getSymbol()), base.getQuantity(), price);
+                BinanceTransactions.sellCurrency(new CurrencyPair(base.getSymbol(), counter.getSymbol()), base.getQuantity(), price);
             }
             case BINANCE_TEST -> {
                 LOG.trace("Placing Binance TEST SELL LIMIT Order for {} of {} at {}", base.getQuantity(), base.getSymbol(), price);
@@ -101,11 +101,11 @@ public class Transactions {
         }
     }
 
-    private static boolean placeSecuritySellOrder(Broker broker, Security security, BigDecimal price, boolean sellAll) {
+    private static boolean placeSecuritySellOrder(Broker broker, Security security, BigDecimal price) {
         BigDecimal[] qty = {BigDecimal.ZERO};
 
         security.getSecurityPositions().forEach(position -> {
-            if (position.getPrice().compareTo(price) < 0 || sellAll) {
+            if (position.getPrice().compareTo(price) < 0) {
                 LOG.trace("Create sell order for " + position.getQuantity() + " " + security.getSymbol() + " at " + price);
                 qty[0] = qty[0].add(position.getQuantity());
             }
@@ -132,13 +132,6 @@ public class Transactions {
         return true;
     }
 
-    private static boolean placeSecuritySellOrder(Broker broker, Security security, BigDecimal price) {
-        return placeSecuritySellOrder(broker, security, price, false);
-    }
-
-    private static boolean placeSecuritySellAllOrder(Broker broker, Security security, BigDecimal price) {
-        return placeSecuritySellOrder(broker, security, price, true);
-    }
 
     public static void addSecurityPosition(Security security, BigDecimal qty, BigDecimal price) {
         if (qty.compareTo(BigDecimal.ZERO) == 0) return;
