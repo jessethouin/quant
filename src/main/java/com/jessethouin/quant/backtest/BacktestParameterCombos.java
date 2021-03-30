@@ -1,22 +1,26 @@
 package com.jessethouin.quant.backtest;
 
 import com.jessethouin.quant.backtest.beans.BacktestParameterResults;
+import com.jessethouin.quant.backtest.beans.repos.BacktestParameterResultsRepository;
+import com.jessethouin.quant.binance.beans.repos.BinanceTradeHistoryRepository;
 import com.jessethouin.quant.conf.BuyStrategyTypes;
 import com.jessethouin.quant.conf.SellStrategyTypes;
-import com.jessethouin.quant.db.Database;
 import org.apache.commons.lang3.time.StopWatch;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.hibernate.Session;
+import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.MessageFormat;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.List;
 import java.util.concurrent.*;
 
+@Component
 public class BacktestParameterCombos extends AbstractBacktest {
     private static final Logger LOG = LogManager.getLogger(BacktestParameterCombos.class);
 
@@ -27,6 +31,10 @@ public class BacktestParameterCombos extends AbstractBacktest {
 
     static int count = 0;
     static boolean save = true;
+
+    public BacktestParameterCombos(BinanceTradeHistoryRepository binanceTradeHistoryRepository, BacktestParameterResultsRepository backtestParameterResultsRepository) {
+        super(binanceTradeHistoryRepository, backtestParameterResultsRepository);
+    }
 
     public static BacktestParameterResults findBestCombo() {
         save = false;
@@ -171,21 +179,15 @@ public class BacktestParameterCombos extends AbstractBacktest {
         if (!save)
             return;
         LOG.trace("Writing results to the database. Please wait.");
+        List<BacktestParameterResults> rs = new ArrayList<>();
         BacktestParameterResults r;
-        Session session = Database.getSession();
-        session.beginTransaction();
-        int i = 0;
         while (BACKTEST_RESULTS_QUEUE.peek() != null) {
             r = BACKTEST_RESULTS_QUEUE.poll();
             r.setStart(CONFIG.getBacktestStart());
             r.setEnd(CONFIG.getBacktestEnd());
-            session.persist(r);
-            if (i++ % 500 == 0) {
-                session.getTransaction().commit();
-                session.beginTransaction();
-            }
+            rs.add(r);
         }
-        session.getTransaction().commit();
+        backtestParameterResultsRepository.saveAll(rs);
     }
 
     private static String getRemainingTimeUnits(BigDecimal t, BigDecimal r, BigDecimal c) {

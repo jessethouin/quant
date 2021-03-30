@@ -1,14 +1,17 @@
 package com.jessethouin.quant.backtest;
 
+import com.jessethouin.quant.backtest.beans.repos.BacktestParameterResultsRepository;
 import com.jessethouin.quant.beans.Currency;
 import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.beans.Security;
 import com.jessethouin.quant.binance.beans.BinanceLimitOrder;
+import com.jessethouin.quant.binance.beans.repos.BinanceTradeHistoryRepository;
 import com.jessethouin.quant.broker.Transactions;
 import com.jessethouin.quant.broker.Util;
 import com.jessethouin.quant.calculators.Calc;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.text.MessageFormat;
@@ -17,8 +20,13 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+@Component
 public class BacktestStaticParameters extends AbstractBacktest {
     private static final Logger LOG = LogManager.getLogger(BacktestStaticParameters.class);
+
+    public BacktestStaticParameters(BinanceTradeHistoryRepository binanceTradeHistoryRepository, BacktestParameterResultsRepository backtestParameterResultsRepository) {
+        super(binanceTradeHistoryRepository, backtestParameterResultsRepository);
+    }
 
     public static void runBacktest() {
         populateIntradayPrices();
