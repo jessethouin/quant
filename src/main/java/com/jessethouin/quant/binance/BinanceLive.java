@@ -2,16 +2,19 @@ package com.jessethouin.quant.binance;
 
 import com.jessethouin.quant.beans.Currency;
 import com.jessethouin.quant.beans.Portfolio;
+import com.jessethouin.quant.beans.repos.PortfolioRepository;
 import com.jessethouin.quant.binance.beans.BinanceLimitOrder;
 import com.jessethouin.quant.binance.beans.BinanceTradeHistory;
 import com.jessethouin.quant.binance.beans.OrderHistoryLookup;
+import com.jessethouin.quant.binance.beans.repos.BinanceLimitOrderRepository;
+import com.jessethouin.quant.binance.beans.repos.BinanceTradeHistoryRepository;
+import com.jessethouin.quant.binance.beans.repos.OrderHistoryLookupRepository;
 import com.jessethouin.quant.binance.config.BinanceApiConfig;
 import com.jessethouin.quant.broker.Transactions;
 import com.jessethouin.quant.broker.Util;
 import com.jessethouin.quant.calculators.Calc;
 import com.jessethouin.quant.conf.Config;
 import com.jessethouin.quant.conf.CurrencyTypes;
-import com.jessethouin.quant.db.Database;
 import info.bitrich.xchangestream.binance.BinanceStreamingExchange;
 import info.bitrich.xchangestream.core.ProductSubscription;
 import info.bitrich.xchangestream.core.StreamingExchangeFactory;
@@ -29,6 +32,7 @@ import org.knowm.xchange.binance.service.BinanceMarketDataService;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.trade.LimitOrder;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -42,9 +46,9 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.knowm.xchange.dto.Order.OrderStatus.CANCELED;
 import static org.knowm.xchange.dto.Order.OrderStatus.FILLED;
 
+@Component
 public class BinanceLive {
     private static final Logger LOG = LogManager.getLogger(BinanceLive.class);
-    public static final BinanceLive INSTANCE = new BinanceLive();
     private static final Config CONFIG = Config.INSTANCE;
     private static Portfolio portfolio;
     private static OrderHistoryLookup orderHistoryLookup;
@@ -54,6 +58,11 @@ public class BinanceLive {
     private static final BinanceExchangeInfo BINANCE_EXCHANGE_INFO;
     private static final CompositeDisposable COMPOSITE_DISPOSABLE = new CompositeDisposable();
     private static final Map<CurrencyPair, BigDecimal> MIN_TRADES = new HashMap<>();
+
+    private static BinanceLimitOrderRepository binanceLimitOrderRepository;
+    private static BinanceTradeHistoryRepository binanceTradeHistoryRepository;
+    private static OrderHistoryLookupRepository orderHistoryLookupRepository;
+    private static PortfolioRepository portfolioRepository;
 
     static {
         ExchangeSpecification exSpec = new BinanceExchange().getDefaultExchangeSpecification();
@@ -74,7 +83,11 @@ public class BinanceLive {
         CONFIG.setBacktestEnd(new Date(start));
     }
 
-    private BinanceLive() {
+    private BinanceLive(BinanceLimitOrderRepository binanceLimitOrderRepository, BinanceTradeHistoryRepository binanceTradeHistoryRepository, OrderHistoryLookupRepository orderHistoryLookupRepository, PortfolioRepository portfolioRepository) {
+        BinanceLive.binanceLimitOrderRepository = binanceLimitOrderRepository;
+        BinanceLive.binanceTradeHistoryRepository = binanceTradeHistoryRepository;
+        BinanceLive.orderHistoryLookupRepository = orderHistoryLookupRepository;
+        BinanceLive.portfolioRepository = portfolioRepository;
     }
 
     public BinanceExchange getBinanceExchange() {
@@ -95,9 +108,11 @@ public class BinanceLive {
 
     public static void doLive() {
         BinanceTransactions.showWallets();
-//        BinanceTransactions.showTradingFees();
-        portfolio = requireNonNullElse(Database.getPortfolio(), Util.createPortfolio());
-        Database.persistPortfolio(portfolio);
+
+        portfolio = requireNonNullElse(portfolioRepository.getTop1ByPortfolioIdIsNotNullOrderByPortfolioIdDesc(), Util.createPortfolio());
+        portfolioRepository.save(portfolio);
+
+        BinanceTransactions.showTradingFees(portfolio);
         reconcile();
         recalibrate();
 
@@ -150,7 +165,7 @@ public class BinanceLive {
         BinanceMarketDataService marketDataService = (BinanceMarketDataService) BINANCE_EXCHANGE.getMarketDataService();
         Ref ref = new Ref(currencyPair, portfolio);
 
-        new Timer().scheduleAtFixedRate(new TimerTask() {
+        new Timer("KlineSubscription").scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
                 try {
@@ -164,7 +179,7 @@ public class BinanceLive {
             }
         }, 0, SECONDS.toMillis(60));
 
-        new Timer().scheduleAtFixedRate(new TimerTask() {
+        new Timer("Recalibration").scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
                 recalibrate();
@@ -224,17 +239,17 @@ public class BinanceLive {
         ref.c.decide();
 
         BinanceTradeHistory binanceTradeHistory = BinanceTradeHistory.builder().timestamp(requireNonNullElse(ref.timestamp, new Date())).ma1(ref.shortMAValue).ma2(ref.longMAValue).l(ref.c.getLow()).h(ref.c.getHigh()).p(ref.price).build();
-        Database.persistTradeHistory(binanceTradeHistory);
+        binanceTradeHistoryRepository.save(binanceTradeHistory);
 
         BigDecimal value = Util.getValueAtPrice(ref.baseCurrency, ref.price).add(ref.counterCurrency.getQuantity());
 
         orderHistoryLookup.setTradeId(binanceTradeHistory.getTradeId());
         orderHistoryLookup.setValue(value);
-        Database.persistOrderHistoryLookup(orderHistoryLookup);
+        orderHistoryLookupRepository.save(orderHistoryLookup);
 
         LOG.info("{}/{} - {} : ma1 {} : ma2 {} : l {} : h {} : p {} : v {}", ref.baseCurrency.getSymbol(), ref.counterCurrency.getSymbol(), ref.count, ref.shortMAValue, ref.longMAValue, ref.c.getLow(), ref.c.getHigh(), ref.price, value);
 
-        Database.persistPortfolio(portfolio);
+        portfolioRepository.save(portfolio);
 
         ref.previousShortMAValue = ref.shortMAValue;
         ref.previousLongMAValue = ref.longMAValue;
@@ -277,18 +292,18 @@ public class BinanceLive {
             switch (order.getStatus()) {
                 case NEW -> Util.createBinanceLimitOrder(portfolio, limitOrder);
                 case FILLED -> {
-                    binanceLimitOrder = Objects.requireNonNullElse(Database.getBinanceLimitOrder(limitOrder.getId()), Util.createBinanceLimitOrder(portfolio, limitOrder));
+                    binanceLimitOrder = Objects.requireNonNullElse(binanceLimitOrderRepository.getById(limitOrder.getId()), Util.createBinanceLimitOrder(portfolio, limitOrder));
                     binanceLimitOrder.setStatus(FILLED);
                     binanceLimitOrder.setAveragePrice(limitOrder.getAveragePrice());
                     binanceLimitOrder.setCumulativeAmount(limitOrder.getCumulativeAmount());
                     BinanceTransactions.processBinanceLimitOrder(binanceLimitOrder);
-                    Database.persistBinanceLimitOrder(binanceLimitOrder);
+                    binanceLimitOrderRepository.save(binanceLimitOrder);
                 }
                 case CANCELED -> {
-                    binanceLimitOrder = Objects.requireNonNullElse(Database.getBinanceLimitOrder(limitOrder.getId()), Util.createBinanceLimitOrder(portfolio, limitOrder));
+                    binanceLimitOrder = Objects.requireNonNullElse(binanceLimitOrderRepository.getById(limitOrder.getId()), Util.createBinanceLimitOrder(portfolio, limitOrder));
                     binanceLimitOrder.setStatus(CANCELED);
                     BinanceTransactions.processBinanceLimitOrder(binanceLimitOrder);
-                    Database.persistBinanceLimitOrder(binanceLimitOrder);
+                    binanceLimitOrderRepository.save(binanceLimitOrder);
                 }
             }
         }

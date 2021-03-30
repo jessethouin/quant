@@ -1,12 +1,13 @@
 package com.jessethouin.quant.alpaca;
 
 import com.jessethouin.quant.alpaca.beans.AlpacaOrder;
+import com.jessethouin.quant.alpaca.beans.repos.AlpacaOrderRepository;
 import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.beans.Security;
+import com.jessethouin.quant.beans.repos.PortfolioRepository;
 import com.jessethouin.quant.broker.Util;
 import com.jessethouin.quant.calculators.Calc;
 import com.jessethouin.quant.conf.Config;
-import com.jessethouin.quant.db.Database;
 import net.jacobpeterson.abstracts.websocket.exception.WebsocketException;
 import net.jacobpeterson.alpaca.AlpacaAPI;
 import net.jacobpeterson.alpaca.enums.Direction;
@@ -28,6 +29,7 @@ import net.jacobpeterson.polygon.websocket.listener.PolygonStreamListenerAdapter
 import net.jacobpeterson.polygon.websocket.message.PolygonStreamMessageType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.text.MessageFormat;
@@ -40,32 +42,32 @@ import static com.jessethouin.quant.conf.OrderStatus.FILLED;
 import static net.jacobpeterson.polygon.websocket.message.PolygonStreamMessageType.AGGREGATE_PER_SECOND;
 import static net.jacobpeterson.polygon.websocket.message.PolygonStreamMessageType.TRADE;
 
+@Component
 public class AlpacaLive {
     private static final Logger LOG = LogManager.getLogger(AlpacaLive.class);
-    private static final AlpacaLive instance = new AlpacaLive();
     private static final Config config = Config.INSTANCE;
     private static Portfolio portfolio;
-    private final AlpacaAPI alpacaAPI = new AlpacaAPI();
-    private final PolygonAPI polygonAPI = new PolygonAPI();
+    private static final AlpacaAPI ALPACA_API = new AlpacaAPI();
+    private static final PolygonAPI POLYGON_API = new PolygonAPI();
 
-    private AlpacaLive() {
-    }
+    private static AlpacaOrderRepository alpacaOrderRepository;
+    private static PortfolioRepository portfolioRepository;
 
-    public static AlpacaLive getInstance() {
-        return instance;
+    private AlpacaLive(AlpacaOrderRepository alpacaOrderRepository, PortfolioRepository portfolioRepository) {
+        AlpacaLive.alpacaOrderRepository = alpacaOrderRepository;
+        AlpacaLive.portfolioRepository = portfolioRepository;
     }
 
     public static void doPaperTrading() {
 
-        AlpacaLive alpacaLive = AlpacaLive.getInstance();
-        Account alpacaAccount = alpacaLive.getAccount();
+        Account alpacaAccount = getAccount();
 
         if (alpacaAccount != null) {
-            portfolio = Database.getPortfolio();
+            portfolio = portfolioRepository.getTop1ByPortfolioIdIsNotNullOrderByPortfolioIdDesc();
 
             if (portfolio == null) {
                 portfolio = Util.createPortfolio();
-                Database.persistPortfolio(portfolio);
+                portfolioRepository.save(portfolio);
             }
 
             LOG.info("\n\nAlpaca Account Information:");
@@ -73,43 +75,43 @@ public class AlpacaLive {
 
             LOG.info("Portfolio Cash:");
             portfolio.getCurrencies().forEach(c -> LOG.info("\t{} : {}", c.getSymbol(), c.getQuantity()));
-            portfolio.getSecurities().forEach(security -> LOG.info("Open position:" + alpacaLive.getOpenPosition(security.getSymbol())));
+            portfolio.getSecurities().forEach(security -> LOG.info("Open position:" + getOpenPosition(security.getSymbol())));
 
-            Objects.requireNonNull(alpacaLive.getClosedOrders()).forEach(o -> LOG.info("Closed Orders:" + o.toString()));
+            Objects.requireNonNull(getClosedOrders()).forEach(o -> LOG.info("Closed Orders:" + o.toString()));
 
-            alpacaLive.openStreamListener(portfolio.getSecurities());
+            openStreamListener(portfolio.getSecurities());
             try {
-                alpacaLive.openTradeUpdatesStream();
+                openTradeUpdatesStream();
             } catch (WebsocketException e) {
                 LOG.error("Unable to open websocket stream for trade (order) updates. {}", e.getLocalizedMessage());
             }
         }
     }
 
-    private Account getAccount() {
+    private static Account getAccount() {
         Account alpacaAccount = null;
         // Get Account Information
         try {
-            alpacaAccount = getAlpacaAPI().getAccount();
+            alpacaAccount = getAlpacaApi().getAccount();
         } catch (AlpacaAPIRequestException e) {
             LOG.error(e);
         }
         return alpacaAccount;
     }
 
-    private ArrayList<Order> getClosedOrders() {
+    private static ArrayList<Order> getClosedOrders() {
         try {
-            return getAlpacaAPI().getOrders(OrderStatus.CLOSED, 500, ZonedDateTime.now().truncatedTo(ChronoUnit.DAYS), ZonedDateTime.now(), Direction.ASCENDING, false);
+            return getAlpacaApi().getOrders(OrderStatus.CLOSED, 500, ZonedDateTime.now().truncatedTo(ChronoUnit.DAYS), ZonedDateTime.now(), Direction.ASCENDING, false);
         } catch (AlpacaAPIRequestException e) {
             LOG.error(e);
         }
         return null;
     }
 
-    private void openStreamListener(Set<Security> securities) {
+    private static void openStreamListener(Set<Security> securities) {
         securities.forEach(s -> {
             try {
-                getPolygonAPI().addPolygonStreamListener(new PolygonStreamListenerAdapter(s.getSymbol(), PolygonStreamMessageType.values()) {
+                getPolygonApi().addPolygonStreamListener(new PolygonStreamListenerAdapter(s.getSymbol(), PolygonStreamMessageType.values()) {
                     final Calc c = new Calc(s, config, BigDecimal.ZERO);
                     final List<BigDecimal> intradayPrices = new ArrayList<>();
                     int count = 0;
@@ -146,7 +148,7 @@ public class AlpacaLive {
                         c.decide();
                         LOG.debug(MessageFormat.format("{0,number,000} : ma1 {1,number,000.0000} : ma2 {2,number,000.0000} : l {3,number,000.0000}: h {4,number,000.0000}: p {5,number,000.0000} : {6,number,00000.0000}", count, shortMAValue, longMAValue, c.getLow(), c.getHigh(), price, Util.getPortfolioValue(portfolio, s.getCurrency(), price)));
 
-                        Database.persistPortfolio(portfolio);
+                        portfolioRepository.save(portfolio);
                         previousShortMAValue = shortMAValue;
                         previousLongMAValue = longMAValue;
                         count++;
@@ -158,8 +160,8 @@ public class AlpacaLive {
         });
     }
 
-    private void openTradeUpdatesStream() throws WebsocketException {
-        getAlpacaAPI().addAlpacaStreamListener(new AlpacaStreamListenerAdapter(AlpacaStreamMessageType.TRADE_UPDATES, AlpacaStreamMessageType.ACCOUNT_UPDATES) {
+    private static void openTradeUpdatesStream() throws WebsocketException {
+        getAlpacaApi().addAlpacaStreamListener(new AlpacaStreamListenerAdapter(AlpacaStreamMessageType.TRADE_UPDATES, AlpacaStreamMessageType.ACCOUNT_UPDATES) {
             @Override
             public void onStreamUpdate(AlpacaStreamMessageType streamMessageType, AlpacaStreamMessage streamMessage) {
                 switch (streamMessageType) {
@@ -167,7 +169,7 @@ public class AlpacaLive {
                         TradeUpdateMessage tradeUpdateMessage = (TradeUpdateMessage) streamMessage;
                         Order order = tradeUpdateMessage.getData().getOrder();
                         LOG.info(order.toString());
-                        AlpacaOrder alpacaOrder = Database.getAlpacaOrder(order.getId()); //todo: check for null. What if it didn't make it into the database on order creation?
+                        AlpacaOrder alpacaOrder = alpacaOrderRepository.getById(order.getId()); //todo: check for null. What if it didn't make it into the database on order creation?
                         Util.updateAlpacaOrder(alpacaOrder, order);
                         switch (com.jessethouin.quant.conf.OrderStatus.valueOf(alpacaOrder.getStatus())) {
                             case FILLED -> AlpacaTransactions.processFilledOrder(alpacaOrder);
@@ -187,21 +189,21 @@ public class AlpacaLive {
         });
     }
 
-    private Position getOpenPosition(String symbol) {
+    private static Position getOpenPosition(String symbol) {
         Position position = new Position();
         try {
-            position = getAlpacaAPI().getOpenPositionBySymbol(symbol);
+            position = getAlpacaApi().getOpenPositionBySymbol(symbol);
         } catch (AlpacaAPIRequestException e) {
             LOG.error(e);
         }
         return position;
     }
 
-    public AlpacaAPI getAlpacaAPI() {
-        return alpacaAPI;
+    public static AlpacaAPI getAlpacaApi() {
+        return ALPACA_API;
     }
 
-    public PolygonAPI getPolygonAPI() {
-        return polygonAPI;
+    public static PolygonAPI getPolygonApi() {
+        return POLYGON_API;
     }
 }

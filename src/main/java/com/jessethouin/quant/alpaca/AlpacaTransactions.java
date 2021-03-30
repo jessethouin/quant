@@ -28,7 +28,7 @@ public class AlpacaTransactions {
 
     public static void placeSecurityBuyOrder(Security security, BigDecimal qty, BigDecimal price) {
         if (qty.equals(BigDecimal.ZERO)) return;
-        AlpacaAPI alpacaAPI = AlpacaLive.getInstance().getAlpacaAPI();
+        AlpacaAPI alpacaAPI = AlpacaLive.getAlpacaApi();
         try {
             Order order = alpacaAPI.requestNewLimitOrder(security.getSymbol(), qty.intValue(), OrderSide.BUY, OrderTimeInForce.DAY, price.doubleValue(), false);
             AlpacaOrder alpacaOrder = new AlpacaOrder(order, security.getPortfolio());
@@ -79,7 +79,7 @@ public class AlpacaTransactions {
     public static void placeSecuritySellOrder(Security security, BigDecimal qty, BigDecimal price) {
         if (qty.equals(BigDecimal.ZERO)) return;
 
-        AlpacaAPI alpacaAPI = AlpacaLive.getInstance().getAlpacaAPI();
+        AlpacaAPI alpacaAPI = AlpacaLive.getAlpacaApi();
         try {
             Order order = alpacaAPI.requestNewLimitOrder(security.getSymbol(), qty.intValue(), OrderSide.SELL, OrderTimeInForce.DAY, price.doubleValue(), false);
             LOG.info("Sell order: " + order.toString().replace(",", ",\n\t"));

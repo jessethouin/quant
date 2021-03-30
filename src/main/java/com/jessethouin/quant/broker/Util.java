@@ -1,23 +1,23 @@
 package com.jessethouin.quant.broker;
 
-import com.jessethouin.quant.alpaca.AlpacaLive;
 import com.jessethouin.quant.alpaca.beans.AlpacaOrder;
+import com.jessethouin.quant.alpaca.beans.repos.AlpacaOrderRepository;
 import com.jessethouin.quant.backtest.BacktestParameterCombos;
 import com.jessethouin.quant.backtest.beans.BacktestParameterResults;
 import com.jessethouin.quant.beans.Currency;
 import com.jessethouin.quant.beans.CurrencyLedger;
 import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.beans.Security;
+import com.jessethouin.quant.beans.repos.PortfolioRepository;
 import com.jessethouin.quant.binance.BinanceLive;
 import com.jessethouin.quant.binance.BinanceTransactions;
 import com.jessethouin.quant.binance.beans.BinanceLimitOrder;
+import com.jessethouin.quant.binance.beans.repos.BinanceLimitOrderRepository;
 import com.jessethouin.quant.calculators.MA;
 import com.jessethouin.quant.conf.Config;
 import com.jessethouin.quant.conf.CurrencyTypes;
 import com.jessethouin.quant.conf.MATypes;
-import com.jessethouin.quant.db.Database;
 import net.jacobpeterson.domain.alpaca.order.Order;
-import net.jacobpeterson.polygon.rest.exception.PolygonAPIRequestException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.knowm.xchange.binance.dto.meta.exchangeinfo.Filter;
@@ -25,6 +25,7 @@ import org.knowm.xchange.binance.dto.meta.exchangeinfo.Symbol;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.exceptions.CurrencyPairNotValidException;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -35,23 +36,21 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
+import static java.util.Objects.requireNonNullElse;
+
+@Component
 public class Util {
     private static final Logger LOG = LogManager.getLogger(Util.class);
+    private static BinanceLive binanceLive;
+    private static BinanceLimitOrderRepository binanceLimitOrderRepository;
+    private static AlpacaOrderRepository alpacaOrderRepository;
+    private static PortfolioRepository portfolioRepository;
 
-    public static BigDecimal getPortfolioValue(Portfolio portfolio, Currency currency) {
-        AtomicReference<BigDecimal> holdings = new AtomicReference<>(BigDecimal.ZERO);
-        holdings.updateAndGet(v -> v.add(currency.getQuantity()));
-        portfolio.getSecurities().stream().filter(security -> security.getCurrency().equals(currency)).forEach(s -> {
-            try {
-                BigDecimal price = BigDecimal.valueOf(AlpacaLive.getInstance().getPolygonAPI().getLastQuote(s.getSymbol()).getLast().getAskprice());
-                s.getSecurityPositions().forEach(
-                        position -> holdings.updateAndGet(
-                                v -> v.add(price.multiply(position.getQuantity()))));
-            } catch (PolygonAPIRequestException e) {
-                LOG.error(e.getLocalizedMessage());
-            }
-        });
-        return holdings.get();
+    public Util(BinanceLive binanceLive, BinanceLimitOrderRepository binanceLimitOrderRepository, AlpacaOrderRepository alpacaOrderRepository, PortfolioRepository portfolioRepository) {
+        Util.binanceLive = binanceLive;
+        Util.binanceLimitOrderRepository = binanceLimitOrderRepository;
+        Util.alpacaOrderRepository = alpacaOrderRepository;
+        Util.portfolioRepository = portfolioRepository;
     }
 
     public static BigDecimal getPortfolioValue(Portfolio portfolio, Currency currency, BigDecimal price) {
@@ -105,7 +104,7 @@ public class Util {
             Security security = new Security();
             security.setSymbol(symbol);
             security.setPortfolio(portfolio);
-            Database.persistPortfolio(portfolio);
+            portfolioRepository.save(portfolio);
             security.setCurrency(getCurrencyFromPortfolio("USD", portfolio)); // todo: find a dynamic way to get currency of a security.
             return security;
         }
@@ -130,7 +129,7 @@ public class Util {
             currency.setSymbol(symbol);
             currency.setQuantity(BigDecimal.ZERO);
             currency.setPortfolio(portfolio);
-            Database.persistPortfolio(portfolio);
+            portfolioRepository.save(portfolio);
             return currency;
         }
     }
@@ -138,7 +137,7 @@ public class Util {
     public static BigDecimal getTickerPrice(String base, String counter) {
         BigDecimal ret = null;
         try {
-            ret = BinanceLive.INSTANCE.getBinanceExchange().getMarketDataService().getTicker(new CurrencyPair(base, counter)).getLast();
+            ret = binanceLive.getBinanceExchange().getMarketDataService().getTicker(new CurrencyPair(base, counter)).getLast();
         } catch (IOException e) {
             LOG.error(e.getMessage());
         } catch (CurrencyPairNotValidException e) {
@@ -147,7 +146,7 @@ public class Util {
 
         if (ret == null) {
             try {
-                ret = BinanceLive.INSTANCE.getBinanceExchange().getMarketDataService().getTicker(new CurrencyPair(counter, base)).getLast();
+                ret = binanceLive.getBinanceExchange().getMarketDataService().getTicker(new CurrencyPair(counter, base)).getLast();
             } catch (IOException e) {
                 LOG.error(e.getMessage());
             } catch (CurrencyPairNotValidException e) {
@@ -184,7 +183,7 @@ public class Util {
         alpacaOrder.setTrailPrice(order.getTrailPrice());
         alpacaOrder.setTrailPercent(order.getTrailPercent());
         alpacaOrder.setHwm(order.getHwm());
-        Database.persistAlpacaOrder(alpacaOrder);
+        alpacaOrderRepository.save(alpacaOrder);
     }
 
     public static Portfolio createPortfolio() {
@@ -265,7 +264,7 @@ public class Util {
 
     public static BigDecimal getMinTrade(CurrencyPair currencyPair) {
         BigDecimal[] minTrade = {BigDecimal.ZERO};
-        Symbol[] symbols = BinanceLive.INSTANCE.getBinanceExchangeInfo().getSymbols();
+        Symbol[] symbols = binanceLive.getBinanceExchangeInfo().getSymbols();
         List<Symbol> symbolList = Arrays.stream(symbols).filter(symbol -> symbol.getBaseAsset().equals(currencyPair.base.getSymbol()) && symbol.getQuoteAsset().equals(currencyPair.counter.getSymbol())).collect(Collectors.toList());
         symbolList.forEach(symbol -> {
             List<Filter> filters = Arrays.stream(symbol.getFilters()).filter(filter -> filter.getFilterType().equals("MIN_NOTIONAL")).collect(Collectors.toList());
@@ -275,7 +274,7 @@ public class Util {
     }
 
     public static BinanceLimitOrder createBinanceLimitOrder(Portfolio portfolio, LimitOrder limitOrder) {
-        BinanceLimitOrder existingBinanceLimitOrder = Database.getBinanceLimitOrder(limitOrder.getId());
+        BinanceLimitOrder existingBinanceLimitOrder = binanceLimitOrderRepository.getById(limitOrder.getId());
         if (existingBinanceLimitOrder != null) {
             LOG.info("Order {} exists.", limitOrder.getId());
             return existingBinanceLimitOrder;
@@ -284,20 +283,20 @@ public class Util {
         BinanceLimitOrder binanceLimitOrder = new BinanceLimitOrder(limitOrder, portfolio);
         binanceLimitOrder.setStatus(org.knowm.xchange.dto.Order.OrderStatus.NEW);
         BinanceTransactions.processBinanceLimitOrder(binanceLimitOrder);
-        Database.persistBinanceLimitOrder(binanceLimitOrder);
+        binanceLimitOrderRepository.save(binanceLimitOrder);
         return binanceLimitOrder;
     }
 
     public static void debit(Currency currency, BigDecimal qty) {
         CurrencyLedger currencyLedger = CurrencyLedger.builder().currency(currency).debit(qty).timestamp(new Date()).build();
         currency.getCurrencyLedgers().add(currencyLedger);
-        currency.setQuantity(currency.getQuantity().subtract(qty));
+        currency.setQuantity(currency.getQuantity().subtract(requireNonNullElse(qty, BigDecimal.ZERO)));
     }
 
     public static void credit(Currency currency, BigDecimal qty) {
         CurrencyLedger currencyLedger = CurrencyLedger.builder().currency(currency).credit(qty).timestamp(new Date()).build();
         currency.getCurrencyLedgers().add(currencyLedger);
-        currency.setQuantity(currency.getQuantity().add(qty));
+        currency.setQuantity(currency.getQuantity().add(requireNonNullElse(qty, BigDecimal.ZERO)));
     }
 
     public static void relacibrate(Config config) {
