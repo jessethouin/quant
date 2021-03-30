@@ -40,8 +40,22 @@ public class AlpacaTransactions {
         LOG.error("Buy order failed: " + security.getSymbol() + ", " + qty + ", " + price);
     }
 
-    public static AlpacaOrder placeTestSecurityBuyOrder(Security security, BigDecimal qty, BigDecimal price) {
-        if (qty.equals(BigDecimal.ZERO)) return null;
+    public static void placeSecuritySellOrder(Security security, BigDecimal qty, BigDecimal price) {
+        if (qty.equals(BigDecimal.ZERO)) return;
+
+        AlpacaAPI alpacaAPI = AlpacaLive.getAlpacaApi();
+        try {
+            Order order = alpacaAPI.requestNewLimitOrder(security.getSymbol(), qty.intValue(), OrderSide.SELL, OrderTimeInForce.DAY, price.doubleValue(), false);
+            LOG.info("Sell order: " + order.toString().replace(",", ",\n\t"));
+            return;
+        } catch (AlpacaAPIRequestException e) {
+            LOG.error(e.getLocalizedMessage());
+        }
+        LOG.info("Sell order failed: " + security.getSymbol() + ", " + qty + ", " + price);
+    }
+
+    public static void placeTestSecurityBuyOrder(Security security, BigDecimal qty, BigDecimal price) {
+        if (qty.equals(BigDecimal.ZERO)) return;
         Order order = new Order(
                 "fake_order_id_" + (new Random().nextInt(1000)),
                 "fake_client_order_id_" + (new Random().nextInt(1000)),
@@ -73,25 +87,11 @@ public class AlpacaTransactions {
                 null,
                 null
         );
-        return new AlpacaOrder(order, security.getPortfolio());
+        processTestOrder(qty, price, new AlpacaOrder(order, security.getPortfolio()));
     }
 
-    public static void placeSecuritySellOrder(Security security, BigDecimal qty, BigDecimal price) {
+    public static void placeTestSecuritySellOrder(Security security, BigDecimal qty, BigDecimal price) {
         if (qty.equals(BigDecimal.ZERO)) return;
-
-        AlpacaAPI alpacaAPI = AlpacaLive.getAlpacaApi();
-        try {
-            Order order = alpacaAPI.requestNewLimitOrder(security.getSymbol(), qty.intValue(), OrderSide.SELL, OrderTimeInForce.DAY, price.doubleValue(), false);
-            LOG.info("Sell order: " + order.toString().replace(",", ",\n\t"));
-            return;
-        } catch (AlpacaAPIRequestException e) {
-            LOG.error(e.getLocalizedMessage());
-        }
-        LOG.info("Sell order failed: " + security.getSymbol() + ", " + qty + ", " + price);
-    }
-
-    public static AlpacaOrder placeTestSecuritySellOrder(Security security, BigDecimal qty, BigDecimal price) {
-        if (qty.equals(BigDecimal.ZERO)) return null;
         Order order = new Order(
                 "fake_order_id_" + (new Random().nextInt(1000)),
                 "fake_client_order_id_" + (new Random().nextInt(1000)),
@@ -124,7 +124,18 @@ public class AlpacaTransactions {
                 null
         );
 
-        return new AlpacaOrder(order, security.getPortfolio());
+        processTestOrder(qty, price, new AlpacaOrder(order, security.getPortfolio()));
+    }
+
+    private static void processTestOrder(BigDecimal qty, BigDecimal price, AlpacaOrder alpacaOrder) {
+        // This code would normally be handled by the Order websocket feed
+        if (alpacaOrder == null)
+            return;
+        alpacaOrder.setStatus(org.knowm.xchange.dto.Order.OrderStatus.FILLED.toString());
+        alpacaOrder.setFilledAt(ZonedDateTime.now());
+        alpacaOrder.setFilledQty(qty.toPlainString());
+        alpacaOrder.setFilledAvgPrice(price.toPlainString());
+        processFilledOrder(alpacaOrder);
     }
 
     public static void processFilledOrder(AlpacaOrder alpacaOrder) {

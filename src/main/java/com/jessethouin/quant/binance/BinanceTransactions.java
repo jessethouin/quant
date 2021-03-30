@@ -67,18 +67,18 @@ public class BinanceTransactions {
         }
     }
 
-    public static BinanceLimitOrder buyTestCurrency(Portfolio portfolio, CurrencyPair currencyPair, BigDecimal qty, BigDecimal price) {
-        return testTransact(portfolio, currencyPair, qty, price, BID);
+    public static void buyTestCurrency(Portfolio portfolio, CurrencyPair currencyPair, BigDecimal qty, BigDecimal price) {
+        testTransact(portfolio, currencyPair, qty, price, BID);
     }
 
-    public static BinanceLimitOrder sellTestCurrency(Portfolio portfolio, CurrencyPair currencyPair, BigDecimal qty, BigDecimal price) {
-        return testTransact(portfolio, currencyPair, qty, price, ASK);
+    public static void sellTestCurrency(Portfolio portfolio, CurrencyPair currencyPair, BigDecimal qty, BigDecimal price) {
+        testTransact(portfolio, currencyPair, qty, price, ASK);
     }
 
-    private static BinanceLimitOrder testTransact(Portfolio portfolio, CurrencyPair currencyPair, BigDecimal qty, BigDecimal price, OrderType orderType) {
+    private static void testTransact(Portfolio portfolio, CurrencyPair currencyPair, BigDecimal qty, BigDecimal price, OrderType orderType) {
         if (!Config.INSTANCE.isBackTest() && qty.multiply(price).compareTo(binanceLive.getMinTrades().get(currencyPair)) < 0) {
             LOG.warn("Trade must be minimum of {} for {}. Was {}.", binanceLive.getMinTrades().get(currencyPair), currencyPair.toString(), qty.multiply(price));
-            return null;
+            return;
         }
 
         LimitOrder limitOrder = new LimitOrder.Builder(orderType, currencyPair)
@@ -93,10 +93,10 @@ public class BinanceTransactions {
         portfolio.getBinanceLimitOrders().add(binanceLimitOrder);
         LOG.trace("Limit Order: " + limitOrder.toString());
         LOG.trace("Binance Limit order: " + binanceLimitOrder.toString().replace(",", ",\n\t"));
-        return binanceLimitOrder;
+        processTestTransaction(qty, binanceLimitOrder);
     }
 
-    public static void processTestTransaction(BigDecimal qty, BinanceLimitOrder binanceLimitOrder) {
+    private static void processTestTransaction(BigDecimal qty, BinanceLimitOrder binanceLimitOrder) {
         if (!Config.INSTANCE.isBackTest()) {
             binanceLimitOrderRepository.save(binanceLimitOrder);
             binanceLive.getOrderHistoryLookup().setOrderId(binanceLimitOrder.getOrderId());
