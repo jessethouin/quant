@@ -49,7 +49,6 @@ import static org.knowm.xchange.dto.Order.OrderStatus.FILLED;
 @Component
 public class BinanceLive {
     private static final Logger LOG = LogManager.getLogger(BinanceLive.class);
-    public static final BinanceLive INSTANCE = null;
     private static final Config CONFIG = Config.INSTANCE;
     private static Portfolio portfolio;
     private static OrderHistoryLookup orderHistoryLookup;
@@ -109,9 +108,11 @@ public class BinanceLive {
 
     public static void doLive() {
         BinanceTransactions.showWallets();
-//        BinanceTransactions.showTradingFees();
+
         portfolio = requireNonNullElse(portfolioRepository.getTop1ByPortfolioIdIsNotNullOrderByPortfolioIdDesc(), Util.createPortfolio());
         portfolioRepository.save(portfolio);
+
+        BinanceTransactions.showTradingFees(portfolio);
         reconcile();
         recalibrate();
 

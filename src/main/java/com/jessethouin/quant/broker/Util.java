@@ -18,8 +18,6 @@ import com.jessethouin.quant.conf.Config;
 import com.jessethouin.quant.conf.CurrencyTypes;
 import com.jessethouin.quant.conf.MATypes;
 import net.jacobpeterson.domain.alpaca.order.Order;
-import net.jacobpeterson.polygon.PolygonAPI;
-import net.jacobpeterson.polygon.rest.exception.PolygonAPIRequestException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.knowm.xchange.binance.dto.meta.exchangeinfo.Filter;
@@ -43,7 +41,6 @@ import static java.util.Objects.requireNonNullElse;
 @Component
 public class Util {
     private static final Logger LOG = LogManager.getLogger(Util.class);
-    private static final PolygonAPI POLYGON_API = new PolygonAPI();
     private static BinanceLive binanceLive;
     private static BinanceLimitOrderRepository binanceLimitOrderRepository;
     private static AlpacaOrderRepository alpacaOrderRepository;
@@ -54,22 +51,6 @@ public class Util {
         Util.binanceLimitOrderRepository = binanceLimitOrderRepository;
         Util.alpacaOrderRepository = alpacaOrderRepository;
         Util.portfolioRepository = portfolioRepository;
-    }
-
-    public static BigDecimal getPortfolioValue(Portfolio portfolio, Currency currency) {
-        AtomicReference<BigDecimal> holdings = new AtomicReference<>(BigDecimal.ZERO);
-        holdings.updateAndGet(v -> v.add(currency.getQuantity()));
-        portfolio.getSecurities().stream().filter(security -> security.getCurrency().equals(currency)).forEach(s -> {
-            try {
-                BigDecimal price = BigDecimal.valueOf(POLYGON_API.getLastQuote(s.getSymbol()).getLast().getAskprice());
-                s.getSecurityPositions().forEach(
-                        position -> holdings.updateAndGet(
-                                v -> v.add(price.multiply(position.getQuantity()))));
-            } catch (PolygonAPIRequestException e) {
-                LOG.error(e.getLocalizedMessage());
-            }
-        });
-        return holdings.get();
     }
 
     public static BigDecimal getPortfolioValue(Portfolio portfolio, Currency currency, BigDecimal price) {

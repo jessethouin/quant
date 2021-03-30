@@ -37,15 +37,15 @@ public class BinanceTransactions {
         BinanceTransactions.binanceLimitOrderRepository = binanceLimitOrderRepository;
     }
 
-    public static void buyCurrency(Portfolio portfolio, CurrencyPair currencyPair, BigDecimal qty, BigDecimal price) {
-        transact(portfolio, currencyPair, qty, price, BID);
+    public static void buyCurrency(CurrencyPair currencyPair, BigDecimal qty, BigDecimal price) {
+        transact(currencyPair, qty, price, BID);
     }
 
-    public static void sellCurrency(Portfolio portfolio, CurrencyPair currencyPair, BigDecimal qty, BigDecimal price) {
-        transact(portfolio, currencyPair, qty, price, ASK);
+    public static void sellCurrency(CurrencyPair currencyPair, BigDecimal qty, BigDecimal price) {
+        transact(currencyPair, qty, price, ASK);
     }
 
-    private static void transact(Portfolio portfolio, CurrencyPair currencyPair, BigDecimal qty, BigDecimal price, OrderType orderType) {
+    private static void transact(CurrencyPair currencyPair, BigDecimal qty, BigDecimal price, OrderType orderType) {
         if (qty.multiply(price).compareTo(binanceLive.getMinTrades().get(currencyPair)) < 0) {
             LOG.warn("Trade must be minimum of {} for {}. Was {}.", binanceLive.getMinTrades().get(currencyPair), currencyPair.toString(), qty.multiply(price));
             return;
@@ -152,10 +152,10 @@ public class BinanceTransactions {
         try {
             StringBuilder sb = new StringBuilder();
             accountService.getAccountInfo().getWallets().forEach((s, w) -> {
-                sb.append(System.lineSeparator());
                 w.getBalances().forEach((c, b) -> {
                     if (b.getTotal().compareTo(BigDecimal.ZERO) > 0) {
                         sb.append(System.lineSeparator());
+                        sb.append("\t");
                         sb.append(c.getSymbol());
                         sb.append(" - ");
                         sb.append(b.getTotal().toPlainString());
@@ -168,12 +168,16 @@ public class BinanceTransactions {
         }
     }
 
-    public static void showTradingFees() {
+    public static void showTradingFees(Portfolio portfolio) {
         BinanceAccountService accountService = (BinanceAccountService) binanceLive.getBinanceExchange().getAccountService();
 
         try {
             Map<CurrencyPair, Fee> dynamicTradingFees = accountService.getDynamicTradingFees();
-            dynamicTradingFees.forEach((c, f) -> LOG.info(c.toString() + " - m : " + f.getMakerFee() + " t : " + f.getTakerFee()));
+            dynamicTradingFees.forEach((c, f) -> {
+                if (portfolio.getCurrencies().stream().anyMatch(currency -> c.base.getSymbol().equals(currency.getSymbol()) && c.counter.getSymbol().equals(currency.getSymbol()))) { // this needs work. yikes.
+                    LOG.info(c.toString() + " - m : " + f.getMakerFee() + " t : " + f.getTakerFee());
+                }
+            });
         } catch (IOException e) {
             LOG.error(e.getLocalizedMessage());
         }
