@@ -20,6 +20,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import static com.jessethouin.quant.conf.Config.CONFIG;
+
 @Component
 public class BacktestStaticParameters extends AbstractBacktest {
     private static final Logger LOG = LogManager.getLogger(BacktestStaticParameters.class);

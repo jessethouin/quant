@@ -76,9 +76,7 @@ public class Transactions {
 
         switch (broker) {
             case ALPACA -> AlpacaTransactions.placeSecurityBuyOrder(security, qty, price);
-            case ALPACA_TEST -> {
-                AlpacaTransactions.placeTestSecurityBuyOrder(security, qty, price);
-            }
+            case ALPACA_TEST -> AlpacaTransactions.placeTestSecurityBuyOrder(security, qty, price);
             default -> throw new IllegalStateException("Unexpected broker: " + broker);
         }
     }
@@ -98,9 +96,7 @@ public class Transactions {
 
         switch (broker) {
             case ALPACA -> AlpacaTransactions.placeSecuritySellOrder(security, sellQty, price);
-            case ALPACA_TEST -> {
-                AlpacaTransactions.placeTestSecuritySellOrder(security, sellQty, price);
-            }
+            case ALPACA_TEST -> AlpacaTransactions.placeTestSecuritySellOrder(security, sellQty, price);
             default -> throw new IllegalStateException("Unexpected broker: " + broker);
         }
         return true;

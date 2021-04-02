@@ -19,6 +19,7 @@ public class CurrencyLedger {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long currencyLedgerId;
     private Date timestamp;
+    private String memo;
     @Convert(converter = BigDecimalConverter.class)
     private BigDecimal debit;
     @Convert(converter = BigDecimalConverter.class)

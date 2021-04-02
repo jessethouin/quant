@@ -238,8 +238,8 @@ public class BinanceLive {
                 c.setCurrencyType(CurrencyTypes.CRYPTO);
                 c.setPortfolio(portfolio);
                 portfolio.getCurrencies().add(c);
-                if (diff > 0) Util.debit(c, c.getQuantity().subtract(balance.getAvailable()).abs());
-                if (diff < 0) Util.credit(c, c.getQuantity().add(balance.getAvailable()).abs());
+                if (diff > 0) Util.debit(c, c.getQuantity().subtract(balance.getAvailable()).abs(), "Reconciling with Binance wallet");
+                if (diff < 0) Util.credit(c, c.getQuantity().add(balance.getAvailable()).abs(), "Reconciling with Binance wallet");
                 LOG.info("{}: Reconciling local ledger ({}) with remote wallet ({}).", c.getSymbol(), c.getQuantity(), balance.getAvailable());
             }));
         } catch (IOException e) {
@@ -248,7 +248,7 @@ public class BinanceLive {
     }
 
     private void processRemoteOrder(Order order) {
-        LOG.info("Order: {}", order);
+        LOG.info("Remote Order: {}", order);
         if (order instanceof LimitOrder) {
             LimitOrder limitOrder = (LimitOrder) order;
 

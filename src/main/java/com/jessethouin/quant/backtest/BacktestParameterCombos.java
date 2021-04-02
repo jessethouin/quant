@@ -20,6 +20,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.*;
 
+import static com.jessethouin.quant.conf.Config.CONFIG;
+
 @Component
 public class BacktestParameterCombos extends AbstractBacktest {
     private static final Logger LOG = LogManager.getLogger(BacktestParameterCombos.class);
@@ -136,7 +138,7 @@ public class BacktestParameterCombos extends AbstractBacktest {
         int longLookback = minMALookback;
         while (longLookback <= maxMALookback) {
 //            shortLookback = minMALookback;
-            shortLookback = longLookback - 3; //having a difference of more than x has not proven to be profitable
+            shortLookback = longLookback - 2; //having a difference of more than x has not proven to be profitable
             while (shortLookback < longLookback) { // there's no need to test equal short and long tail MAs because they will never separate or converge. That's why this is < and not <=.
                 getRiskCombos(buyStrategyType, sellStrategyType, riskMax, riskIncrement, shortLookback, longLookback, allowance);
                 shortLookback++;

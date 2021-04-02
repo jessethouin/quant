@@ -30,17 +30,8 @@ public class BinanceExchangeServices {
     public static final BinanceAccountService BINANCE_ACCOUNT_SERVICE;
 
     static {
-        ExchangeSpecification exSpec = new BinanceExchange().getDefaultExchangeSpecification();
-        exSpec.setUserName(BINANCE_API_CONFIG.getUserName());
-        exSpec.setApiKey(BINANCE_API_CONFIG.getApiKey());
-        exSpec.setSecretKey(BINANCE_API_CONFIG.getSecretKey());
-        BINANCE_EXCHANGE = (BinanceExchange) ExchangeFactory.INSTANCE.createExchange(exSpec);
-
-        ExchangeSpecification strExSpec = new BinanceStreamingExchange().getDefaultExchangeSpecification();
-        strExSpec.setUserName(BINANCE_API_CONFIG.getUserName());
-        strExSpec.setApiKey(BINANCE_API_CONFIG.getApiKey());
-        strExSpec.setSecretKey(BINANCE_API_CONFIG.getSecretKey());
-        BINANCE_STREAMING_EXCHANGE = (BinanceStreamingExchange) StreamingExchangeFactory.INSTANCE.createExchange(strExSpec);
+        BINANCE_EXCHANGE = (BinanceExchange) ExchangeFactory.INSTANCE.createExchange(configureExchangeSpec(new BinanceExchange().getDefaultExchangeSpecification()));
+        BINANCE_STREAMING_EXCHANGE = (BinanceStreamingExchange) StreamingExchangeFactory.INSTANCE.createExchange(configureExchangeSpec(new BinanceStreamingExchange().getDefaultExchangeSpecification()));
 
         BINANCE_EXCHANGE_INFO = BINANCE_EXCHANGE.getExchangeInfo();
         BINANCE_MARKET_DATA_SERVICE = (BinanceMarketDataService) BINANCE_EXCHANGE.getMarketDataService();
@@ -48,5 +39,12 @@ public class BinanceExchangeServices {
         BINANCE_ACCOUNT_SERVICE = (BinanceAccountService) BINANCE_EXCHANGE.getAccountService();
 
         Util.getAllCurrencyPairs(CONFIG).forEach(currencyPair -> BINANCE_MIN_TRADES.put(currencyPair, BinanceUtil.getMinTrade(currencyPair)));
+    }
+
+    private static ExchangeSpecification configureExchangeSpec(ExchangeSpecification exSpec) {
+        exSpec.setUserName(BINANCE_API_CONFIG.getUserName());
+        exSpec.setApiKey(BINANCE_API_CONFIG.getApiKey());
+        exSpec.setSecretKey(BINANCE_API_CONFIG.getSecretKey());
+        return exSpec;
     }
 }
