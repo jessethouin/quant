@@ -5,11 +5,9 @@ import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.binance.beans.BinanceLimitOrder;
 import com.jessethouin.quant.binance.beans.repos.BinanceLimitOrderRepository;
 import com.jessethouin.quant.broker.Util;
-import com.jessethouin.quant.conf.Config;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.knowm.xchange.binance.dto.trade.TimeInForce;
-import org.knowm.xchange.binance.service.BinanceAccountService;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderType;
@@ -23,6 +21,8 @@ import java.math.RoundingMode;
 import java.util.Date;
 import java.util.Map;
 
+import static com.jessethouin.quant.binance.BinanceExchangeServices.*;
+import static com.jessethouin.quant.conf.Config.CONFIG;
 import static org.knowm.xchange.dto.Order.OrderType.ASK;
 import static org.knowm.xchange.dto.Order.OrderType.BID;
 
@@ -46,8 +46,8 @@ public class BinanceTransactions {
     }
 
     private static void transact(CurrencyPair currencyPair, BigDecimal qty, BigDecimal price, OrderType orderType) {
-        if (qty.multiply(price).compareTo(binanceLive.getMinTrades().get(currencyPair)) < 0) {
-            LOG.warn("Trade must be minimum of {} for {}. Was {}.", binanceLive.getMinTrades().get(currencyPair), currencyPair.toString(), qty.multiply(price));
+        if (qty.multiply(price).compareTo(BINANCE_MIN_TRADES.get(currencyPair)) < 0) {
+            LOG.warn("Trade must be minimum of {} for {}. Was {}.", BINANCE_MIN_TRADES.get(currencyPair), currencyPair.toString(), qty.multiply(price));
             return;
         }
 
@@ -55,13 +55,13 @@ public class BinanceTransactions {
                 .orderStatus(Order.OrderStatus.NEW)
                 .originalAmount(qty.setScale(6, RoundingMode.FLOOR))
                 .limitPrice(price.setScale(8, RoundingMode.FLOOR))
-                .fee(price.multiply(qty).multiply(Config.INSTANCE.getFee()).setScale(8, RoundingMode.HALF_UP))
+                .fee(price.multiply(qty).multiply(CONFIG.getFee()).setScale(8, RoundingMode.HALF_UP))
                 .flag(TimeInForce.GTC)
                 .timestamp(new Date())
                 .build();
         try {
             LOG.info("Limit Order: " + limitOrder.toString());
-            binanceLive.getBinanceExchange().getTradeService().placeLimitOrder(limitOrder);
+            BINANCE_TRADE_SERVICE.placeLimitOrder(limitOrder);
         } catch (Exception e) {
             LOG.error(e.getLocalizedMessage());
         }
@@ -76,8 +76,8 @@ public class BinanceTransactions {
     }
 
     private static void testTransact(Portfolio portfolio, CurrencyPair currencyPair, BigDecimal qty, BigDecimal price, OrderType orderType) {
-        if (!Config.INSTANCE.isBackTest() && qty.multiply(price).compareTo(binanceLive.getMinTrades().get(currencyPair)) < 0) {
-            LOG.warn("Trade must be minimum of {} for {}. Was {}.", binanceLive.getMinTrades().get(currencyPair), currencyPair.toString(), qty.multiply(price));
+        if (!CONFIG.isBackTest() && qty.multiply(price).compareTo(BINANCE_MIN_TRADES.get(currencyPair)) < 0) {
+            LOG.warn("Trade must be minimum of {} for {}. Was {}.", BINANCE_MIN_TRADES.get(currencyPair), currencyPair.toString(), qty.multiply(price));
             return;
         }
 
@@ -85,7 +85,7 @@ public class BinanceTransactions {
                 .orderStatus(Order.OrderStatus.NEW)
                 .originalAmount(qty)
                 .limitPrice(price)
-                .fee(price.multiply(qty).multiply(Config.INSTANCE.getFee()).setScale(8, RoundingMode.HALF_UP))
+                .fee(price.multiply(qty).multiply(CONFIG.getFee()).setScale(8, RoundingMode.HALF_UP))
                 .flag(TimeInForce.GTC)
                 .timestamp(new Date())
                 .build();
@@ -98,7 +98,7 @@ public class BinanceTransactions {
 
     private static void processTestTransaction(BigDecimal qty, BinanceLimitOrder binanceLimitOrder) {
         // This code would normally be handled by the Order websocket feed
-        if (!Config.INSTANCE.isBackTest()) {
+        if (!CONFIG.isBackTest()) {
             binanceLimitOrderRepository.save(binanceLimitOrder);
             binanceLive.getOrderHistoryLookup().setOrderId(binanceLimitOrder.getOrderId());
         }
@@ -147,11 +147,9 @@ public class BinanceTransactions {
     }
 
     public static void showWallets() {
-        BinanceAccountService accountService = (BinanceAccountService) binanceLive.getBinanceExchange().getAccountService();
-
         try {
             StringBuilder sb = new StringBuilder();
-            accountService.getAccountInfo().getWallets().forEach((s, w) -> {
+            BINANCE_ACCOUNT_SERVICE.getAccountInfo().getWallets().forEach((s, w) -> {
                 w.getBalances().forEach((c, b) -> {
                     if (b.getTotal().compareTo(BigDecimal.ZERO) > 0) {
                         sb.append(System.lineSeparator());
@@ -169,10 +167,8 @@ public class BinanceTransactions {
     }
 
     public static void showTradingFees(Portfolio portfolio) {
-        BinanceAccountService accountService = (BinanceAccountService) binanceLive.getBinanceExchange().getAccountService();
-
         try {
-            Map<CurrencyPair, Fee> dynamicTradingFees = accountService.getDynamicTradingFees();
+            Map<CurrencyPair, Fee> dynamicTradingFees = BINANCE_ACCOUNT_SERVICE.getDynamicTradingFees();
             dynamicTradingFees.forEach((c, f) -> {
                 if (portfolio.getCurrencies().stream().anyMatch(currency -> c.base.getSymbol().equals(currency.getSymbol()) && c.counter.getSymbol().equals(currency.getSymbol()))) { // this needs work. yikes.
                     LOG.info(c.toString() + " - m : " + f.getMakerFee() + " t : " + f.getTakerFee());

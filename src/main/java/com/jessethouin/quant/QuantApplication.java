@@ -4,7 +4,6 @@ import com.jessethouin.quant.alpaca.AlpacaLive;
 import com.jessethouin.quant.backtest.BacktestParameterCombos;
 import com.jessethouin.quant.backtest.BacktestStaticParameters;
 import com.jessethouin.quant.binance.BinanceLive;
-import com.jessethouin.quant.conf.Config;
 import lombok.Getter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -12,6 +11,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 import java.util.Arrays;
+
+import static com.jessethouin.quant.conf.Config.CONFIG;
 
 @Getter
 @SpringBootApplication
@@ -26,7 +27,7 @@ public class QuantApplication {
     public static void main(String[] args) {
         SpringApplication.run(QuantApplication.class, args);
 
-        if (Config.INSTANCE.isBackTest()) LOG.info("""
+        if (CONFIG.isBackTest()) LOG.info("""
                 
                 ==============================================================================================
                 =                                                                                            =

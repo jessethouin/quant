@@ -6,14 +6,11 @@ import com.jessethouin.quant.beans.Currency;
 import com.jessethouin.quant.beans.CurrencyLedger;
 import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.beans.Security;
-import com.jessethouin.quant.beans.repos.CurrencyLedgerRepository;
-import com.jessethouin.quant.beans.repos.PortfolioRepository;
 import com.jessethouin.quant.calculators.MA;
 import com.jessethouin.quant.conf.Config;
 import com.jessethouin.quant.conf.CurrencyTypes;
 import com.jessethouin.quant.conf.MATypes;
 import org.knowm.xchange.currency.CurrencyPair;
-import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -25,17 +22,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static com.jessethouin.quant.conf.Config.CONFIG;
 import static java.util.Objects.requireNonNullElse;
 
-@Component
 public class Util {
-    private static PortfolioRepository portfolioRepository;
-    private static CurrencyLedgerRepository currencyLedgerRepository;
-
-    public Util(PortfolioRepository portfolioRepository, CurrencyLedgerRepository currencyLedgerRepository) {
-        Util.portfolioRepository = portfolioRepository;
-        Util.currencyLedgerRepository = currencyLedgerRepository;
-    }
 
     public static BigDecimal getPortfolioValue(Portfolio portfolio, Currency currency, BigDecimal price) {
         AtomicReference<BigDecimal> holdings = new AtomicReference<>(BigDecimal.ZERO);
@@ -88,7 +78,6 @@ public class Util {
             Security security = new Security();
             security.setSymbol(symbol);
             security.setPortfolio(portfolio);
-            portfolio = portfolioRepository.save(portfolio);
             security.setCurrency(getCurrencyFromPortfolio("USD", portfolio)); // todo: find a dynamic way to get currency of a security.
             return security;
         }
@@ -120,15 +109,15 @@ public class Util {
     public static Portfolio createPortfolio() {
         Portfolio portfolio = new Portfolio();
 
-        List<String> fiatCurrencies = Config.INSTANCE.getFiatCurrencies();
+        List<String> fiatCurrencies = CONFIG.getFiatCurrencies();
         fiatCurrencies.forEach(c -> {
             Currency currency = new Currency();
             currency.setSymbol(c);
             currency.setQuantity(BigDecimal.ZERO);
             currency.setCurrencyType(CurrencyTypes.FIAT);
             if (c.equals("USD")) { // default-coded (you're welcome, Pra) for now, until international exchanges are implemented in Alpaca. In other words, ALL securities traded are in USD.
-                Util.credit(currency, Config.INSTANCE.getInitialCash());
-                List<String> tickers = Config.INSTANCE.getSecurities();
+                Util.credit(currency, CONFIG.getInitialCash());
+                List<String> tickers = CONFIG.getSecurities();
                 tickers.forEach(t -> {
                     Security security = new Security();
                     security.setSymbol(t);
@@ -141,7 +130,7 @@ public class Util {
             portfolio.getCurrencies().add(currency);
         });
 
-        List<String> cryptoCurrencies = Config.INSTANCE.getCryptoCurrencies();
+        List<String> cryptoCurrencies = CONFIG.getCryptoCurrencies();
         cryptoCurrencies.forEach(c -> {
             Currency currency = new Currency();
             currency.setSymbol(c);
@@ -152,7 +141,7 @@ public class Util {
         });
 
         Currency usdt = getCurrencyFromPortfolio("USDT", portfolio);
-        Util.credit(usdt, Config.INSTANCE.getInitialCash());
+        Util.credit(usdt, CONFIG.getInitialCash());
 
         return portfolio;
     }

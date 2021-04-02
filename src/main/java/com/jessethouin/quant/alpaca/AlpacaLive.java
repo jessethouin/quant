@@ -7,7 +7,6 @@ import com.jessethouin.quant.beans.Security;
 import com.jessethouin.quant.beans.repos.PortfolioRepository;
 import com.jessethouin.quant.broker.Util;
 import com.jessethouin.quant.calculators.Calc;
-import com.jessethouin.quant.conf.Config;
 import net.jacobpeterson.abstracts.websocket.exception.WebsocketException;
 import net.jacobpeterson.alpaca.AlpacaAPI;
 import net.jacobpeterson.alpaca.enums.Direction;
@@ -38,6 +37,7 @@ import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
+import static com.jessethouin.quant.conf.Config.CONFIG;
 import static com.jessethouin.quant.conf.OrderStatus.FILLED;
 import static net.jacobpeterson.polygon.websocket.message.PolygonStreamMessageType.AGGREGATE_PER_SECOND;
 import static net.jacobpeterson.polygon.websocket.message.PolygonStreamMessageType.TRADE;
@@ -45,7 +45,6 @@ import static net.jacobpeterson.polygon.websocket.message.PolygonStreamMessageTy
 @Component
 public class AlpacaLive {
     private static final Logger LOG = LogManager.getLogger(AlpacaLive.class);
-    private static final Config config = Config.INSTANCE;
     private static Portfolio portfolio;
     private static final AlpacaAPI ALPACA_API = new AlpacaAPI();
     private static final PolygonAPI POLYGON_API = new PolygonAPI();
@@ -112,7 +111,7 @@ public class AlpacaLive {
         securities.forEach(s -> {
             try {
                 getPolygonApi().addPolygonStreamListener(new PolygonStreamListenerAdapter(s.getSymbol(), PolygonStreamMessageType.values()) {
-                    final Calc c = new Calc(s, config, BigDecimal.ZERO);
+                    final Calc c = new Calc(s, CONFIG, BigDecimal.ZERO);
                     final List<BigDecimal> intradayPrices = new ArrayList<>();
                     int count = 0;
                     BigDecimal shortMAValue;
@@ -140,10 +139,10 @@ public class AlpacaLive {
 
                         LOG.info("===> " + streamMessageType + " [" + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss,SSS").format(new Date(timestamp)) + "]: " + p);
                         price = BigDecimal.valueOf(p);
-                        if (count < config.getLongLookback()) intradayPrices.add(price);
+                        if (count < CONFIG.getLongLookback()) intradayPrices.add(price);
 
-                        shortMAValue = Util.getMA(previousShortMAValue, config.getShortLookback(), price);
-                        longMAValue = Util.getMA(previousLongMAValue, config.getLongLookback(), price);
+                        shortMAValue = Util.getMA(previousShortMAValue, CONFIG.getShortLookback(), price);
+                        longMAValue = Util.getMA(previousLongMAValue, CONFIG.getLongLookback(), price);
                         c.updateCalc(price, shortMAValue, longMAValue);
                         c.decide();
                         LOG.debug(MessageFormat.format("{0,number,000} : ma1 {1,number,000.0000} : ma2 {2,number,000.0000} : l {3,number,000.0000}: h {4,number,000.0000}: p {5,number,000.0000} : {6,number,00000.0000}", count, shortMAValue, longMAValue, c.getLow(), c.getHigh(), price, Util.getPortfolioValue(portfolio, s.getCurrency(), price)));

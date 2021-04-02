@@ -5,7 +5,6 @@ import com.jessethouin.quant.binance.BinanceCaptureHistory;
 import com.jessethouin.quant.binance.beans.BinanceTradeHistory;
 import com.jessethouin.quant.binance.beans.repos.BinanceTradeHistoryRepository;
 import com.jessethouin.quant.broker.Util;
-import com.jessethouin.quant.conf.Config;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Component;
@@ -20,10 +19,11 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import static com.jessethouin.quant.conf.Config.CONFIG;
+
 @Component
 public abstract class AbstractBacktest {
     private static final Logger LOG = LogManager.getLogger(AbstractBacktest.class);
-    public static final Config CONFIG = Config.INSTANCE;
     public static final List<BigDecimal> INTRADAY_PRICES = new ArrayList<>();
     static BinanceTradeHistoryRepository binanceTradeHistoryRepository;
     static BacktestParameterResultsRepository backtestParameterResultsRepository;
