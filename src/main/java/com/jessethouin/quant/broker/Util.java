@@ -6,6 +6,7 @@ import com.jessethouin.quant.beans.Currency;
 import com.jessethouin.quant.beans.CurrencyLedger;
 import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.beans.Security;
+import com.jessethouin.quant.beans.repos.CurrencyLedgerRepository;
 import com.jessethouin.quant.beans.repos.PortfolioRepository;
 import com.jessethouin.quant.calculators.MA;
 import com.jessethouin.quant.conf.Config;
@@ -29,9 +30,11 @@ import static java.util.Objects.requireNonNullElse;
 @Component
 public class Util {
     private static PortfolioRepository portfolioRepository;
+    private static CurrencyLedgerRepository currencyLedgerRepository;
 
-    public Util(PortfolioRepository portfolioRepository) {
+    public Util(PortfolioRepository portfolioRepository, CurrencyLedgerRepository currencyLedgerRepository) {
         Util.portfolioRepository = portfolioRepository;
+        Util.currencyLedgerRepository = currencyLedgerRepository;
     }
 
     public static BigDecimal getPortfolioValue(Portfolio portfolio, Currency currency, BigDecimal price) {
@@ -85,7 +88,7 @@ public class Util {
             Security security = new Security();
             security.setSymbol(symbol);
             security.setPortfolio(portfolio);
-            portfolioRepository.save(portfolio);
+            portfolio = portfolioRepository.save(portfolio);
             security.setCurrency(getCurrencyFromPortfolio("USD", portfolio)); // todo: find a dynamic way to get currency of a security.
             return security;
         }
@@ -110,7 +113,6 @@ public class Util {
             currency.setSymbol(symbol);
             currency.setQuantity(BigDecimal.ZERO);
             currency.setPortfolio(portfolio);
-            portfolioRepository.save(portfolio);
             return currency;
         }
     }
@@ -153,19 +155,6 @@ public class Util {
         Util.credit(usdt, Config.INSTANCE.getInitialCash());
 
         return portfolio;
-    }
-
-    public static Security getSecurity(Portfolio portfolio, String symbol) {
-        Security security = new Security();
-        security.setSymbol(symbol);
-        return portfolio.getSecurities().stream().filter(s -> s.getSymbol().equals(symbol)).findFirst().orElse(security);
-    }
-
-    public static Currency getCurrency(Portfolio portfolio, String symbol) {
-        Currency currency = new Currency();
-        currency.setSymbol(symbol);
-        currency.setQuantity(BigDecimal.ZERO);
-        return portfolio.getCurrencies().stream().filter(c -> c.getSymbol().equals(symbol)).findFirst().orElse(currency);
     }
 
     public static String formatFiat(Object o) {
