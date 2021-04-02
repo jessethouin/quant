@@ -9,26 +9,17 @@ import com.jessethouin.quant.binance.beans.OrderHistoryLookup;
 import com.jessethouin.quant.binance.beans.repos.BinanceLimitOrderRepository;
 import com.jessethouin.quant.binance.beans.repos.BinanceTradeHistoryRepository;
 import com.jessethouin.quant.binance.beans.repos.OrderHistoryLookupRepository;
-import com.jessethouin.quant.binance.config.BinanceApiConfig;
 import com.jessethouin.quant.broker.Transactions;
 import com.jessethouin.quant.broker.Util;
 import com.jessethouin.quant.calculators.Calc;
-import com.jessethouin.quant.conf.Config;
 import com.jessethouin.quant.conf.CurrencyTypes;
-import info.bitrich.xchangestream.binance.BinanceStreamingExchange;
 import info.bitrich.xchangestream.core.ProductSubscription;
-import info.bitrich.xchangestream.core.StreamingExchangeFactory;
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.disposables.Disposable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.knowm.xchange.ExchangeFactory;
-import org.knowm.xchange.ExchangeSpecification;
-import org.knowm.xchange.binance.BinanceExchange;
 import org.knowm.xchange.binance.dto.marketdata.BinanceKline;
 import org.knowm.xchange.binance.dto.marketdata.KlineInterval;
-import org.knowm.xchange.binance.dto.meta.exchangeinfo.BinanceExchangeInfo;
-import org.knowm.xchange.binance.service.BinanceMarketDataService;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.trade.LimitOrder;
@@ -38,8 +29,13 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
-import java.util.*;
+import java.util.Date;
+import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
+import static com.jessethouin.quant.binance.BinanceExchangeServices.*;
+import static com.jessethouin.quant.conf.Config.CONFIG;
 import static java.util.Objects.requireNonNullElse;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -47,39 +43,20 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 @Component
 public class BinanceLive {
     private static final Logger LOG = LogManager.getLogger(BinanceLive.class);
-    private static final Config CONFIG = Config.INSTANCE;
+    private static final CompositeDisposable COMPOSITE_DISPOSABLE = new CompositeDisposable();
     private Portfolio portfolio;
     private OrderHistoryLookup orderHistoryLookup;
 
-    private static final BinanceExchange BINANCE_EXCHANGE;
-    private static final BinanceStreamingExchange BINANCE_STREAMING_EXCHANGE;
-    private static final BinanceExchangeInfo BINANCE_EXCHANGE_INFO;
-    private static final CompositeDisposable COMPOSITE_DISPOSABLE = new CompositeDisposable();
-    private static final Map<CurrencyPair, BigDecimal> MIN_TRADES = new HashMap<>();
+    static {
+        long start = new Date().getTime();
+        CONFIG.setBacktestStart(new Date(start - Duration.ofHours(CONFIG.getRecalibrateHours()).toMillis()));
+        CONFIG.setBacktestEnd(new Date(start));
+    }
 
     private final BinanceLimitOrderRepository binanceLimitOrderRepository;
     private final BinanceTradeHistoryRepository binanceTradeHistoryRepository;
     private final OrderHistoryLookupRepository orderHistoryLookupRepository;
     private final PortfolioRepository portfolioRepository;
-
-    static {
-        ExchangeSpecification exSpec = new BinanceExchange().getDefaultExchangeSpecification();
-        exSpec.setUserName(BinanceApiConfig.INSTANCE.getUserName());
-        exSpec.setApiKey(BinanceApiConfig.INSTANCE.getApiKey());
-        exSpec.setSecretKey(BinanceApiConfig.INSTANCE.getSecretKey());
-        BINANCE_EXCHANGE = (BinanceExchange) ExchangeFactory.INSTANCE.createExchange(exSpec);
-        BINANCE_EXCHANGE_INFO = BINANCE_EXCHANGE.getExchangeInfo();
-
-        ExchangeSpecification strExSpec = new BinanceStreamingExchange().getDefaultExchangeSpecification();
-        strExSpec.setUserName(BinanceApiConfig.INSTANCE.getUserName());
-        strExSpec.setApiKey(BinanceApiConfig.INSTANCE.getApiKey());
-        strExSpec.setSecretKey(BinanceApiConfig.INSTANCE.getSecretKey());
-        BINANCE_STREAMING_EXCHANGE = (BinanceStreamingExchange) StreamingExchangeFactory.INSTANCE.createExchange(strExSpec);
-
-        long start = new Date().getTime();
-        CONFIG.setBacktestStart(new Date(start - Duration.ofHours(CONFIG.getRecalibrateHours()).toMillis()));
-        CONFIG.setBacktestEnd(new Date(start));
-    }
 
     private BinanceLive(BinanceLimitOrderRepository binanceLimitOrderRepository, BinanceTradeHistoryRepository binanceTradeHistoryRepository, OrderHistoryLookupRepository orderHistoryLookupRepository, PortfolioRepository portfolioRepository) {
         this.binanceLimitOrderRepository = binanceLimitOrderRepository;
@@ -88,36 +65,21 @@ public class BinanceLive {
         this.portfolioRepository = portfolioRepository;
     }
 
-    public BinanceExchange getBinanceExchange() {
-        return BINANCE_EXCHANGE;
-    }
-
-    public BinanceExchangeInfo getBinanceExchangeInfo() {
-        return BINANCE_EXCHANGE_INFO;
-    }
-
-    public Map<CurrencyPair, BigDecimal> getMinTrades() {
-        return MIN_TRADES;
-    }
-
     public OrderHistoryLookup getOrderHistoryLookup() {
         return orderHistoryLookup;
     }
 
     public void doLive() {
-        BinanceTransactions.showWallets();
-
         portfolio = portfolioRepository.save(requireNonNullElse(portfolioRepository.getTop1ByPortfolioIdIsNotNullOrderByPortfolioIdDesc(), Util.createPortfolio()));
 
+        BinanceTransactions.showWallets();
         BinanceTransactions.showTradingFees(portfolio);
         reconcile();
         recalibrate();
         savePortfolio();
 
-        List<CurrencyPair> currencyPairs = Util.getAllCurrencyPairs(CONFIG);
-        currencyPairs.forEach(currencyPair -> MIN_TRADES.put(currencyPair, BinanceUtil.getMinTrade(currencyPair)));
-
         ProductSubscription.ProductSubscriptionBuilder productSubscriptionBuilder = ProductSubscription.create();
+        List<CurrencyPair> currencyPairs = Util.getAllCurrencyPairs(CONFIG);
         currencyPairs.forEach(productSubscriptionBuilder::addAll);
 
         BINANCE_STREAMING_EXCHANGE.connect(productSubscriptionBuilder.build()).blockingAwait();
@@ -142,7 +104,7 @@ public class BinanceLive {
     }
 
     private void stopLoss(CurrencyPair currencyPair) {
-        if (!currencyPair.toString().equals("69")) return; //we'll need to get rid of this once we start testing stop loss. This just keeps my checkmark green and happy.
+        if (!currencyPair.toString().equals("420")) return; //we'll need to get rid of this once we start testing stop loss. This just keeps my checkmark green and happy.
 
         Ref ref = new Ref(currencyPair, portfolio);
         ref.value = Util.getValueAtPrice(ref.baseCurrency, ref.price).add(ref.counterCurrency.getQuantity());
@@ -160,14 +122,13 @@ public class BinanceLive {
     }
 
     private void subscribeToCurrencyKline(CurrencyPair currencyPair) {
-        BinanceMarketDataService marketDataService = (BinanceMarketDataService) BINANCE_EXCHANGE.getMarketDataService();
         Ref ref = new Ref(currencyPair, portfolio);
 
         new Timer("KlineSubscription").scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
                 try {
-                    BinanceKline binanceKline = marketDataService.lastKline(currencyPair, KlineInterval.m1);
+                    BinanceKline binanceKline = BINANCE_MARKET_DATA_SERVICE.lastKline(currencyPair, KlineInterval.m1);
                     ref.price = binanceKline.getClosePrice();
                     ref.timestamp = new Date(binanceKline.getCloseTime());
                     doTheThing(ref);
@@ -312,7 +273,7 @@ public class BinanceLive {
         savePortfolio();
     }
 
-    public static class Ref {
+    private static class Ref {
         final Calc c;
         final Currency baseCurrency;
         final Currency counterCurrency;

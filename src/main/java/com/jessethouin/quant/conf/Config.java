@@ -50,7 +50,7 @@ public class Config {
     private Broker broker;
     private DataFeed dataFeed;
 
-    public static final Config INSTANCE = new Config();
+    public static final Config CONFIG = new Config();
 
     private Config() {
         try {

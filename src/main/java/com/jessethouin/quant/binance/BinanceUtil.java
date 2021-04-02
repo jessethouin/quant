@@ -8,7 +8,6 @@ import org.knowm.xchange.binance.dto.meta.exchangeinfo.Symbol;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.exceptions.CurrencyPairNotValidException;
-import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -17,14 +16,11 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Component
+import static com.jessethouin.quant.binance.BinanceExchangeServices.BINANCE_EXCHANGE_INFO;
+import static com.jessethouin.quant.binance.BinanceExchangeServices.BINANCE_MARKET_DATA_SERVICE;
+
 public class BinanceUtil {
     private static final Logger LOG = LogManager.getLogger(BinanceUtil.class);
-    private static BinanceLive binanceLive;
-
-    public BinanceUtil(BinanceLive binanceLive) {
-        BinanceUtil.binanceLive = binanceLive;
-    }
 
     public static BigDecimal getBreakEven(BigDecimal qtyBTC) {
         BigDecimal rate = BigDecimal.valueOf(0.0750 / 100);
@@ -43,9 +39,16 @@ public class BinanceUtil {
         return breakEven;
     }
 
+    /*
+    * https://github.com/jaggedsoft/php-binance-api/issues/205
+    *
+    * minQty is the minimum amount you can order (quantity)
+    * minNotional is the minimum value of your order. (price * quantity)
+    * 
+    * */
     public static BigDecimal getMinTrade(CurrencyPair currencyPair) {
         BigDecimal[] minTrade = {BigDecimal.ZERO};
-        Symbol[] symbols = binanceLive.getBinanceExchangeInfo().getSymbols();
+        Symbol[] symbols = BINANCE_EXCHANGE_INFO.getSymbols();
         List<Symbol> symbolList = Arrays.stream(symbols).filter(symbol -> symbol.getBaseAsset().equals(currencyPair.base.getSymbol()) && symbol.getQuoteAsset().equals(currencyPair.counter.getSymbol())).collect(Collectors.toList());
         symbolList.forEach(symbol -> {
             List<Filter> filters = Arrays.stream(symbol.getFilters()).filter(filter -> filter.getFilterType().equals("MIN_NOTIONAL")).collect(Collectors.toList());
@@ -57,7 +60,7 @@ public class BinanceUtil {
     public static BigDecimal getTickerPrice(String base, String counter) {
         BigDecimal ret = null;
         try {
-            ret = binanceLive.getBinanceExchange().getMarketDataService().getTicker(new CurrencyPair(base, counter)).getLast();
+            ret = BINANCE_MARKET_DATA_SERVICE.getTicker(new CurrencyPair(base, counter)).getLast();
         } catch (IOException e) {
             LOG.error(e.getMessage());
         } catch (CurrencyPairNotValidException e) {
@@ -66,7 +69,7 @@ public class BinanceUtil {
 
         if (ret == null) {
             try {
-                ret = binanceLive.getBinanceExchange().getMarketDataService().getTicker(new CurrencyPair(counter, base)).getLast();
+                ret = BINANCE_MARKET_DATA_SERVICE.getTicker(new CurrencyPair(counter, base)).getLast();
             } catch (IOException e) {
                 LOG.error(e.getMessage());
             } catch (CurrencyPairNotValidException e) {
