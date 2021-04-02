@@ -116,7 +116,7 @@ public class Util {
             currency.setQuantity(BigDecimal.ZERO);
             currency.setCurrencyType(CurrencyTypes.FIAT);
             if (c.equals("USD")) { // default-coded (you're welcome, Pra) for now, until international exchanges are implemented in Alpaca. In other words, ALL securities traded are in USD.
-                Util.credit(currency, CONFIG.getInitialCash());
+                Util.credit(currency, CONFIG.getInitialCash(), "Initializing portfolio with default config values");
                 List<String> tickers = CONFIG.getSecurities();
                 tickers.forEach(t -> {
                     Security security = new Security();
@@ -141,7 +141,7 @@ public class Util {
         });
 
         Currency usdt = getCurrencyFromPortfolio("USDT", portfolio);
-        Util.credit(usdt, CONFIG.getInitialCash());
+        Util.credit(usdt, CONFIG.getInitialCash(), "Initializing portfolio with default config values");
 
         return portfolio;
     }
@@ -152,14 +152,14 @@ public class Util {
         return numberFormat.format(o);
     }
 
-    public static void debit(Currency currency, BigDecimal qty) {
-        CurrencyLedger currencyLedger = CurrencyLedger.builder().currency(currency).debit(qty).timestamp(new Date()).build();
+    public static void debit(Currency currency, BigDecimal qty, String memo) {
+        CurrencyLedger currencyLedger = CurrencyLedger.builder().currency(currency).debit(qty).timestamp(new Date()).memo(memo).build();
         currency.getCurrencyLedgers().add(currencyLedger);
         currency.setQuantity(currency.getQuantity().subtract(requireNonNullElse(qty, BigDecimal.ZERO)));
     }
 
-    public static void credit(Currency currency, BigDecimal qty) {
-        CurrencyLedger currencyLedger = CurrencyLedger.builder().currency(currency).credit(qty).timestamp(new Date()).build();
+    public static void credit(Currency currency, BigDecimal qty, String memo) {
+        CurrencyLedger currencyLedger = CurrencyLedger.builder().currency(currency).credit(qty).timestamp(new Date()).memo(memo).build();
         currency.getCurrencyLedgers().add(currencyLedger);
         currency.setQuantity(currency.getQuantity().add(requireNonNullElse(qty, BigDecimal.ZERO)));
     }

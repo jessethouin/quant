@@ -55,44 +55,21 @@ public class AlpacaTransactions {
     }
 
     public static void placeTestSecurityBuyOrder(Security security, BigDecimal qty, BigDecimal price) {
-        if (qty.equals(BigDecimal.ZERO)) return;
-        Order order = new Order(
-                "fake_order_id_" + (new Random().nextInt(1000)),
-                "fake_client_order_id_" + (new Random().nextInt(1000)),
-                ZonedDateTime.now(),
-                ZonedDateTime.now(),
-                ZonedDateTime.now(),
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                String.valueOf(security.getSecurityId()),
-                security.getSymbol(),
-                null,
-                qty.toString(),
-                "0",
-                OrderType.LIMIT.getAPIName(),
-                OrderSide.BUY.getAPIName(),
-                OrderTimeInForce.DAY.getAPIName(),
-                price.toString(),
-                null,
-                null,
-                OrderStatus.OPEN.getAPIName(),
-                false,
-                new ArrayList<>(),
-                null,
-                null,
-                null
-        );
-        processTestOrder(qty, price, new AlpacaOrder(order, security.getPortfolio()));
+        placeTestSecurityOrder(security, qty, price, OrderSide.BUY.getAPIName());
     }
 
     public static void placeTestSecuritySellOrder(Security security, BigDecimal qty, BigDecimal price) {
+        placeTestSecurityOrder(security, qty, price, OrderSide.SELL.getAPIName());
+    }
+
+    private static void placeTestSecurityOrder(Security security, BigDecimal qty, BigDecimal price, String apiName) {
         if (qty.equals(BigDecimal.ZERO)) return;
-        Order order = new Order(
+        Order order = getSampleOrder(security, qty, price, apiName);
+        processTestOrder(qty, price, new AlpacaOrder(order, security.getPortfolio()));
+    }
+
+    private static Order getSampleOrder(Security security, BigDecimal qty, BigDecimal price, String apiName) {
+        return new Order(
                 "fake_order_id_" + (new Random().nextInt(1000)),
                 "fake_client_order_id_" + (new Random().nextInt(1000)),
                 ZonedDateTime.now(),
@@ -111,7 +88,7 @@ public class AlpacaTransactions {
                 qty.toString(),
                 "0",
                 OrderType.LIMIT.getAPIName(),
-                OrderSide.SELL.getAPIName(),
+                apiName,
                 OrderTimeInForce.DAY.getAPIName(),
                 price.toString(),
                 null,
@@ -123,8 +100,6 @@ public class AlpacaTransactions {
                 null,
                 null
         );
-
-        processTestOrder(qty, price, new AlpacaOrder(order, security.getPortfolio()));
     }
 
     private static void processTestOrder(BigDecimal qty, BigDecimal price, AlpacaOrder alpacaOrder) {
@@ -146,10 +121,10 @@ public class AlpacaTransactions {
 
         if (alpacaOrder.getSide().equals(OrderSide.BUY.getAPIName())) {
             Transactions.addSecurityPosition(security, filledQty, filledAvgPrice);
-            Util.debit(security.getCurrency(), filledQty.multiply(filledAvgPrice).negate());
+            Util.debit(security.getCurrency(), filledQty.multiply(filledAvgPrice).negate(), "Buying Alpaca Security");
         }
         if (alpacaOrder.getSide().equals(OrderSide.SELL.getAPIName())) {
-            Util.credit(security.getCurrency(), filledQty.multiply(filledAvgPrice));
+            Util.credit(security.getCurrency(), filledQty.multiply(filledAvgPrice), "Selling Alpaca Security");
 
             List<SecurityPosition> remove = new ArrayList<>();
 

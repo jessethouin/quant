@@ -122,24 +122,24 @@ public class BinanceTransactions {
         switch (binanceLimitOrder.getType()) {
             case BID -> {
                 switch (binanceLimitOrder.getStatus()) {
-                    case NEW -> Util.debit(counter, originalAmount.multiply(limitPrice));
+                    case NEW -> Util.debit(counter, originalAmount.multiply(limitPrice), "New Binance Buy Limit order");
                     case FILLED, PARTIALLY_FILLED -> {
-                        Util.credit(base, originalAmount);
-                        Util.debit(counter, fee);
+                        Util.credit(base, originalAmount, "Filled or Partially Filled Binance Buy Limit order");
+                        Util.debit(counter, fee, "Fee for Filled or Partially Filled Binance Buy Limit order");
                     }
-                    case CANCELED, EXPIRED, REJECTED, REPLACED -> Util.credit(counter, originalAmount.multiply(limitPrice));
+                    case CANCELED, EXPIRED, REJECTED, REPLACED -> Util.credit(counter, originalAmount.multiply(limitPrice), "Cancelled Binance Buy Limit order");
                 }
             }
             case ASK -> {
                 switch (binanceLimitOrder.getStatus()) {
-                    case NEW -> Util.debit(base, originalAmount);
+                    case NEW -> Util.debit(base, originalAmount, "New Binance Sell Limit order");
                     case FILLED, PARTIALLY_FILLED -> {
                         BigDecimal filledQty = binanceLimitOrder.getCumulativeAmount();
                         BigDecimal filledAvgPrice = limitPrice.multiply(binanceLimitOrder.getAveragePrice());
-                        Util.credit(counter, filledQty.multiply(filledAvgPrice));
-                        Util.debit(counter, fee);
+                        Util.credit(counter, filledQty.multiply(filledAvgPrice), "Filled or Partially Filled Binance Sell Limit order");
+                        Util.debit(counter, fee, "Fee for Filled or Partially Filled Binance Sell Limit order");
                     }
-                    case CANCELED, EXPIRED, REJECTED, REPLACED -> Util.credit(base, originalAmount);
+                    case CANCELED, EXPIRED, REJECTED, REPLACED -> Util.credit(base, originalAmount, "Cancelled Binance Sell Limit order");
                 }
             }
             default -> LOG.warn("binanceLimitOrder type unknown: {}", binanceLimitOrder.getType());
