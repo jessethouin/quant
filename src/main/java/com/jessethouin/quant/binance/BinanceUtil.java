@@ -1,8 +1,6 @@
 package com.jessethouin.quant.binance;
 
-import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.binance.beans.BinanceLimitOrder;
-import com.jessethouin.quant.binance.beans.repos.BinanceLimitOrderRepository;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.knowm.xchange.binance.dto.meta.exchangeinfo.Filter;
@@ -23,11 +21,9 @@ import java.util.stream.Collectors;
 public class BinanceUtil {
     private static final Logger LOG = LogManager.getLogger(BinanceUtil.class);
     private static BinanceLive binanceLive;
-    private static BinanceLimitOrderRepository binanceLimitOrderRepository;
 
-    public BinanceUtil(BinanceLive binanceLive, BinanceLimitOrderRepository binanceLimitOrderRepository) {
+    public BinanceUtil(BinanceLive binanceLive) {
         BinanceUtil.binanceLive = binanceLive;
-        BinanceUtil.binanceLimitOrderRepository = binanceLimitOrderRepository;
     }
 
     public static BigDecimal getBreakEven(BigDecimal qtyBTC) {
@@ -79,18 +75,20 @@ public class BinanceUtil {
         }
         return ret;
     }
-
-    public static BinanceLimitOrder createBinanceLimitOrder(Portfolio portfolio, LimitOrder limitOrder) {
-        BinanceLimitOrder existingBinanceLimitOrder = binanceLimitOrderRepository.getById(limitOrder.getId());
-        if (existingBinanceLimitOrder != null) {
-            LOG.info("Order {} exists.", limitOrder.getId());
-            return existingBinanceLimitOrder;
-        }
-        LOG.info("Creating new BinanceLimitOrder for order {} status {}", limitOrder.getId(), limitOrder.getStatus());
-        BinanceLimitOrder binanceLimitOrder = new BinanceLimitOrder(limitOrder, portfolio);
-        binanceLimitOrder.setStatus(org.knowm.xchange.dto.Order.OrderStatus.NEW);
-        BinanceTransactions.processBinanceLimitOrder(binanceLimitOrder);
-        binanceLimitOrderRepository.save(binanceLimitOrder);
-        return binanceLimitOrder;
+    
+    public static void updateBinanceLimitOrder(BinanceLimitOrder binanceLimitOrder, LimitOrder limitOrder) {
+        binanceLimitOrder.setType(limitOrder.getType());
+        binanceLimitOrder.setOriginalAmount(limitOrder.getOriginalAmount());
+        binanceLimitOrder.setInstrument(limitOrder.getInstrument().toString());
+        binanceLimitOrder.setId(limitOrder.getId());
+        binanceLimitOrder.setTimestamp(limitOrder.getTimestamp());
+        binanceLimitOrder.setLimitPrice(limitOrder.getLimitPrice());
+        binanceLimitOrder.setAveragePrice(limitOrder.getAveragePrice());
+        binanceLimitOrder.setCumulativeAmount(limitOrder.getCumulativeAmount());
+        binanceLimitOrder.setFee(limitOrder.getFee());
+        binanceLimitOrder.setStatus(limitOrder.getStatus());
+        binanceLimitOrder.setUserReference(limitOrder.getUserReference());
+        binanceLimitOrder.setCumulativeAmount(limitOrder.getCumulativeCounterAmount());
+        binanceLimitOrder.setLeverage(limitOrder.getLeverage());
     }
 }

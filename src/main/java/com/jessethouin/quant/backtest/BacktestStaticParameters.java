@@ -45,12 +45,12 @@ public class BacktestStaticParameters extends AbstractBacktest {
         Calc c;
         switch (CONFIG.getBroker()) {
             case ALPACA_TEST -> {
-                Security aapl = Util.getSecurity(portfolio, "AAPL");
+                Security aapl = Util.getSecurityFromPortfolio("AAPL", portfolio);
                 c = new Calc(aapl, CONFIG, price);
             }
             case BINANCE_TEST -> {
-                Currency base = Util.getCurrency(portfolio, "BTC");
-                Currency counter = Util.getCurrency(portfolio, "USDT");
+                Currency base = Util.getCurrencyFromPortfolio("BTC", portfolio);
+                Currency counter = Util.getCurrencyFromPortfolio("USDT", portfolio);
                 c = new Calc(base, counter, CONFIG, BigDecimal.ZERO);
             }
             default -> throw new IllegalStateException("Unexpected value: " + CONFIG.getBroker());

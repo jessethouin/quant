@@ -60,7 +60,7 @@ public class BinanceTransactions {
                 .timestamp(new Date())
                 .build();
         try {
-            LOG.debug("Limit Order: " + limitOrder.toString());
+            LOG.info("Limit Order: " + limitOrder.toString());
             binanceLive.getBinanceExchange().getTradeService().placeLimitOrder(limitOrder);
         } catch (Exception e) {
             LOG.error(e.getLocalizedMessage());
@@ -97,13 +97,13 @@ public class BinanceTransactions {
     }
 
     private static void processTestTransaction(BigDecimal qty, BinanceLimitOrder binanceLimitOrder) {
+        // This code would normally be handled by the Order websocket feed
         if (!Config.INSTANCE.isBackTest()) {
             binanceLimitOrderRepository.save(binanceLimitOrder);
             binanceLive.getOrderHistoryLookup().setOrderId(binanceLimitOrder.getOrderId());
         }
         processBinanceLimitOrder(binanceLimitOrder);
 
-        // This code would normally be handled by the Order websocket feed
         binanceLimitOrder.setStatus(Order.OrderStatus.FILLED);
         binanceLimitOrder.setAveragePrice(BigDecimal.ONE);
         binanceLimitOrder.setCumulativeAmount(qty);
@@ -123,7 +123,7 @@ public class BinanceTransactions {
             case BID -> {
                 switch (binanceLimitOrder.getStatus()) {
                     case NEW -> Util.debit(counter, originalAmount.multiply(limitPrice));
-                    case FILLED -> {
+                    case FILLED, PARTIALLY_FILLED -> {
                         Util.credit(base, originalAmount);
                         Util.debit(counter, fee);
                     }
@@ -133,7 +133,7 @@ public class BinanceTransactions {
             case ASK -> {
                 switch (binanceLimitOrder.getStatus()) {
                     case NEW -> Util.debit(base, originalAmount);
-                    case FILLED -> {
+                    case FILLED, PARTIALLY_FILLED -> {
                         BigDecimal filledQty = binanceLimitOrder.getCumulativeAmount();
                         BigDecimal filledAvgPrice = limitPrice.multiply(binanceLimitOrder.getAveragePrice());
                         Util.credit(counter, filledQty.multiply(filledAvgPrice));

@@ -59,12 +59,12 @@ public class ProcessHistoricIntradayPrices implements Runnable {
         Calc c;
         switch (config.getBroker()) {
             case ALPACA_TEST -> {
-                Security aapl = Util.getSecurity(portfolio, "AAPL");
+                Security aapl = Util.getSecurityFromPortfolio("AAPL", portfolio);
                 c = new Calc(aapl, config, price);
             }
             case BINANCE_TEST -> {
-                Currency base = Util.getCurrency(portfolio, "BTC");
-                Currency counter = Util.getCurrency(portfolio, "USDT");
+                Currency base = Util.getCurrencyFromPortfolio("BTC", portfolio);
+                Currency counter = Util.getCurrencyFromPortfolio("USDT", portfolio);
                 c = new Calc(base, counter, config, BigDecimal.ZERO);
             }
             default -> throw new IllegalStateException("Unexpected value: " + config.getBroker());

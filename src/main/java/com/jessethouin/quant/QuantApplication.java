@@ -17,10 +17,10 @@ import java.util.Arrays;
 @SpringBootApplication
 public class QuantApplication {
     private static final Logger LOG = LogManager.getLogger(QuantApplication.class);
-    private final BinanceLive binanceLive;
+    private static BinanceLive binanceLive;
 
     public QuantApplication(BinanceLive binanceLive) {
-        this.binanceLive = binanceLive;
+        QuantApplication.binanceLive = binanceLive;
     }
 
     public static void main(String[] args) {
@@ -42,7 +42,7 @@ public class QuantApplication {
                 case "combos" -> BacktestParameterCombos.findBestCombos(Arrays.copyOfRange(args, 1, args.length));
                 case "backtest" -> BacktestStaticParameters.runBacktest();
                 case "paper" -> AlpacaLive.doPaperTrading();
-                case "binance" -> BinanceLive.doLive();
+                case "binance" -> binanceLive.doLive();
                 default -> LOG.error("1st arg must be \"combos\", \"backtest\", \"paper\", or \"binance\".");
             }
         }

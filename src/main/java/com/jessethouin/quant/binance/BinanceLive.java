@@ -43,15 +43,13 @@ import java.util.*;
 import static java.util.Objects.requireNonNullElse;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.knowm.xchange.dto.Order.OrderStatus.CANCELED;
-import static org.knowm.xchange.dto.Order.OrderStatus.FILLED;
 
 @Component
 public class BinanceLive {
     private static final Logger LOG = LogManager.getLogger(BinanceLive.class);
     private static final Config CONFIG = Config.INSTANCE;
-    private static Portfolio portfolio;
-    private static OrderHistoryLookup orderHistoryLookup;
+    private Portfolio portfolio;
+    private OrderHistoryLookup orderHistoryLookup;
 
     private static final BinanceExchange BINANCE_EXCHANGE;
     private static final BinanceStreamingExchange BINANCE_STREAMING_EXCHANGE;
@@ -59,10 +57,10 @@ public class BinanceLive {
     private static final CompositeDisposable COMPOSITE_DISPOSABLE = new CompositeDisposable();
     private static final Map<CurrencyPair, BigDecimal> MIN_TRADES = new HashMap<>();
 
-    private static BinanceLimitOrderRepository binanceLimitOrderRepository;
-    private static BinanceTradeHistoryRepository binanceTradeHistoryRepository;
-    private static OrderHistoryLookupRepository orderHistoryLookupRepository;
-    private static PortfolioRepository portfolioRepository;
+    private final BinanceLimitOrderRepository binanceLimitOrderRepository;
+    private final BinanceTradeHistoryRepository binanceTradeHistoryRepository;
+    private final OrderHistoryLookupRepository orderHistoryLookupRepository;
+    private final PortfolioRepository portfolioRepository;
 
     static {
         ExchangeSpecification exSpec = new BinanceExchange().getDefaultExchangeSpecification();
@@ -84,10 +82,10 @@ public class BinanceLive {
     }
 
     private BinanceLive(BinanceLimitOrderRepository binanceLimitOrderRepository, BinanceTradeHistoryRepository binanceTradeHistoryRepository, OrderHistoryLookupRepository orderHistoryLookupRepository, PortfolioRepository portfolioRepository) {
-        BinanceLive.binanceLimitOrderRepository = binanceLimitOrderRepository;
-        BinanceLive.binanceTradeHistoryRepository = binanceTradeHistoryRepository;
-        BinanceLive.orderHistoryLookupRepository = orderHistoryLookupRepository;
-        BinanceLive.portfolioRepository = portfolioRepository;
+        this.binanceLimitOrderRepository = binanceLimitOrderRepository;
+        this.binanceTradeHistoryRepository = binanceTradeHistoryRepository;
+        this.orderHistoryLookupRepository = orderHistoryLookupRepository;
+        this.portfolioRepository = portfolioRepository;
     }
 
     public BinanceExchange getBinanceExchange() {
@@ -106,15 +104,15 @@ public class BinanceLive {
         return orderHistoryLookup;
     }
 
-    public static void doLive() {
+    public void doLive() {
         BinanceTransactions.showWallets();
 
-        portfolio = requireNonNullElse(portfolioRepository.getTop1ByPortfolioIdIsNotNullOrderByPortfolioIdDesc(), Util.createPortfolio());
-        portfolioRepository.save(portfolio);
+        portfolio = portfolioRepository.save(requireNonNullElse(portfolioRepository.getTop1ByPortfolioIdIsNotNullOrderByPortfolioIdDesc(), Util.createPortfolio()));
 
         BinanceTransactions.showTradingFees(portfolio);
         reconcile();
         recalibrate();
+        savePortfolio();
 
         List<CurrencyPair> currencyPairs = Util.getAllCurrencyPairs(CONFIG);
         currencyPairs.forEach(currencyPair -> MIN_TRADES.put(currencyPair, BinanceUtil.getMinTrade(currencyPair)));
@@ -124,26 +122,26 @@ public class BinanceLive {
 
         BINANCE_STREAMING_EXCHANGE.connect(productSubscriptionBuilder.build()).blockingAwait();
 
-        currencyPairs.forEach(BinanceLive::subscribeToOrderUpdates);
-        currencyPairs.forEach(BinanceLive::stopLoss);
+        currencyPairs.forEach(this::subscribeToOrderUpdates);
+        currencyPairs.forEach(this::stopLoss);
 
         switch (CONFIG.getDataFeed()) {
-            case KLINE -> currencyPairs.forEach(BinanceLive::subscribeToCurrencyKline);
-            case TRADE -> currencyPairs.forEach(BinanceLive::subscribeToCurrencyTrades);
-            case TICKER -> currencyPairs.forEach(BinanceLive::subscribeToCurrencyTicker);
-            case ORDER_BOOK -> currencyPairs.forEach(BinanceLive::subscribeToOrderBook);
+            case KLINE -> currencyPairs.forEach(this::subscribeToCurrencyKline);
+            case TRADE -> currencyPairs.forEach(this::subscribeToCurrencyTrades);
+            case TICKER -> currencyPairs.forEach(this::subscribeToCurrencyTicker);
+            case ORDER_BOOK -> currencyPairs.forEach(this::subscribeToOrderBook);
         }
     }
 
-    private static void subscribeToOrderUpdates(CurrencyPair currencyPair) {
+    private void subscribeToOrderUpdates(CurrencyPair currencyPair) {
         Disposable orderSub = BINANCE_STREAMING_EXCHANGE.getStreamingTradeService()
                 .getOrderChanges(currencyPair)
-                .subscribe(BinanceLive::processRemoteOrder);
+                .subscribe(this::processRemoteOrder);
 
         COMPOSITE_DISPOSABLE.add(orderSub);
     }
 
-    private static void stopLoss(CurrencyPair currencyPair) {
+    private void stopLoss(CurrencyPair currencyPair) {
         if (!currencyPair.toString().equals("69")) return; //we'll need to get rid of this once we start testing stop loss. This just keeps my checkmark green and happy.
 
         Ref ref = new Ref(currencyPair, portfolio);
@@ -161,7 +159,7 @@ public class BinanceLive {
         COMPOSITE_DISPOSABLE.add(tickerSub);
     }
 
-    private static void subscribeToCurrencyKline(CurrencyPair currencyPair) {
+    private void subscribeToCurrencyKline(CurrencyPair currencyPair) {
         BinanceMarketDataService marketDataService = (BinanceMarketDataService) BINANCE_EXCHANGE.getMarketDataService();
         Ref ref = new Ref(currencyPair, portfolio);
 
@@ -187,7 +185,7 @@ public class BinanceLive {
         }, MINUTES.toMillis(CONFIG.getRecalibrateFreq()), MINUTES.toMillis(CONFIG.getRecalibrateFreq()));
     }
 
-    private static void subscribeToCurrencyTicker(CurrencyPair currencyPair) {
+    private void subscribeToCurrencyTicker(CurrencyPair currencyPair) {
         Ref ref = new Ref(currencyPair, portfolio);
         Disposable tickerSub = BINANCE_STREAMING_EXCHANGE.getStreamingMarketDataService().getTicker(currencyPair).subscribe(ticker -> {
                     ref.price = ticker.getLast();
@@ -199,7 +197,7 @@ public class BinanceLive {
         COMPOSITE_DISPOSABLE.add(tickerSub);
     }
 
-    private static void subscribeToCurrencyTrades(CurrencyPair currencyPair) {
+    private void subscribeToCurrencyTrades(CurrencyPair currencyPair) {
         Ref ref = new Ref(currencyPair, portfolio);
         Disposable tradesSub = BINANCE_STREAMING_EXCHANGE.getStreamingMarketDataService().getTrades(currencyPair).subscribe(trade -> {
                     ref.price = trade.getPrice();
@@ -211,7 +209,7 @@ public class BinanceLive {
         COMPOSITE_DISPOSABLE.add(tradesSub);
     }
 
-    private static void subscribeToOrderBook(CurrencyPair currencyPair) {
+    private void subscribeToOrderBook(CurrencyPair currencyPair) {
         Ref ref = new Ref(currencyPair, portfolio);
         Disposable orderBookSub = BINANCE_STREAMING_EXCHANGE.getStreamingMarketDataService()
                 .getOrderBook(currencyPair)
@@ -229,7 +227,7 @@ public class BinanceLive {
         COMPOSITE_DISPOSABLE.add(orderBookSub);
     }
 
-    private static void doTheThing(Ref ref) {
+    private void doTheThing(Ref ref) {
         ref.shortMAValue = Util.getMA(ref.previousShortMAValue, CONFIG.getShortLookback(), ref.price);
         ref.longMAValue = Util.getMA(ref.previousLongMAValue, CONFIG.getLongLookback(), ref.price);
 
@@ -249,14 +247,18 @@ public class BinanceLive {
 
         LOG.info("{}/{} - {} : ma1 {} : ma2 {} : l {} : h {} : p {} : v {}", ref.baseCurrency.getSymbol(), ref.counterCurrency.getSymbol(), ref.count, ref.shortMAValue, ref.longMAValue, ref.c.getLow(), ref.c.getHigh(), ref.price, value);
 
-        portfolioRepository.save(portfolio);
+        savePortfolio();
 
         ref.previousShortMAValue = ref.shortMAValue;
         ref.previousLongMAValue = ref.longMAValue;
         ref.count++;
     }
 
-    private static void recalibrate() {
+    private void savePortfolio() {
+        portfolio = portfolioRepository.save(portfolio);
+    }
+
+    private void recalibrate() {
         if (CONFIG.isRecalibrate()) {
             CONFIG.setBackTest(true);
             Util.relacibrate(CONFIG);
@@ -264,12 +266,12 @@ public class BinanceLive {
         }
     }
 
-    private static void reconcile() {
+    private void reconcile() {
         try {
-            BINANCE_EXCHANGE.getTradeService().getOpenOrders().getOpenOrders().forEach(BinanceLive::processRemoteOrder);
+            BINANCE_EXCHANGE.getTradeService().getOpenOrders().getOpenOrders().forEach(this::processRemoteOrder);
 
             BINANCE_EXCHANGE.getAccountService().getAccountInfo().getWallets().forEach((s, wallet) -> wallet.getBalances().forEach((currency, balance) -> {
-                Currency c = Util.getCurrency(portfolio, currency.getSymbol());
+                Currency c = Util.getCurrencyFromPortfolio(currency.getSymbol(), portfolio);
                 int diff = c.getQuantity().compareTo(balance.getAvailable());
                 if (diff == 0) return;
                 c.setCurrencyType(CurrencyTypes.CRYPTO);
@@ -284,29 +286,30 @@ public class BinanceLive {
         }
     }
 
-    private static void processRemoteOrder(Order order) {
+    private void processRemoteOrder(Order order) {
+        LOG.info("Order: {}", order);
         if (order instanceof LimitOrder) {
-            LOG.info("Order: {}", order);
-            BinanceLimitOrder binanceLimitOrder;
             LimitOrder limitOrder = (LimitOrder) order;
-            switch (order.getStatus()) {
-                case NEW -> BinanceUtil.createBinanceLimitOrder(portfolio, limitOrder);
-                case FILLED -> {
-                    binanceLimitOrder = Objects.requireNonNullElse(binanceLimitOrderRepository.getById(limitOrder.getId()), BinanceUtil.createBinanceLimitOrder(portfolio, limitOrder));
-                    binanceLimitOrder.setStatus(FILLED);
-                    binanceLimitOrder.setAveragePrice(limitOrder.getAveragePrice());
-                    binanceLimitOrder.setCumulativeAmount(limitOrder.getCumulativeAmount());
-                    BinanceTransactions.processBinanceLimitOrder(binanceLimitOrder);
-                    binanceLimitOrderRepository.save(binanceLimitOrder);
-                }
-                case CANCELED -> {
-                    binanceLimitOrder = Objects.requireNonNullElse(binanceLimitOrderRepository.getById(limitOrder.getId()), BinanceUtil.createBinanceLimitOrder(portfolio, limitOrder));
-                    binanceLimitOrder.setStatus(CANCELED);
-                    BinanceTransactions.processBinanceLimitOrder(binanceLimitOrder);
-                    binanceLimitOrderRepository.save(binanceLimitOrder);
+
+            // check portfolio, then database, then create new
+            BinanceLimitOrder binanceLimitOrder = portfolio.getBinanceLimitOrders().stream().filter(blo -> blo.getId().equals(limitOrder.getId())).findFirst().orElse(null);
+
+            if (binanceLimitOrder == null) {
+                binanceLimitOrder = binanceLimitOrderRepository.getById(limitOrder.getId());
+                if (binanceLimitOrder != null) {
+                    portfolio.getBinanceLimitOrders().add(binanceLimitOrder);
                 }
             }
+
+            if (binanceLimitOrder == null) {
+                binanceLimitOrder = new BinanceLimitOrder(limitOrder, portfolio);
+                portfolio.getBinanceLimitOrders().add(binanceLimitOrder);
+            }
+
+            BinanceUtil.updateBinanceLimitOrder(binanceLimitOrder, limitOrder);
+            BinanceTransactions.processBinanceLimitOrder(binanceLimitOrder);
         }
+        savePortfolio();
     }
 
     public static class Ref {
