@@ -25,7 +25,7 @@ public class BinanceLimitOrder implements Comparable<BinanceLimitOrder> {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long orderId;
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     @JoinColumn(name = "portfolio_id")
     private Portfolio portfolio;
     private Order.OrderType type;
