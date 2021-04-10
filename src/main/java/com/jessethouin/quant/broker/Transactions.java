@@ -41,11 +41,11 @@ public class Transactions {
             case COINBASE -> LOG.info("Place COINBASE buy order here");
             case CEXIO -> LOG.info("Place CEXIO buy order here");
             case BINANCE -> {
-                LOG.info("Placing Binance BUY LIMIT order for {} of {} at {}", qty, base.getSymbol(), price);
+                LOG.info("Placing Binance BUY LIMIT order for {} of {} at {}", qty.toPlainString(), base.getSymbol(), price);
                 BinanceTransactions.buyCurrency(new CurrencyPair(base.getSymbol(), counter.getSymbol()), qty, price);
             }
             case BINANCE_TEST -> {
-                LOG.trace("Placing Binance TEST BUY LIMIT order for {} of {} at {}", qty, base.getSymbol(), price);
+                LOG.debug("Placing Binance TEST BUY LIMIT order for {} of {} at {}", qty.toPlainString(), base.getSymbol(), price);
                 BinanceTransactions.buyTestCurrency(base.getPortfolio(), new CurrencyPair(base.getSymbol(), counter.getSymbol()), qty, price);
             }
             default -> throw new IllegalStateException("Unexpected broker: " + broker);
@@ -59,11 +59,11 @@ public class Transactions {
             case COINBASE -> LOG.info("Place COINBASE sell order here");
             case CEXIO -> LOG.info("Place CEXIO sell order here");
             case BINANCE -> {
-                LOG.trace("Placing Binance SELL LIMIT Order for {} of {} at {}", base.getQuantity(), base.getSymbol(), price);
+                LOG.info("Placing Binance SELL LIMIT Order for {} of {} at {}", base.getQuantity().toPlainString(), base.getSymbol(), price);
                 BinanceTransactions.sellCurrency(new CurrencyPair(base.getSymbol(), counter.getSymbol()), base.getQuantity(), price);
             }
             case BINANCE_TEST -> {
-                LOG.trace("Placing Binance TEST SELL LIMIT Order for {} of {} at {}", base.getQuantity(), base.getSymbol(), price);
+                LOG.debug("Placing Binance TEST SELL LIMIT Order for {} of {} at {}", base.getQuantity().toPlainString(), base.getSymbol(), price);
                 BinanceTransactions.sellTestCurrency(base.getPortfolio(), new CurrencyPair(base.getSymbol(), counter.getSymbol()), base.getQuantity(), price);
             }
             default -> throw new IllegalStateException("Unexpected broker: " + broker);

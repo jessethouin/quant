@@ -24,6 +24,6 @@ public class CurrencyLedger {
     private BigDecimal debit;
     @Convert(converter = BigDecimalConverter.class)
     private BigDecimal credit;
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     private Currency currency;
 }

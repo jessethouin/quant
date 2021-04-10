@@ -49,6 +49,8 @@ public class Config {
     private List<String> cryptoCurrencies;
     private Broker broker;
     private DataFeed dataFeed;
+    private boolean triggerBuy;
+    private boolean triggerSell;
 
     public static final Config CONFIG = new Config();
 
@@ -88,6 +90,8 @@ public class Config {
             setCryptoCurrencies(Stream.of(prop.getProperty("cryptoCurrencies").split(",", -1)).collect(Collectors.toList()));
             setBroker(Broker.valueOf(prop.getProperty("broker")));
             setDataFeed(DataFeed.valueOf(prop.getProperty("dataFeed")));
+            setTriggerBuy(false);
+            setTriggerSell(false);
         } catch (IOException e) {
             LOG.error("Unable to read properties file: " + e.getLocalizedMessage());
         }

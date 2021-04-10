@@ -39,7 +39,7 @@ public class Calc {
         this(null, base, counter, config, price, price, price, BigDecimal.ZERO, false);
     }
 
-    public Calc(Security security, Currency base, Currency counter, Config config, BigDecimal price, BigDecimal high, BigDecimal low, BigDecimal spread, boolean buy) {
+    private Calc(Security security, Currency base, Currency counter, Config config, BigDecimal price, BigDecimal high, BigDecimal low, BigDecimal spread, boolean buy) {
         this.security = security;
         this.base = base;
         this.counter = counter;
@@ -49,6 +49,15 @@ public class Calc {
         this.low = low;
         this.spread = spread;
         this.buy = buy;
+    }
+
+    public void updateCalc(BigDecimal price, BigDecimal ma1, BigDecimal ma2) {
+        setPrice(price);
+        if (getLow().equals(BigDecimal.ZERO)) setLow(price);
+        if (getHigh().equals(BigDecimal.ZERO)) setHigh(price);
+        setQty(Util.getBudget(price, config.getAllowance(), getCounter(), getSecurity()));
+        setMa1(ma1);
+        setMa2(ma2);
     }
 
     public void decide() {
@@ -81,16 +90,18 @@ public class Calc {
             case SELL5 -> sell5();
         };
 
-        if (buy) {
+        if (buy || config.isTriggerBuy()) {
             Transactions.placeBuyOrder(config.getBroker(), getSecurity(), getBase(), getCounter(), getQty(), getPrice());
             setBuy(false);
-        } else if (sell) {
+            config.setTriggerBuy(false);
+        } else if (sell || config.isTriggerSell()) {
             boolean success = Transactions.placeSellOrder(config.getBroker(), getSecurity(), getBase(), getCounter(), getPrice());
             if (success) {
                 setLow(getPrice());
                 setHigh(getPrice());
             }
             setBuy(true);
+            config.setTriggerSell(false);
         }
     }
 
@@ -138,14 +149,5 @@ public class Calc {
 
     private boolean sell5() {
         return getMa1().compareTo(getMa2()) < 0;
-    }
-
-    public void updateCalc(BigDecimal price, BigDecimal ma1, BigDecimal ma2) {
-        setPrice(price);
-        if (getLow().equals(BigDecimal.ZERO)) setLow(price);
-        if (getHigh().equals(BigDecimal.ZERO)) setHigh(price);
-        setQty(Util.getBudget(price, config.getAllowance(), getCounter(), getSecurity()));
-        setMa1(ma1);
-        setMa2(ma2);
     }
 }

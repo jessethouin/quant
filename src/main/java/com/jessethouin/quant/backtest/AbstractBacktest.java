@@ -1,14 +1,12 @@
 package com.jessethouin.quant.backtest;
 
+import static com.jessethouin.quant.conf.Config.CONFIG;
+
 import com.jessethouin.quant.backtest.beans.repos.BacktestParameterResultsRepository;
 import com.jessethouin.quant.binance.BinanceCaptureHistory;
 import com.jessethouin.quant.binance.beans.BinanceTradeHistory;
 import com.jessethouin.quant.binance.beans.repos.BinanceTradeHistoryRepository;
 import com.jessethouin.quant.broker.Util;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.springframework.stereotype.Component;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
@@ -18,8 +16,9 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-
-import static com.jessethouin.quant.conf.Config.CONFIG;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.springframework.stereotype.Component;
 
 @Component
 public abstract class AbstractBacktest {
@@ -48,6 +47,9 @@ public abstract class AbstractBacktest {
 
     private static void updateBinanceTradeHistoryTable() {
         Date latestBinanceTradeHistoryDate = binanceTradeHistoryRepository.getMaxTimestamp();
+        if (latestBinanceTradeHistoryDate == null) {
+            latestBinanceTradeHistoryDate = CONFIG.getBacktestStart();
+        }
         if (CONFIG.getBacktestEnd().after(latestBinanceTradeHistoryDate)) {
             LocalDateTime then  = latestBinanceTradeHistoryDate.toInstant().atZone(ZoneId.of("UTC")).toLocalDateTime();
             LocalDateTime now = LocalDateTime.now(ZoneId.of("UTC"));

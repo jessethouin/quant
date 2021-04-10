@@ -4,4 +4,6 @@
 /.idea/
 /logs/
 /src/main/resources/alpaca.properties
-/src/main/resources/binance.properties
+/src/main/resources/binance-dev.properties
+/src/main/resources/binance-dev.properties
+/src/main/resources/binance-prod.properties
