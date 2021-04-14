@@ -18,7 +18,7 @@ import java.util.Date;
 public class SecurityPosition {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long positionId;
+    private Long positionId;
     private Date opened;
     @Convert(converter = BigDecimalConverter.class)
     private BigDecimal quantity;
