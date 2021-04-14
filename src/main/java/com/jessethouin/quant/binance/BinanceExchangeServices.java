@@ -5,7 +5,6 @@ import static com.jessethouin.quant.conf.Config.CONFIG;
 import com.jessethouin.quant.binance.config.BinanceApiConfig;
 import com.jessethouin.quant.binance.testnet.BinanceTestStreamingExchange;
 import com.jessethouin.quant.binance.testnet.BinanceTestStreamingTradeService;
-import com.jessethouin.quant.broker.Util;
 import info.bitrich.xchangestream.binance.BinanceStreamingExchange;
 import info.bitrich.xchangestream.binance.BinanceStreamingMarketDataService;
 import info.bitrich.xchangestream.binance.BinanceStreamingTradeService;
@@ -52,7 +51,7 @@ public class BinanceExchangeServices {
         BINANCE_TEST_STREAMING_EXCHANGE = (BinanceTestStreamingExchange) StreamingExchangeFactory.INSTANCE.createExchange(configureStreamingExchangeSpec(new BinanceTestStreamingExchange().getDefaultExchangeSpecification()));
 
         ProductSubscription.ProductSubscriptionBuilder productSubscriptionBuilder = ProductSubscription.create();
-        List<CurrencyPair> currencyPairs = Util.getAllCurrencyPairs(CONFIG);
+        List<CurrencyPair> currencyPairs = BinanceUtil.getAllCryptoCurrencyPairs(CONFIG);
         currencyPairs.forEach(productSubscriptionBuilder::addAll);
 
         BinanceStreamingMarketDataService binanceStreamingMarketDataService;
@@ -70,7 +69,7 @@ public class BinanceExchangeServices {
         BINANCE_STREAMING_MARKET_DATA_SERVICE = binanceStreamingMarketDataService;
         BINANCE_STREAMING_TRADE_SERVICE = binanceStreamingTradeService;
         BINANCE_TEST_STREAMING_TRADE_SERVICE = BINANCE_TEST_STREAMING_EXCHANGE.getStreamingTradeService();
-        Util.getAllCurrencyPairs(CONFIG).forEach(currencyPair -> BINANCE_MIN_TRADES.put(currencyPair, BinanceUtil.getMinTrade(currencyPair)));
+        BinanceUtil.getAllCryptoCurrencyPairs(CONFIG).forEach(currencyPair -> BINANCE_MIN_TRADES.put(currencyPair, BinanceUtil.getMinTrade(currencyPair)));
     }
 
     private static ExchangeSpecification configureExchangeSpec(ExchangeSpecification exSpec) {

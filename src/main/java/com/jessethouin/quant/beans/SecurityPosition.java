@@ -1,6 +1,7 @@
 package com.jessethouin.quant.beans;
 
 import com.jessethouin.quant.db.BigDecimalConverter;
+import com.jessethouin.quant.db.Exclude;
 import lombok.*;
 
 import javax.persistence.*;
@@ -23,6 +24,7 @@ public class SecurityPosition {
     private BigDecimal quantity;
     @Convert(converter = BigDecimalConverter.class)
     private BigDecimal price;
+    @Exclude
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "security_id")
     private Security security;

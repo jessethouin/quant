@@ -1,6 +1,5 @@
 package com.jessethouin.quant.binance;
 
-import static com.jessethouin.quant.binance.BinanceExchangeServices.BINANCE_ACCOUNT_SERVICE;
 import static com.jessethouin.quant.binance.BinanceExchangeServices.BINANCE_MIN_TRADES;
 import static com.jessethouin.quant.binance.BinanceExchangeServices.BINANCE_TRADE_SERVICE;
 import static com.jessethouin.quant.conf.Config.CONFIG;
@@ -11,29 +10,22 @@ import com.jessethouin.quant.beans.Currency;
 import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.binance.beans.BinanceLimitOrder;
 import com.jessethouin.quant.broker.Util;
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Date;
-import java.util.Map;
+import java.util.Objects;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.knowm.xchange.binance.dto.trade.TimeInForce;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderType;
-import org.knowm.xchange.dto.account.Fee;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.springframework.stereotype.Component;
 
 @Component
 public class BinanceTransactions {
     private static final Logger LOG = LogManager.getLogger(BinanceTransactions.class);
-    private static BinanceLive binanceLive;
-
-    public BinanceTransactions(BinanceLive binanceLive) {
-        BinanceTransactions.binanceLive = binanceLive;
-    }
 
     public static void buyCurrency(CurrencyPair currencyPair, BigDecimal qty, BigDecimal price) {
         transact(currencyPair, qty, price, BID);
@@ -53,13 +45,13 @@ public class BinanceTransactions {
                 .orderStatus(Order.OrderStatus.NEW)
                 .originalAmount(qty.setScale(6, RoundingMode.FLOOR))
                 .limitPrice(price.setScale(8, RoundingMode.FLOOR))
-//                .flag(TimeInForce.GTC)
                 .timestamp(new Date())
                 .build();
         try {
             LOG.info("Limit Order: " + limitOrder.toString());
             String id = BINANCE_TRADE_SERVICE.placeLimitOrder(limitOrder);
-            binanceLive.getOrderHistoryLookup().setOrderId(Long.parseLong(id));
+            if (id == null) throw new Exception("Limit Order id was null from server.");
+            BinanceStreamProcessing.getOrderHistoryLookup().setOrderId(Long.parseLong(id));
         } catch (Exception e) {
             LOG.error(e.getLocalizedMessage());
         }
@@ -98,7 +90,7 @@ public class BinanceTransactions {
         portfolio.getBinanceLimitOrders().add(binanceLimitOrder);
         LOG.trace("New Test Binance Limit order: " + binanceLimitOrder.toString().replace(",", ",\n\t"));
         if (!CONFIG.isBackTest()) {
-            binanceLive.getOrderHistoryLookup().setOrderId(Long.parseLong(binanceLimitOrder.getId()));
+            BinanceStreamProcessing.getOrderHistoryLookup().setOrderId(Long.parseLong(binanceLimitOrder.getId()));
         }
         processBinanceLimitOrder(binanceLimitOrder);
 
@@ -114,17 +106,19 @@ public class BinanceTransactions {
         CurrencyPair currencyPair = new CurrencyPair(binanceLimitOrder.getInstrument());
         Currency base = Util.getCurrencyFromPortfolio(currencyPair.base.getSymbol(), portfolio);
         Currency counter = Util.getCurrencyFromPortfolio(currencyPair.counter.getSymbol(), portfolio);
+        Currency commissionAsset = Objects.requireNonNullElse(binanceLimitOrder.getCommissionAsset(), counter);
         BigDecimal limitPrice = binanceLimitOrder.getLimitPrice();
         BigDecimal originalAmount = binanceLimitOrder.getOriginalAmount();
-        BigDecimal fee = binanceLimitOrder.getFee();
+        BigDecimal cumulativeAmount = binanceLimitOrder.getCumulativeAmount();
+        BigDecimal fee = binanceLimitOrder.getCommissionAmount() == null ? binanceLimitOrder.getFee() : binanceLimitOrder.getCommissionAmount();
 
         switch (binanceLimitOrder.getType()) {
             case BID -> {
                 switch (binanceLimitOrder.getStatus()) {
                     case NEW -> Util.debit(counter, originalAmount.multiply(limitPrice), "New Binance Buy Limit order");
                     case FILLED, PARTIALLY_FILLED -> {
-                        Util.credit(base, originalAmount, "Filled or Partially Filled Binance Buy Limit order");
-                        Util.debit(counter, fee, "Fee for Filled or Partially Filled Binance Buy Limit order");
+                        Util.credit(base, cumulativeAmount, "Filled or Partially Filled Binance Buy Limit order");
+                        Util.debit(commissionAsset, fee, "Fee for Filled or Partially Filled Binance Buy Limit order");
                     }
                     case CANCELED, EXPIRED, REJECTED, REPLACED -> Util.credit(counter, originalAmount.multiply(limitPrice), "Cancelled Binance Buy Limit order");
                 }
@@ -133,8 +127,8 @@ public class BinanceTransactions {
                 switch (binanceLimitOrder.getStatus()) {
                     case NEW -> Util.debit(base, originalAmount, "New Binance Sell Limit order");
                     case FILLED, PARTIALLY_FILLED -> {
-                        Util.credit(counter, binanceLimitOrder.getCumulativeAmount().multiply(limitPrice), "Filled or Partially Filled Binance Sell Limit order");
-                        Util.debit(counter, fee, "Fee for Filled or Partially Filled Binance Sell Limit order");
+                        Util.credit(counter, cumulativeAmount.multiply(limitPrice), "Filled or Partially Filled Binance Sell Limit order");
+                        Util.debit(commissionAsset, fee, "Fee for Filled or Partially Filled Binance Sell Limit order");
                     }
                     case CANCELED, EXPIRED, REJECTED, REPLACED -> Util.credit(base, originalAmount, "Cancelled Binance Sell Limit order");
                 }
@@ -143,37 +137,19 @@ public class BinanceTransactions {
         }
     }
 
-    public static void showWallets() {
-        try {
-            StringBuilder sb = new StringBuilder();
-            BINANCE_ACCOUNT_SERVICE.getAccountInfo().getWallets().forEach((s, w) -> {
-                w.getBalances().forEach((c, b) -> {
-                    if (b.getTotal().compareTo(BigDecimal.ZERO) > 0) {
-                        sb.append(System.lineSeparator());
-                        sb.append("\t");
-                        sb.append(c.getSymbol());
-                        sb.append(" - ");
-                        sb.append(b.getTotal().toPlainString());
-                    }
-                });
-                LOG.info("Wallet: {}", sb);
-            });
-        } catch (IOException e) {
-            LOG.error(e.getLocalizedMessage());
-        }
-    }
-
-    public static void showTradingFees(Portfolio portfolio) {
-        try {
-            Map<CurrencyPair, Fee> dynamicTradingFees = BINANCE_ACCOUNT_SERVICE.getDynamicTradingFees();
-            dynamicTradingFees.forEach((c, f) -> {
-                if (portfolio.getCurrencies().stream().anyMatch(currency -> c.base.getSymbol().equals(currency.getSymbol())) &&
-                        portfolio.getCurrencies().stream().anyMatch(currency -> c.counter.getSymbol().equals(currency.getSymbol()))) {
-                    LOG.info(c.toString() + " - m : " + f.getMakerFee() + " t : " + f.getTakerFee());
-                }
-            });
-        } catch (IOException e) {
-            LOG.error(e.getLocalizedMessage());
-        }
+    public static void updateBinanceLimitOrder(BinanceLimitOrder binanceLimitOrder, LimitOrder limitOrder) {
+        binanceLimitOrder.setType(limitOrder.getType());
+        binanceLimitOrder.setOriginalAmount(limitOrder.getOriginalAmount());
+        binanceLimitOrder.setInstrument(limitOrder.getInstrument().toString());
+        binanceLimitOrder.setId(limitOrder.getId());
+        binanceLimitOrder.setTimestamp(limitOrder.getTimestamp());
+        binanceLimitOrder.setLimitPrice(limitOrder.getLimitPrice());
+        binanceLimitOrder.setAveragePrice(limitOrder.getAveragePrice());
+        binanceLimitOrder.setCumulativeAmount(limitOrder.getCumulativeAmount());
+        binanceLimitOrder.setFee(limitOrder.getFee());
+        binanceLimitOrder.setStatus(limitOrder.getStatus());
+        binanceLimitOrder.setUserReference(limitOrder.getUserReference());
+        binanceLimitOrder.setCumulativeAmount(limitOrder.getCumulativeCounterAmount());
+        binanceLimitOrder.setLeverage(limitOrder.getLeverage());
     }
 }

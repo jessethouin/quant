@@ -1,23 +1,30 @@
 package com.jessethouin.quant.binance;
 
-import com.jessethouin.quant.binance.beans.BinanceLimitOrder;
+import static com.jessethouin.quant.binance.BinanceExchangeServices.BINANCE_ACCOUNT_SERVICE;
+import static com.jessethouin.quant.binance.BinanceExchangeServices.BINANCE_EXCHANGE;
+import static com.jessethouin.quant.binance.BinanceExchangeServices.BINANCE_EXCHANGE_INFO;
+import static com.jessethouin.quant.binance.BinanceExchangeServices.BINANCE_MARKET_DATA_SERVICE;
+
+import com.jessethouin.quant.beans.Currency;
+import com.jessethouin.quant.beans.Portfolio;
+import com.jessethouin.quant.broker.Util;
+import com.jessethouin.quant.conf.Config;
+import com.jessethouin.quant.conf.CurrencyTypes;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.knowm.xchange.binance.dto.meta.exchangeinfo.Filter;
 import org.knowm.xchange.binance.dto.meta.exchangeinfo.Symbol;
 import org.knowm.xchange.currency.CurrencyPair;
-import org.knowm.xchange.dto.trade.LimitOrder;
+import org.knowm.xchange.dto.account.Fee;
 import org.knowm.xchange.exceptions.CurrencyPairNotValidException;
-
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import static com.jessethouin.quant.binance.BinanceExchangeServices.BINANCE_EXCHANGE_INFO;
-import static com.jessethouin.quant.binance.BinanceExchangeServices.BINANCE_MARKET_DATA_SERVICE;
 
 public class BinanceUtil {
     private static final Logger LOG = LogManager.getLogger(BinanceUtil.class);
@@ -78,20 +85,74 @@ public class BinanceUtil {
         }
         return ret;
     }
-    
-    public static void updateBinanceLimitOrder(BinanceLimitOrder binanceLimitOrder, LimitOrder limitOrder) {
-        binanceLimitOrder.setType(limitOrder.getType());
-        binanceLimitOrder.setOriginalAmount(limitOrder.getOriginalAmount());
-        binanceLimitOrder.setInstrument(limitOrder.getInstrument().toString());
-        binanceLimitOrder.setId(limitOrder.getId());
-        binanceLimitOrder.setTimestamp(limitOrder.getTimestamp());
-        binanceLimitOrder.setLimitPrice(limitOrder.getLimitPrice());
-        binanceLimitOrder.setAveragePrice(limitOrder.getAveragePrice());
-        binanceLimitOrder.setCumulativeAmount(limitOrder.getCumulativeAmount());
-        binanceLimitOrder.setFee(limitOrder.getFee());
-        binanceLimitOrder.setStatus(limitOrder.getStatus());
-        binanceLimitOrder.setUserReference(limitOrder.getUserReference());
-        binanceLimitOrder.setCumulativeAmount(limitOrder.getCumulativeCounterAmount());
-        binanceLimitOrder.setLeverage(limitOrder.getLeverage());
+
+    public static List<CurrencyPair> getAllCryptoCurrencyPairs(Config config) {
+        List<CurrencyPair> currencyPairs = new ArrayList<>();
+        config.getCryptoCurrencies().forEach(base -> config.getCryptoCurrencies().forEach(counter -> {
+            if (!base.equals(counter) && !currencyPairs.contains(new CurrencyPair(counter, base))) {
+                BINANCE_EXCHANGE.getExchangeSymbols().stream().filter(currencyPair -> currencyPair.base.getSymbol().equals(base) && currencyPair.counter.getSymbol().equals(counter)).forEach(currencyPairs::add);
+            }
+        }));
+        return currencyPairs;
+    }
+
+    public static void showWallets() {
+        try {
+            StringBuilder sb = new StringBuilder();
+            BINANCE_ACCOUNT_SERVICE.getAccountInfo().getWallets().forEach((s, w) -> {
+                w.getBalances().forEach((c, b) -> {
+                    if (b.getTotal().compareTo(BigDecimal.ZERO) > 0) {
+                        sb.append(System.lineSeparator());
+                        sb.append("\t");
+                        sb.append(c.getSymbol());
+                        sb.append(" - ");
+                        sb.append(b.getTotal().toPlainString());
+                    }
+                });
+                LOG.info("Wallet: {}", sb);
+            });
+        } catch (IOException e) {
+            LOG.error(e.getLocalizedMessage());
+        }
+    }
+
+    public static void showTradingFees(Portfolio portfolio) {
+        try {
+            Map<CurrencyPair, Fee> dynamicTradingFees = BINANCE_ACCOUNT_SERVICE.getDynamicTradingFees();
+            dynamicTradingFees.forEach((c, f) -> {
+                if (portfolio.getCurrencies().stream().anyMatch(currency -> c.base.getSymbol().equals(currency.getSymbol())) &&
+                        portfolio.getCurrencies().stream().anyMatch(currency -> c.counter.getSymbol().equals(currency.getSymbol()))) {
+                    LOG.info(c + " - m : " + f.getMakerFee() + " t : " + f.getTakerFee());
+                }
+            });
+        } catch (IOException e) {
+            LOG.error(e.getLocalizedMessage());
+        }
+    }
+
+    public static void reconcile(Portfolio portfolio) {
+        try {
+            BINANCE_EXCHANGE.getTradeService().getOpenOrders().getOpenOrders().forEach(BinanceStreamProcessing::processRemoteOrder);
+
+            BINANCE_EXCHANGE.getAccountService().getAccountInfo().getWallets().forEach((s, wallet) -> wallet.getBalances().forEach((remoteCurrency, balance) -> {
+                Currency currency = Util.getCurrencyFromPortfolio(remoteCurrency.getSymbol(), portfolio);
+                int diff = currency.getQuantity().compareTo(balance.getAvailable());
+                if (diff == 0) {
+                    return;
+                }
+                currency.setCurrencyType(CurrencyTypes.CRYPTO);
+                currency.setPortfolio(portfolio);
+                portfolio.getCurrencies().add(currency);
+                LOG.info("{}: Reconciling local ledger ({}) with remote wallet ({}).", currency.getSymbol(), currency.getQuantity(), balance.getAvailable());
+                if (diff > 0) {
+                    Util.debit(currency, currency.getQuantity().subtract(balance.getAvailable()).abs(), "Reconciling with Binance wallet");
+                }
+                if (diff < 0) {
+                    Util.credit(currency, currency.getQuantity().add(balance.getAvailable()).abs(), "Reconciling with Binance wallet");
+                }
+            }));
+        } catch (IOException e) {
+            LOG.error(e.getLocalizedMessage());
+        }
     }
 }

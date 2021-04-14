@@ -25,7 +25,7 @@ public class BinanceApiConfig {
     private BinanceApiConfig() {
         try {
             Properties prop = new Properties();
-            String propFileName = "binance-dev.properties";
+            String propFileName = "binance-prod.properties";
             inputStream = getClass().getClassLoader().getResourceAsStream(propFileName);
             if (inputStream != null) {
                 prop.load(inputStream);

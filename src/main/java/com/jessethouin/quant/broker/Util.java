@@ -1,5 +1,8 @@
 package com.jessethouin.quant.broker;
 
+import static com.jessethouin.quant.conf.Config.CONFIG;
+import static java.util.Objects.requireNonNullElse;
+
 import com.jessethouin.quant.backtest.BacktestParameterCombos;
 import com.jessethouin.quant.backtest.beans.BacktestParameterResults;
 import com.jessethouin.quant.beans.Currency;
@@ -10,20 +13,14 @@ import com.jessethouin.quant.calculators.MA;
 import com.jessethouin.quant.conf.Config;
 import com.jessethouin.quant.conf.CurrencyTypes;
 import com.jessethouin.quant.conf.MATypes;
-import org.knowm.xchange.currency.CurrencyPair;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.NumberFormat;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
-
-import static com.jessethouin.quant.conf.Config.CONFIG;
-import static java.util.Objects.requireNonNullElse;
 
 public class Util {
 
@@ -38,17 +35,7 @@ public class Util {
     }
 
     public static BigDecimal getValueAtPrice(Currency base, BigDecimal marketPrice) {
-        return base.getQuantity().multiply(marketPrice);
-    }
-
-    public static List<CurrencyPair> getAllCurrencyPairs(Config config) {
-        List<CurrencyPair> currencyPairs = new ArrayList<>();
-        config.getCryptoCurrencies().forEach(base -> config.getCryptoCurrencies().forEach(counter -> {
-            if (!base.equals(counter) && !currencyPairs.contains(new CurrencyPair(counter, base))) {
-                currencyPairs.add(new CurrencyPair(base, counter));
-            }
-        }));
-        return currencyPairs;
+        return base.getQuantity().multiply(marketPrice).setScale(8, RoundingMode.HALF_UP);
     }
 
     public static BigDecimal getBudget(BigDecimal price, BigDecimal allowance, Currency currency, Security security) {
@@ -98,7 +85,7 @@ public class Util {
             return c.get();
         } else {
             Currency currency = new Currency();
-            currency.setCurrencyType(CurrencyTypes.FIAT);
+            currency.setCurrencyType(CurrencyTypes.FIAT); // todo: don't make this assumption
             currency.setSymbol(symbol);
             currency.setQuantity(BigDecimal.ZERO);
             currency.setPortfolio(portfolio);
