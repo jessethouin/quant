@@ -20,7 +20,7 @@ import java.util.Set;
 public class Currency {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long currencyId;
+    private Long currencyId;
     private String symbol;
     private CurrencyTypes currencyType;
     @Convert(converter = BigDecimalConverter.class)

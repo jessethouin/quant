@@ -18,7 +18,7 @@ import java.util.Date;
 public class CurrencyLedger {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long currencyLedgerId;
+    private Long currencyLedgerId;
     private Date timestamp;
     private String memo;
     @Convert(converter = BigDecimalConverter.class)
