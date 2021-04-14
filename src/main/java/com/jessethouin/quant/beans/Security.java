@@ -1,5 +1,6 @@
 package com.jessethouin.quant.beans;
 
+import com.jessethouin.quant.db.Exclude;
 import lombok.*;
 
 import javax.persistence.*;
@@ -16,8 +17,9 @@ import java.util.Set;
 public class Security {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long securityId;
+    private Long securityId;
     private String symbol;
+    @Exclude
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "portfolio_id")
     private Portfolio portfolio;

@@ -1,16 +1,26 @@
 package com.jessethouin.quant.binance.beans;
 
+import com.jessethouin.quant.beans.Currency;
 import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.db.BigDecimalConverter;
+import com.jessethouin.quant.db.Exclude;
+import java.math.BigDecimal;
+import java.util.Date;
+import java.util.Objects;
+import javax.persistence.CascadeType;
+import javax.persistence.Convert;
+import javax.persistence.Entity;
+import javax.persistence.FetchType;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
+import javax.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.trade.LimitOrder;
-
-import javax.persistence.*;
-import java.math.BigDecimal;
-import java.util.Date;
-import java.util.Objects;
 
 /*
 This is esentially an exact copy of org.knowm.xchange.dto.trade.LimitOrder,
@@ -25,6 +35,7 @@ public class BinanceLimitOrder implements Comparable<BinanceLimitOrder> {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long orderId;
+    @Exclude
     @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     @JoinColumn(name = "portfolio_id")
     private Portfolio portfolio;
@@ -45,6 +56,10 @@ public class BinanceLimitOrder implements Comparable<BinanceLimitOrder> {
     private String leverage;
     @Convert(converter = BigDecimalConverter.class)
     private BigDecimal limitPrice;
+    @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    private Currency commissionAsset;
+    @Convert(converter = BigDecimalConverter.class)
+    private BigDecimal commissionAmount;
 
     public BinanceLimitOrder() {
     }
@@ -62,7 +77,6 @@ public class BinanceLimitOrder implements Comparable<BinanceLimitOrder> {
         this.fee = limitOrder.getFee();
         this.status = limitOrder.getStatus();
         this.userReference = limitOrder.getUserReference();
-        this.cumulativeAmount = limitOrder.getCumulativeCounterAmount();
         this.leverage = limitOrder.getLeverage();
     }
 

@@ -18,10 +18,10 @@ public class Calc {
     private static final Logger LOG = LogManager.getLogger(Calc.class);
 
     private final Security security;
-    private final Currency base;
-    private final Currency counter;
     private final Config config;
 
+    private Currency base;
+    private Currency counter;
     private BigDecimal price;
     private BigDecimal ma1;
     private BigDecimal ma2;
@@ -91,17 +91,17 @@ public class Calc {
         };
 
         if (buy || config.isTriggerBuy()) {
+            config.setTriggerBuy(false);
             Transactions.placeBuyOrder(config.getBroker(), getSecurity(), getBase(), getCounter(), getQty(), getPrice());
             setBuy(false);
-            config.setTriggerBuy(false);
         } else if (sell || config.isTriggerSell()) {
+            config.setTriggerSell(false);
             boolean success = Transactions.placeSellOrder(config.getBroker(), getSecurity(), getBase(), getCounter(), getPrice());
             if (success) {
                 setLow(getPrice());
                 setHigh(getPrice());
             }
             setBuy(true);
-            config.setTriggerSell(false);
         }
     }
 

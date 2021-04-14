@@ -2,6 +2,7 @@ package com.jessethouin.quant.beans;
 
 import com.jessethouin.quant.conf.CurrencyTypes;
 import com.jessethouin.quant.db.BigDecimalConverter;
+import com.jessethouin.quant.db.Exclude;
 import lombok.*;
 
 import javax.persistence.*;
@@ -26,6 +27,7 @@ public class Currency {
     private BigDecimal quantity;
     @Convert(converter = BigDecimalConverter.class)
     private BigDecimal avgCostBais;
+    @Exclude
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "portfolio_id")
     private Portfolio portfolio;

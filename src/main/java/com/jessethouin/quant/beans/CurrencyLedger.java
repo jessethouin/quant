@@ -1,6 +1,7 @@
 package com.jessethouin.quant.beans;
 
 import com.jessethouin.quant.db.BigDecimalConverter;
+import com.jessethouin.quant.db.Exclude;
 import lombok.*;
 
 import javax.persistence.*;
@@ -24,6 +25,7 @@ public class CurrencyLedger {
     private BigDecimal debit;
     @Convert(converter = BigDecimalConverter.class)
     private BigDecimal credit;
+    @Exclude
     @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     private Currency currency;
 }
