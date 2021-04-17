@@ -16,7 +16,7 @@ import java.math.BigDecimal;
 public class OrderHistoryLookup {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long id;
+    private Long id;
     private long tradeId;
     private long orderId;
     @Convert(converter = BigDecimalConverter.class)

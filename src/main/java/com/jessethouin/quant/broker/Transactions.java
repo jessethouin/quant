@@ -4,6 +4,7 @@ import com.jessethouin.quant.alpaca.AlpacaTransactions;
 import com.jessethouin.quant.beans.Currency;
 import com.jessethouin.quant.beans.Security;
 import com.jessethouin.quant.beans.SecurityPosition;
+import com.jessethouin.quant.binance.BinanceTestTransactions;
 import com.jessethouin.quant.binance.BinanceTransactions;
 import com.jessethouin.quant.conf.Broker;
 import org.apache.logging.log4j.LogManager;
@@ -46,7 +47,7 @@ public class Transactions {
             }
             case BINANCE_TEST -> {
                 LOG.debug("Placing Binance TEST BUY LIMIT order for {} of {} at {}", qty.toPlainString(), base.getSymbol(), price);
-                BinanceTransactions.buyTestCurrency(base.getPortfolio(), new CurrencyPair(base.getSymbol(), counter.getSymbol()), qty, price);
+                BinanceTestTransactions.buyTestCurrency(base.getPortfolio(), new CurrencyPair(base.getSymbol(), counter.getSymbol()), qty, price);
             }
             default -> throw new IllegalStateException("Unexpected broker: " + broker);
         }
@@ -64,7 +65,7 @@ public class Transactions {
             }
             case BINANCE_TEST -> {
                 LOG.debug("Placing Binance TEST SELL LIMIT Order for {} of {} at {}", base.getQuantity().toPlainString(), base.getSymbol(), price);
-                BinanceTransactions.sellTestCurrency(base.getPortfolio(), new CurrencyPair(base.getSymbol(), counter.getSymbol()), base.getQuantity(), price);
+                BinanceTestTransactions.sellTestCurrency(base.getPortfolio(), new CurrencyPair(base.getSymbol(), counter.getSymbol()), base.getQuantity(), price);
             }
             default -> throw new IllegalStateException("Unexpected broker: " + broker);
         }

@@ -17,7 +17,7 @@ import java.util.Date;
 public class BinanceTradeHistory {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long tradeId;
+    private Long tradeId;
     private Date timestamp;
     @Convert(converter = BigDecimalConverter.class)
     private BigDecimal ma1;

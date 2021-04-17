@@ -4,11 +4,13 @@ import static com.jessethouin.quant.conf.Config.CONFIG;
 import static java.util.Objects.requireNonNullElse;
 
 import com.jessethouin.quant.beans.Currency;
-import com.jessethouin.quant.binance.BinanceLive.Ref;
+import com.jessethouin.quant.binance.beans.repos.OrderHistoryLookupRepository;
+import com.jessethouin.quant.broker.Fundamentals;
 import com.jessethouin.quant.binance.beans.BinanceLimitOrder;
 import com.jessethouin.quant.binance.beans.BinanceTradeHistory;
 import com.jessethouin.quant.binance.beans.OrderHistoryLookup;
 import com.jessethouin.quant.binance.beans.repos.BinanceLimitOrderRepository;
+import com.jessethouin.quant.binance.beans.repos.BinanceTradeHistoryRepository;
 import com.jessethouin.quant.broker.Util;
 import info.bitrich.xchangestream.binance.dto.ExecutionReportBinanceUserTransaction;
 import java.math.BigDecimal;
@@ -30,33 +32,53 @@ public class BinanceStreamProcessing {
     static OrderHistoryLookup orderHistoryLookup;
     static BinanceLive binanceLive;
     static BinanceLimitOrderRepository binanceLimitOrderRepository;
+    static BinanceTradeHistoryRepository binanceTradeHistoryRepository;
+    static OrderHistoryLookupRepository orderHistoryLookupRepository;
 
-    public BinanceStreamProcessing(BinanceLive binanceLive, BinanceLimitOrderRepository binanceLimitOrderRepository) {
+    public BinanceStreamProcessing(BinanceLive binanceLive, BinanceLimitOrderRepository binanceLimitOrderRepository, BinanceTradeHistoryRepository binanceTradeHistoryRepository, OrderHistoryLookupRepository orderHistoryLookupRepository) {
         BinanceStreamProcessing.binanceLive = binanceLive;
         BinanceStreamProcessing.binanceLimitOrderRepository = binanceLimitOrderRepository;
+        BinanceStreamProcessing.binanceTradeHistoryRepository = binanceTradeHistoryRepository;
+        BinanceStreamProcessing.orderHistoryLookupRepository = orderHistoryLookupRepository;
     }
 
-    public static void processMarketData(Ref ref) {
-        ref.shortMAValue = Util.getMA(ref.previousShortMAValue, CONFIG.getShortLookback(), ref.price);
-        ref.longMAValue = Util.getMA(ref.previousLongMAValue, CONFIG.getLongLookback(), ref.price);
+    public static void processMarketData(Fundamentals fundamentals) {
+        fundamentals.setShortMAValue(Util.getMA(fundamentals.getPreviousShortMAValue(), CONFIG.getShortLookback(), fundamentals.getPrice()));
+        fundamentals.setLongMAValue(Util.getMA(fundamentals.getPreviousLongMAValue(), CONFIG.getLongLookback(), fundamentals.getPrice()));
 
         orderHistoryLookup = new OrderHistoryLookup();
 
-        ref.c.updateCalc(ref.price, ref.shortMAValue, ref.longMAValue);
-        ref.c.decide();
+        fundamentals.getCalc().updateCalc(fundamentals.getPrice(), fundamentals.getShortMAValue(), fundamentals.getLongMAValue());
+        fundamentals.getCalc().decide();
 
-        BinanceTradeHistory binanceTradeHistory = BinanceTradeHistory.builder().timestamp(requireNonNullElse(ref.timestamp, new Date())).ma1(ref.shortMAValue).ma2(ref.longMAValue).l(ref.c.getLow()).h(ref.c.getHigh()).p(ref.price).build();
-        BigDecimal value = Util.getValueAtPrice(ref.baseCurrency, ref.price).add(ref.counterCurrency.getQuantity());
+        BinanceTradeHistory binanceTradeHistory = BinanceTradeHistory.builder()
+            .timestamp(requireNonNullElse(fundamentals.getTimestamp(), new Date()))
+            .ma1(fundamentals.getShortMAValue())
+            .ma2(fundamentals.getLongMAValue())
+            .l(fundamentals.getCalc().getLow())
+            .h(fundamentals.getCalc().getHigh())
+            .p(fundamentals.getPrice())
+            .build();
+        BigDecimal value = Util.getValueAtPrice(fundamentals.getBaseCurrency(), fundamentals.getPrice()).add(fundamentals.getCounterCurrency().getQuantity());
 
-        orderHistoryLookup.setTradeId(binanceTradeHistory.getTradeId());
+        orderHistoryLookup.setTradeId(binanceTradeHistoryRepository.save(binanceTradeHistory).getTradeId());
         orderHistoryLookup.setValue(value);
-        BinanceUtil.reconcile(binanceLive.getPortfolio());
+        orderHistoryLookupRepository.save(orderHistoryLookup);
 
-        LOG.info("{}/{} - {} : ma1 {} : ma2 {} : l {} : h {} : p {} : v {}", ref.baseCurrency.getSymbol(), ref.counterCurrency.getSymbol(), ref.count, ref.shortMAValue, ref.longMAValue, ref.c.getLow(), ref.c.getHigh(), ref.price, value);
+        LOG.info("{}/{} - {} : ma1 {} : ma2 {} : l {} : h {} : p {} : v {}",
+            fundamentals.getBaseCurrency().getSymbol(),
+            fundamentals.getCounterCurrency().getSymbol(),
+            fundamentals.count,
+            fundamentals.getShortMAValue(),
+            fundamentals.getLongMAValue(),
+            fundamentals.getCalc().getLow(),
+            fundamentals.getCalc().getHigh(),
+            fundamentals.getPrice(),
+            value);
 
-        ref.previousShortMAValue = ref.shortMAValue;
-        ref.previousLongMAValue = ref.longMAValue;
-        ref.count++;
+        fundamentals.setPreviousShortMAValue(fundamentals.getShortMAValue());
+        fundamentals.setPreviousLongMAValue(fundamentals.getLongMAValue());
+        fundamentals.count++;
     }
 
     public static synchronized void processRemoteOrder(ExecutionReportBinanceUserTransaction er) {

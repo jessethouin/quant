@@ -7,10 +7,8 @@ import com.jessethouin.quant.db.Exclude;
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.Objects;
-import javax.persistence.CascadeType;
 import javax.persistence.Convert;
 import javax.persistence.Entity;
-import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -34,9 +32,9 @@ extend the damned thing.
 public class BinanceLimitOrder implements Comparable<BinanceLimitOrder> {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long orderId;
+    private Long orderId;
     @Exclude
-    @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @ManyToOne
     @JoinColumn(name = "portfolio_id")
     private Portfolio portfolio;
     private Order.OrderType type;
@@ -56,7 +54,8 @@ public class BinanceLimitOrder implements Comparable<BinanceLimitOrder> {
     private String leverage;
     @Convert(converter = BigDecimalConverter.class)
     private BigDecimal limitPrice;
-    @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @ManyToOne
+    @JoinColumn(name = "commission_currency_id")
     private Currency commissionAsset;
     @Convert(converter = BigDecimalConverter.class)
     private BigDecimal commissionAmount;
@@ -105,6 +104,10 @@ public class BinanceLimitOrder implements Comparable<BinanceLimitOrder> {
                 + status
                 + ", userReference="
                 + userReference
+                + ", commissionAsset="
+                + commissionAsset
+                + ", commissionAmount="
+                + commissionAmount
                 + "]";
     }
 
@@ -134,7 +137,7 @@ public class BinanceLimitOrder implements Comparable<BinanceLimitOrder> {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         BinanceLimitOrder that = (BinanceLimitOrder) o;
-        return orderId == that.orderId &&
+        return orderId.equals(that.orderId) &&
                 Objects.equals(portfolio, that.portfolio) &&
                 type == that.type &&
                 Objects.equals(originalAmount, that.originalAmount) &&

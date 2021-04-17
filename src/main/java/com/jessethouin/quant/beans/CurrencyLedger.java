@@ -26,6 +26,7 @@ public class CurrencyLedger {
     @Convert(converter = BigDecimalConverter.class)
     private BigDecimal credit;
     @Exclude
-    @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @ManyToOne
+    @JoinColumn(name = "currency_id")
     private Currency currency;
 }
