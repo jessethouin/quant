@@ -14,9 +14,6 @@ import java.util.Set;
 @Table(name = "CURRENCY", uniqueConstraints = @UniqueConstraint(columnNames = {"symbol", "portfolio_id"}))
 @Getter
 @Setter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class Currency {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -28,10 +25,9 @@ public class Currency {
     @Convert(converter = BigDecimalConverter.class)
     private BigDecimal avgCostBais;
     @Exclude
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne
     @JoinColumn(name = "portfolio_id")
     private Portfolio portfolio;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "currency", fetch = FetchType.EAGER, orphanRemoval = true)
-    @Builder.Default
     private Set<CurrencyLedger> currencyLedgers = new HashSet<>();
 }

@@ -20,7 +20,7 @@ import java.util.Date;
 public class BacktestParameterResults {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long backtestId;
+    private Long backtestId;
     private Date timestamp;
     private Date start;
     private Date end;

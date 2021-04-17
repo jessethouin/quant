@@ -69,7 +69,6 @@ public class QuantController {
     @GetMapping(path = "/portfolio", produces = "application/json")
     public @ResponseBody
     String report() {
-        // return GSON.toJson(portfolioRepository.getTop1ByPortfolioIdIsNotNullOrderByPortfolioIdDesc());
         return GSON.toJson(binanceLive.getPortfolio());
     }
 

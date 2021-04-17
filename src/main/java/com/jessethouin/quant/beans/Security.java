@@ -11,22 +11,19 @@ import java.util.Set;
 @Table(name = "SECURITY", uniqueConstraints = @UniqueConstraint(columnNames = {"symbol", "portfolio_id"}))
 @Getter
 @Setter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class Security {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long securityId;
     private String symbol;
     @Exclude
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne
     @JoinColumn(name = "portfolio_id")
     private Portfolio portfolio;
-    @ManyToOne(fetch = FetchType.EAGER)
+    @Exclude
+    @ManyToOne
     @JoinColumn(name = "currency_id")
     private Currency currency;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "security", fetch = FetchType.EAGER, orphanRemoval = true)
-    @Builder.Default
     private Set<SecurityPosition> securityPositions = new HashSet<>();
 }

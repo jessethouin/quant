@@ -12,23 +12,16 @@ import java.util.Set;
 @Table(name = "PORTFOLIO")
 @Getter
 @Setter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class Portfolio {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long portfolioId;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "portfolio", fetch = FetchType.EAGER, orphanRemoval = true)
-    @Builder.Default
     private Set<Security> securities = new HashSet<>();
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "portfolio", fetch = FetchType.EAGER, orphanRemoval = true)
-    @Builder.Default
     private Set<Currency> currencies = new HashSet<>();
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "portfolio", fetch = FetchType.EAGER, orphanRemoval = true)
-    @Builder.Default
     private Set<AlpacaOrder> alpacaOrders = new HashSet<>();
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "portfolio", fetch = FetchType.EAGER, orphanRemoval = true)
-    @Builder.Default
     private Set<BinanceLimitOrder> binanceLimitOrders = new HashSet<>();
 }

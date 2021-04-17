@@ -139,13 +139,15 @@ public class Util {
         return numberFormat.format(o);
     }
 
-    public static void debit(Currency currency, BigDecimal qty, String memo) {
+    public static synchronized void debit(Currency currency, BigDecimal qty, String memo) {
+        // todo: implement overdraft protection/exception
         CurrencyLedger currencyLedger = CurrencyLedger.builder().currency(currency).debit(qty).timestamp(new Date()).memo(memo).build();
         currency.getCurrencyLedgers().add(currencyLedger);
         currency.setQuantity(currency.getQuantity().subtract(requireNonNullElse(qty, BigDecimal.ZERO)));
     }
 
-    public static void credit(Currency currency, BigDecimal qty, String memo) {
+    public static synchronized void credit(Currency currency, BigDecimal qty, String memo) {
+        // todo: implement overdraft protection/exception
         CurrencyLedger currencyLedger = CurrencyLedger.builder().currency(currency).credit(qty).timestamp(new Date()).memo(memo).build();
         currency.getCurrencyLedgers().add(currencyLedger);
         currency.setQuantity(currency.getQuantity().add(requireNonNullElse(qty, BigDecimal.ZERO)));
