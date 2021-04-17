@@ -27,19 +27,19 @@ public class Calc {
     private BigDecimal ma2;
     private BigDecimal high;
     private BigDecimal low;
-    private BigDecimal spread;
-    private boolean buy;
+    private BigDecimal spread = BigDecimal.ZERO;
+    private boolean buy = false;
     private BigDecimal qty;
 
     public Calc(Security security, Config config, BigDecimal price) {
-        this(security, security.getCurrency(), security.getCurrency(), config, price, price, price, BigDecimal.ZERO, false);
+        this(security, security.getCurrency(), security.getCurrency(), config, price, price, price);
     }
 
     public Calc(Currency base, Currency counter, Config config, BigDecimal price) {
-        this(null, base, counter, config, price, price, price, BigDecimal.ZERO, false);
+        this(null, base, counter, config, price, price, price);
     }
 
-    private Calc(Security security, Currency base, Currency counter, Config config, BigDecimal price, BigDecimal high, BigDecimal low, BigDecimal spread, boolean buy) {
+    private Calc(Security security, Currency base, Currency counter, Config config, BigDecimal price, BigDecimal high, BigDecimal low) {
         this.security = security;
         this.base = base;
         this.counter = counter;
@@ -47,8 +47,6 @@ public class Calc {
         this.price = price;
         this.high = high;
         this.low = low;
-        this.spread = spread;
-        this.buy = buy;
     }
 
     public void updateCalc(BigDecimal price, BigDecimal ma1, BigDecimal ma2) {
