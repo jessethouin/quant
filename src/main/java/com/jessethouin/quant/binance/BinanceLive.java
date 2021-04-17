@@ -20,8 +20,6 @@ import java.util.Date;
 import java.util.List;
 import javax.persistence.EntityManager;
 import lombok.Getter;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.springframework.lang.NonNull;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -35,7 +33,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Component
 @Transactional
 public class BinanceLive {
-    private static final Logger LOG = LogManager.getLogger(BinanceLive.class);
     private static final CompositeDisposable COMPOSITE_DISPOSABLE = new CompositeDisposable();
     @Getter
     private Portfolio portfolio;

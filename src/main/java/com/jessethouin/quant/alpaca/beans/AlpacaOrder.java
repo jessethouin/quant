@@ -213,7 +213,7 @@ public class AlpacaOrder {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         AlpacaOrder that = (AlpacaOrder) o;
-        return orderId == that.orderId &&
+        return orderId.equals(that.orderId) &&
                 Objects.equals(portfolio, that.portfolio) &&
                 Objects.equals(id, that.id) &&
                 Objects.equals(clientOrderId, that.clientOrderId) &&
