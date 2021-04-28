@@ -1,36 +1,36 @@
 package com.jessethouin.quant.backtest;
 
+import static com.jessethouin.quant.conf.Config.CONFIG;
+
 import com.jessethouin.quant.backtest.beans.repos.BacktestParameterResultsRepository;
 import com.jessethouin.quant.beans.Currency;
 import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.beans.Security;
+import com.jessethouin.quant.binance.BinanceCaptureHistory;
 import com.jessethouin.quant.binance.beans.BinanceLimitOrder;
 import com.jessethouin.quant.binance.beans.repos.BinanceTradeHistoryRepository;
 import com.jessethouin.quant.broker.Transactions;
 import com.jessethouin.quant.broker.Util;
 import com.jessethouin.quant.calculators.Calc;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.springframework.stereotype.Component;
-
 import java.math.BigDecimal;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-
-import static com.jessethouin.quant.conf.Config.CONFIG;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.springframework.stereotype.Component;
 
 @Component
 public class BacktestStaticParameters extends AbstractBacktest {
     private static final Logger LOG = LogManager.getLogger(BacktestStaticParameters.class);
 
-    public BacktestStaticParameters(BinanceTradeHistoryRepository binanceTradeHistoryRepository, BacktestParameterResultsRepository backtestParameterResultsRepository) {
-        super(binanceTradeHistoryRepository, backtestParameterResultsRepository);
+    public BacktestStaticParameters(BinanceTradeHistoryRepository binanceTradeHistoryRepository, BacktestParameterResultsRepository backtestParameterResultsRepository, BinanceCaptureHistory binanceCaptureHistory) {
+        super(binanceTradeHistoryRepository, backtestParameterResultsRepository, binanceCaptureHistory);
     }
 
-    public static void runBacktest() {
+    public void runBacktest() {
         populateIntradayPrices();
         List<BigDecimal> intradayPrices = new ArrayList<>(INTRADAY_PRICES); // INTRADAY_PRICES will change if recalibrate is set to true, so we copy the values to a thread-safe local List
 
@@ -59,7 +59,7 @@ public class BacktestStaticParameters extends AbstractBacktest {
         }
 
         for (int i = 0; i < intradayPrices.size(); i++) {
-            if (CONFIG.isRecalibrate() && i % CONFIG.getRecalibrateFreq() == 0) Util.relacibrate(CONFIG);
+            if (CONFIG.isRecalibrate() && i % CONFIG.getRecalibrateFreq() == 0) Util.relacibrate(CONFIG, false);
 
             price = intradayPrices.get(i);
             shortMAValue = Util.getMA(shortMAValue, CONFIG.getShortLookback(), price);
@@ -76,7 +76,7 @@ public class BacktestStaticParameters extends AbstractBacktest {
             previousValue = stopLoss(price, previousValue, c);
         }
 
-        AbstractBacktest.logMarketChange(intradayPrices.get(intradayPrices.size() - 1), intradayPrices.get(0), LOG);
+        super.logMarketChange(intradayPrices.get(intradayPrices.size() - 1), intradayPrices.get(0), LOG);
 
         switch (CONFIG.getBroker()) {
             case ALPACA_TEST -> c.getSecurity().getSecurityPositions().forEach(ps -> LOG.info(ps.getPrice() + ", " + ps.getQuantity() + " : " + ps.getPrice().multiply(ps.getQuantity())));

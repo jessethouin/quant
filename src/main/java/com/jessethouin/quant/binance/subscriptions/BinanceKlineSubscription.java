@@ -1,6 +1,6 @@
 package com.jessethouin.quant.binance.subscriptions;
 
-import static com.jessethouin.quant.binance.BinanceExchangeServices.BINANCE_MARKET_DATA_SERVICE;
+import static com.jessethouin.quant.binance.config.BinanceExchangeServices.BINANCE_MARKET_DATA_SERVICE;
 import static com.jessethouin.quant.binance.BinanceStreamProcessing.processMarketData;
 
 import com.jessethouin.quant.broker.Fundamentals;

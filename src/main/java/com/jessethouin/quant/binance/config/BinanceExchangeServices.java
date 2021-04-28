@@ -1,8 +1,8 @@
-package com.jessethouin.quant.binance;
+package com.jessethouin.quant.binance.config;
 
 import static com.jessethouin.quant.conf.Config.CONFIG;
 
-import com.jessethouin.quant.binance.config.BinanceApiConfig;
+import com.jessethouin.quant.binance.BinanceUtil;
 import info.bitrich.xchangestream.binance.BinanceStreamingExchange;
 import info.bitrich.xchangestream.binance.BinanceStreamingMarketDataService;
 import info.bitrich.xchangestream.binance.BinanceStreamingTradeService;
@@ -42,12 +42,19 @@ public class BinanceExchangeServices {
         BINANCE_ACCOUNT_SERVICE = (BinanceAccountService) BINANCE_EXCHANGE.getAccountService();
 
         /* Streaming API Exchange */
-        BINANCE_STREAMING_EXCHANGE = (BinanceStreamingExchange) StreamingExchangeFactory.INSTANCE.createExchange(configureStreamingExchangeSpec(new BinanceStreamingExchange().getDefaultExchangeSpecification()));
-
         ProductSubscription.ProductSubscriptionBuilder productSubscriptionBuilder = ProductSubscription.create();
-        List<CurrencyPair> currencyPairs = BinanceUtil.getAllCryptoCurrencyPairs(CONFIG);
-        currencyPairs.forEach(productSubscriptionBuilder::addAll);
+        if (!CONFIG.isBackTest()) {
+            List<CurrencyPair> currencyPairs = BinanceUtil.getAllCryptoCurrencyPairs(CONFIG);
+            currencyPairs.forEach(productSubscriptionBuilder::addOrders);
+            currencyPairs.forEach(productSubscriptionBuilder::addUserTrades);
+            switch (CONFIG.getDataFeed()) {
+                case TRADE -> currencyPairs.forEach(productSubscriptionBuilder::addTrades);
+                case TICKER -> currencyPairs.forEach(productSubscriptionBuilder::addTicker);
+                case ORDER_BOOK -> currencyPairs.forEach(productSubscriptionBuilder::addOrderbook);
+            }
+        }
 
+        BINANCE_STREAMING_EXCHANGE = (BinanceStreamingExchange) StreamingExchangeFactory.INSTANCE.createExchange(configureStreamingExchangeSpec(new BinanceStreamingExchange().getDefaultExchangeSpecification()));
         BINANCE_STREAMING_EXCHANGE.connect(productSubscriptionBuilder.build()).blockingAwait();
         BINANCE_STREAMING_MARKET_DATA_SERVICE = BINANCE_STREAMING_EXCHANGE.getStreamingMarketDataService();
         BINANCE_STREAMING_TRADE_SERVICE = BINANCE_STREAMING_EXCHANGE.getStreamingTradeService();

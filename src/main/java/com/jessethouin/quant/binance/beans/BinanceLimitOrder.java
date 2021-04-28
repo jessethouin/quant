@@ -83,7 +83,7 @@ public class BinanceLimitOrder implements Comparable<BinanceLimitOrder> {
     public String toString() {
         return "BinanceLimitOrder "
                 + "[limitPrice="
-                + printLimitPrice()
+                + print(limitPrice)
                 + ", type="
                 + type
                 + ", originalAmount="
@@ -109,10 +109,6 @@ public class BinanceLimitOrder implements Comparable<BinanceLimitOrder> {
                 + ", commissionAmount="
                 + commissionAmount
                 + "]";
-    }
-
-    private String printLimitPrice() {
-        return limitPrice == null ? null : limitPrice.toPlainString();
     }
 
     private static String print(BigDecimal value) {
@@ -150,11 +146,13 @@ public class BinanceLimitOrder implements Comparable<BinanceLimitOrder> {
                 Objects.equals(averagePrice, that.averagePrice) &&
                 Objects.equals(fee, that.fee) &&
                 Objects.equals(leverage, that.leverage) &&
-                Objects.equals(limitPrice, that.limitPrice);
+                Objects.equals(limitPrice, that.limitPrice) &&
+                Objects.equals(commissionAsset, that.commissionAsset) &&
+                Objects.equals(commissionAmount, that.commissionAmount);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(orderId, portfolio, type, originalAmount, instrument, id, userReference, timestamp, status, cumulativeAmount, averagePrice, fee, leverage, limitPrice);
+        return Objects.hash(orderId, portfolio, type, originalAmount, instrument, id, userReference, timestamp, status, cumulativeAmount, averagePrice, fee, leverage, limitPrice, commissionAsset, commissionAmount);
     }
 }

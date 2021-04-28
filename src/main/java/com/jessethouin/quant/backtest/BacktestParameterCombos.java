@@ -1,15 +1,13 @@
 package com.jessethouin.quant.backtest;
 
+import static com.jessethouin.quant.conf.Config.CONFIG;
+
 import com.jessethouin.quant.backtest.beans.BacktestParameterResults;
 import com.jessethouin.quant.backtest.beans.repos.BacktestParameterResultsRepository;
+import com.jessethouin.quant.binance.BinanceCaptureHistory;
 import com.jessethouin.quant.binance.beans.repos.BinanceTradeHistoryRepository;
 import com.jessethouin.quant.conf.BuyStrategyTypes;
 import com.jessethouin.quant.conf.SellStrategyTypes;
-import org.apache.commons.lang3.time.StopWatch;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.springframework.stereotype.Component;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.MessageFormat;
@@ -18,9 +16,15 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.*;
-
-import static com.jessethouin.quant.conf.Config.CONFIG;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import org.apache.commons.lang3.time.StopWatch;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.springframework.stereotype.Component;
 
 @Component
 public class BacktestParameterCombos extends AbstractBacktest {
@@ -34,17 +38,17 @@ public class BacktestParameterCombos extends AbstractBacktest {
     static int count = 0;
     static boolean save = true;
 
-    public BacktestParameterCombos(BinanceTradeHistoryRepository binanceTradeHistoryRepository, BacktestParameterResultsRepository backtestParameterResultsRepository) {
-        super(binanceTradeHistoryRepository, backtestParameterResultsRepository);
+    public BacktestParameterCombos(BinanceTradeHistoryRepository binanceTradeHistoryRepository, BacktestParameterResultsRepository backtestParameterResultsRepository, BinanceCaptureHistory binanceCaptureHistory) {
+        super(binanceTradeHistoryRepository, backtestParameterResultsRepository, binanceCaptureHistory);
     }
 
-    public static BacktestParameterResults findBestCombo() {
+    public BacktestParameterResults findBestCombo() {
         save = false;
         findBestCombos(new String[]{"1000", "2000", "1.00", "0.25"});
         return bestv;
     }
 
-    public static void findBestCombos(String[] args) {
+    public void findBestCombos(String[] args) {
         StopWatch watch = new StopWatch();
         watch.start();
 

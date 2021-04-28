@@ -21,8 +21,15 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
+import org.springframework.stereotype.Component;
 
+@Component
 public class Util {
+    static BacktestParameterCombos backtestParameterCombos;
+
+    public Util(BacktestParameterCombos backtestParameterCombos) {
+        Util.backtestParameterCombos = backtestParameterCombos;
+    }
 
     public static BigDecimal getPortfolioValue(Portfolio portfolio, Currency currency, BigDecimal price) {
         AtomicReference<BigDecimal> holdings = new AtomicReference<>(BigDecimal.ZERO);
@@ -153,8 +160,9 @@ public class Util {
         currency.setQuantity(currency.getQuantity().add(requireNonNullElse(qty, BigDecimal.ZERO)));
     }
 
-    public static void relacibrate(Config config) {
-        BacktestParameterResults bestCombo = BacktestParameterCombos.findBestCombo();
+    public static void relacibrate(Config config, boolean updateBacktest) {
+        if (updateBacktest) CONFIG.setBackTest(true);
+        BacktestParameterResults bestCombo = backtestParameterCombos.findBestCombo();
         config.setLowRisk(bestCombo.getLowRisk());
         config.setHighRisk(bestCombo.getHighRisk());
         config.setShortLookback(bestCombo.getShortLookback());
@@ -164,5 +172,6 @@ public class Util {
         config.setSellStrategy(bestCombo.getSellStrategyType());
         config.setBacktestStart(new Date(config.getBacktestStart().getTime() + Duration.ofMinutes(config.getRecalibrateFreq()).toMillis()));
         config.setBacktestEnd(new Date(config.getBacktestEnd().getTime() + Duration.ofMinutes(config.getRecalibrateFreq()).toMillis()));
+        if (updateBacktest) CONFIG.setBackTest(false);
     }
 }

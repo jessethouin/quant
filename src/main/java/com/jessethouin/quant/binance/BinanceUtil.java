@@ -1,9 +1,9 @@
 package com.jessethouin.quant.binance;
 
-import static com.jessethouin.quant.binance.BinanceExchangeServices.BINANCE_ACCOUNT_SERVICE;
-import static com.jessethouin.quant.binance.BinanceExchangeServices.BINANCE_EXCHANGE;
-import static com.jessethouin.quant.binance.BinanceExchangeServices.BINANCE_EXCHANGE_INFO;
-import static com.jessethouin.quant.binance.BinanceExchangeServices.BINANCE_MARKET_DATA_SERVICE;
+import static com.jessethouin.quant.binance.config.BinanceExchangeServices.BINANCE_ACCOUNT_SERVICE;
+import static com.jessethouin.quant.binance.config.BinanceExchangeServices.BINANCE_EXCHANGE;
+import static com.jessethouin.quant.binance.config.BinanceExchangeServices.BINANCE_EXCHANGE_INFO;
+import static com.jessethouin.quant.binance.config.BinanceExchangeServices.BINANCE_MARKET_DATA_SERVICE;
 
 import com.jessethouin.quant.beans.Currency;
 import com.jessethouin.quant.beans.Portfolio;

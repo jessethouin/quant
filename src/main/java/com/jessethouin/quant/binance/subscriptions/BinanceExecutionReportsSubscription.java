@@ -1,6 +1,6 @@
 package com.jessethouin.quant.binance.subscriptions;
 
-import static com.jessethouin.quant.binance.BinanceExchangeServices.BINANCE_STREAMING_TRADE_SERVICE;
+import static com.jessethouin.quant.binance.config.BinanceExchangeServices.BINANCE_STREAMING_TRADE_SERVICE;
 
 import com.jessethouin.quant.binance.BinanceStreamProcessing;
 import io.reactivex.disposables.Disposable;

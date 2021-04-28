@@ -1,5 +1,8 @@
 package com.jessethouin.quant.backtest;
 
+import static com.jessethouin.quant.backtest.BacktestParameterCombos.BACKTEST_RESULTS_QUEUE;
+import static com.jessethouin.quant.backtest.BacktestParameterCombos.INTRADAY_PRICES;
+
 import com.jessethouin.quant.backtest.beans.BacktestParameterResults;
 import com.jessethouin.quant.beans.Currency;
 import com.jessethouin.quant.beans.Portfolio;
@@ -9,16 +12,12 @@ import com.jessethouin.quant.calculators.Calc;
 import com.jessethouin.quant.conf.BuyStrategyTypes;
 import com.jessethouin.quant.conf.Config;
 import com.jessethouin.quant.conf.SellStrategyTypes;
+import java.math.BigDecimal;
+import java.util.Date;
 import net.jacobpeterson.alpaca.enums.OrderSide;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.knowm.xchange.dto.Order;
-
-import java.math.BigDecimal;
-import java.util.Date;
-
-import static com.jessethouin.quant.backtest.BacktestParameterCombos.BACKTEST_RESULTS_QUEUE;
-import static com.jessethouin.quant.backtest.BacktestParameterCombos.INTRADAY_PRICES;
 
 public class ProcessHistoricIntradayPrices implements Runnable {
     private static final Logger LOG = LogManager.getLogger(ProcessHistoricIntradayPrices.class);
@@ -78,7 +77,7 @@ public class ProcessHistoricIntradayPrices implements Runnable {
                 c.updateCalc(price, shortMAValue, longMAValue);
                 c.decide();
             } catch (Exception e) {
-                LOG.error(e.getMessage());
+                LOG.error("Error while looping INTRADAY_PRICES {}", e.getMessage());
             }
         }
 

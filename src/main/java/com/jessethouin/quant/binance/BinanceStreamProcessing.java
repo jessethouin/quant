@@ -68,7 +68,7 @@ public class BinanceStreamProcessing {
         LOG.info("{}/{} - {} : ma1 {} : ma2 {} : l {} : h {} : p {} : v {}",
             fundamentals.getBaseCurrency().getSymbol(),
             fundamentals.getCounterCurrency().getSymbol(),
-            fundamentals.count,
+            fundamentals.getCount(),
             fundamentals.getShortMAValue(),
             fundamentals.getLongMAValue(),
             fundamentals.getCalc().getLow(),
@@ -78,7 +78,7 @@ public class BinanceStreamProcessing {
 
         fundamentals.setPreviousShortMAValue(fundamentals.getShortMAValue());
         fundamentals.setPreviousLongMAValue(fundamentals.getLongMAValue());
-        fundamentals.count++;
+        fundamentals.setCount(fundamentals.getCount() + 1);
     }
 
     public static synchronized void processRemoteOrder(ExecutionReportBinanceUserTransaction er) {
@@ -103,10 +103,14 @@ public class BinanceStreamProcessing {
             BinanceLimitOrder binanceLimitOrder = binanceLive.getPortfolio().getBinanceLimitOrders().stream().filter(blo -> blo.getId().equals(limitOrder.getId())).findFirst().orElse(null);
 
             if (binanceLimitOrder == null) {
+                LOG.info("Couldn't find BinanceLimitOrder in Portfolio. Checking Repo...");
                 binanceLimitOrder = binanceLimitOrderRepository.getById(limitOrder.getId());
+            } else {
+                LOG.info("Found BinanceLimitOrder in Portfolio");
             }
 
             if (binanceLimitOrder == null) {
+                LOG.info("Couldn't find BinanceLimitOrder in Repo. Creating new...");
                 binanceLimitOrder = new BinanceLimitOrder(limitOrder, binanceLive.getPortfolio());
                 binanceLive.getPortfolio().getBinanceLimitOrders().add(binanceLimitOrder);
             }
@@ -114,7 +118,10 @@ public class BinanceStreamProcessing {
             binanceLimitOrder.setCommissionAsset(commissionAsset);
             binanceLimitOrder.setCommissionAmount(commissionAmount);
             BinanceTransactions.updateBinanceLimitOrder(binanceLimitOrder, limitOrder);
+            LOG.info("BinanceLimitOrder before it goes to processing: {}", binanceLimitOrder);
             BinanceTransactions.processBinanceLimitOrder(binanceLimitOrder);
         }
+
+        binanceLive.savePortfolio();
     }
 }
