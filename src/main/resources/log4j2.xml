@@ -43,7 +43,7 @@
             <AppenderRef ref="STDOUT"/>
         </Logger>
         <Root level="trace">
-            <AppenderRef ref="STDOUT" level="debug"/>
+            <AppenderRef ref="STDOUT" level="info"/>
             <AppenderRef ref="FILE" level="debug"/>
         </Root>
     </Loggers>

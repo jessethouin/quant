@@ -1,6 +1,6 @@
 package com.jessethouin.quant.binance;
 
-import static com.jessethouin.quant.binance.BinanceExchangeServices.BINANCE_MIN_TRADES;
+import static com.jessethouin.quant.binance.config.BinanceExchangeServices.BINANCE_MIN_TRADES;
 import static com.jessethouin.quant.conf.Config.CONFIG;
 import static org.knowm.xchange.dto.Order.OrderType.ASK;
 import static org.knowm.xchange.dto.Order.OrderType.BID;
@@ -14,14 +14,21 @@ import java.math.RoundingMode;
 import java.util.Date;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.knowm.xchange.binance.dto.trade.TimeInForce;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderType;
 import org.knowm.xchange.dto.trade.LimitOrder;
+import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
 
+@Service
 public class BinanceTestTransactions {
     private static final Logger LOG = LogManager.getLogger(BinanceTestTransactions.class);
+    private static WebClient publishWebClient;
+
+    public BinanceTestTransactions(WebClient publishWebClient) {
+        BinanceTestTransactions.publishWebClient = publishWebClient;
+    }
 
     public static void buyTestCurrency(Portfolio portfolio, CurrencyPair currencyPair, BigDecimal qty, BigDecimal price) {
         testTransact(portfolio, currencyPair, qty, price, BID);
@@ -38,28 +45,36 @@ public class BinanceTestTransactions {
         }
 
         LimitOrder limitOrder = new LimitOrder.Builder(orderType, currencyPair)
-                .id(String.valueOf(Math.random() * Integer.MIN_VALUE))
                 .orderStatus(Order.OrderStatus.NEW)
                 .originalAmount(qty)
                 .limitPrice(price)
-                .fee(price.multiply(qty).multiply(CONFIG.getFee()).setScale(8, RoundingMode.HALF_UP))
-                .flag(TimeInForce.GTC)
+                .fee(BigDecimal.ZERO)
                 .timestamp(new Date())
                 .build();
-        LOG.trace("Test Limit Order: " + limitOrder.toString());
-        processTestTransaction(limitOrder, portfolio);
+
+        if (CONFIG.isBackTest()) {
+            final LimitOrder limitOrderWithId = LimitOrder.Builder.from(limitOrder).id(String.valueOf(new Date().getTime())).build();
+            processTestTransaction(limitOrderWithId, portfolio);
+        } else {
+            try {
+                LOG.info("Our Test Limit Order build (local): {}", limitOrder.toString());
+                String id = publishWebClient.post().bodyValue(limitOrder).retrieve().bodyToMono(String.class).block();
+                LOG.info("Order id received from remote server: {}", id);
+                if (id == null) throw new Exception("Limit Order id was null from server.");
+                BinanceStreamProcessing.getOrderHistoryLookup().setOrderId(Long.parseLong(id));
+            } catch (Exception e) {
+                LOG.error(e.getMessage());
+            }
+        }
     }
 
     private static void processTestTransaction(LimitOrder limitOrder, Portfolio portfolio) {
         // Mocking remote NEW order
         BinanceLimitOrder binanceLimitOrder = new BinanceLimitOrder(limitOrder, portfolio);
         portfolio.getBinanceLimitOrders().add(binanceLimitOrder);
-        if (!CONFIG.isBackTest()) {
-            BinanceStreamProcessing.getOrderHistoryLookup().setOrderId(Long.parseLong(binanceLimitOrder.getId()));
-        }
         binanceLimitOrder.setCommissionAsset(null);
         binanceLimitOrder.setCommissionAmount(null);
-        LOG.trace("New Test Binance Limit order: " + binanceLimitOrder.toString().replace(",", ",\n\t"));
+        LOG.debug("New Test Binance Limit order: " + binanceLimitOrder.toString().replace(",", ",\n\t"));
         BinanceTransactions.updateBinanceLimitOrder(binanceLimitOrder, limitOrder);
         BinanceTransactions.processBinanceLimitOrder(binanceLimitOrder);
 
@@ -67,13 +82,12 @@ public class BinanceTestTransactions {
         limitOrder.setOrderStatus(Order.OrderStatus.FILLED);
         limitOrder.setAveragePrice(BigDecimal.ONE);
         limitOrder.setCumulativeAmount(limitOrder.getOriginalAmount());
-
         Currency commissionAsset = Util.getCurrencyFromPortfolio(((CurrencyPair) limitOrder.getInstrument()).base.getSymbol(), portfolio);
         BigDecimal commissionAmount = limitOrder.getOriginalAmount().multiply(CONFIG.getFee()).setScale(8, RoundingMode.HALF_UP);
 
         binanceLimitOrder.setCommissionAsset(commissionAsset);
         binanceLimitOrder.setCommissionAmount(commissionAmount);
-        LOG.trace("Updated Test Binance Limit order: " + binanceLimitOrder.toString().replace(",", ",\n\t"));
+        LOG.debug("Updated Test Binance Limit order: " + binanceLimitOrder.toString().replace(",", ",\n\t"));
         BinanceTransactions.updateBinanceLimitOrder(binanceLimitOrder, limitOrder);
         BinanceTransactions.processBinanceLimitOrder(binanceLimitOrder);
     }

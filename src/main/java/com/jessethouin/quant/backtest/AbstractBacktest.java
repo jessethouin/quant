@@ -9,12 +9,7 @@ import com.jessethouin.quant.binance.beans.repos.BinanceTradeHistoryRepository;
 import com.jessethouin.quant.broker.Util;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -26,13 +21,15 @@ public abstract class AbstractBacktest {
     public static final List<BigDecimal> INTRADAY_PRICES = new ArrayList<>();
     static BinanceTradeHistoryRepository binanceTradeHistoryRepository;
     static BacktestParameterResultsRepository backtestParameterResultsRepository;
+    static BinanceCaptureHistory binanceCaptureHistory;
 
-    public AbstractBacktest(BinanceTradeHistoryRepository binanceTradeHistoryRepository, BacktestParameterResultsRepository backtestParameterResultsRepository) {
+    public AbstractBacktest(BinanceTradeHistoryRepository binanceTradeHistoryRepository, BacktestParameterResultsRepository backtestParameterResultsRepository, BinanceCaptureHistory binanceCaptureHistory) {
         AbstractBacktest.binanceTradeHistoryRepository = binanceTradeHistoryRepository;
         AbstractBacktest.backtestParameterResultsRepository = backtestParameterResultsRepository;
+        AbstractBacktest.binanceCaptureHistory = binanceCaptureHistory;
     }
 
-    public static void populateIntradayPrices() {
+    public void populateIntradayPrices() {
         LOG.info("Loading historic trades from DB, {} to {}.", CONFIG.getBacktestStart(), CONFIG.getBacktestEnd());
         updateBinanceTradeHistoryTable();
         INTRADAY_PRICES.clear();
@@ -40,22 +37,13 @@ public abstract class AbstractBacktest {
         LOG.info("Finished loading trades from DB");
     }
 
-    public static void logMarketChange(BigDecimal endTicker, BigDecimal startTicker, Logger log) {
+    public void logMarketChange(BigDecimal endTicker, BigDecimal startTicker, Logger log) {
         BigDecimal change = (endTicker.divide(startTicker, 4, RoundingMode.HALF_DOWN)).subtract(BigDecimal.ONE).movePointRight(2);
         log.info("\n\tbegin: {}\n\tend:   {}\n\tdiff:  {} ({}%)", Util.formatFiat(startTicker), Util.formatFiat(endTicker), Util.formatFiat(endTicker.subtract(startTicker)), change);
     }
 
-    private static void updateBinanceTradeHistoryTable() {
-        Date latestBinanceTradeHistoryDate = binanceTradeHistoryRepository.getMaxTimestamp();
-        if (latestBinanceTradeHistoryDate == null) {
-            latestBinanceTradeHistoryDate = CONFIG.getBacktestStart();
-        }
-        if (CONFIG.getBacktestEnd().after(latestBinanceTradeHistoryDate)) {
-            LocalDateTime then  = latestBinanceTradeHistoryDate.toInstant().atZone(ZoneId.of("UTC")).toLocalDateTime();
-            LocalDateTime now = LocalDateTime.now(ZoneId.of("UTC"));
-            long minutes = Duration.between(then, now).toMinutes();
-            CONFIG.setBacktestQty((int) minutes);
-            BinanceCaptureHistory.doCapture(Date.from(now.toInstant(ZoneOffset.UTC)).getTime());
-        }
+    private void updateBinanceTradeHistoryTable() {
+        binanceTradeHistoryRepository.deleteAll();
+        binanceCaptureHistory.doCapture();
     }
 }

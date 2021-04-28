@@ -26,12 +26,19 @@ public class Fundamentals {
     BigDecimal value = BigDecimal.ZERO;
     BigDecimal previousValue = BigDecimal.ZERO;
     Date timestamp;
-    public int count = 0;
+    int count = 0;
 
     public Fundamentals(CurrencyPair currencyPair, Portfolio portfolio) {
         this.currencyPair = currencyPair;
         this.baseCurrency = Util.getCurrencyFromPortfolio(currencyPair.base.getSymbol(), portfolio);
         this.counterCurrency = Util.getCurrencyFromPortfolio(currencyPair.counter.getSymbol(), portfolio);
         calc = new Calc(baseCurrency, counterCurrency, CONFIG, BigDecimal.ZERO);
+    }
+
+    public void update(Portfolio portfolio) {
+        setBaseCurrency(Util.getCurrencyFromPortfolio(getBaseCurrency().getSymbol(), portfolio));
+        setCounterCurrency(Util.getCurrencyFromPortfolio(getCounterCurrency().getSymbol(), portfolio));
+        getCalc().setBase(getBaseCurrency());
+        getCalc().setCounter(getCounterCurrency());
     }
 }

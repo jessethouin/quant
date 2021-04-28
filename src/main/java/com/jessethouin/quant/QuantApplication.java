@@ -5,6 +5,7 @@ import static com.jessethouin.quant.conf.Config.CONFIG;
 import com.jessethouin.quant.alpaca.AlpacaLive;
 import com.jessethouin.quant.backtest.BacktestParameterCombos;
 import com.jessethouin.quant.backtest.BacktestStaticParameters;
+import com.jessethouin.quant.binance.BinanceCaptureHistory;
 import com.jessethouin.quant.binance.BinanceLive;
 import java.util.Arrays;
 import lombok.Getter;
@@ -22,9 +23,15 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 public class QuantApplication {
     private static final Logger LOG = LogManager.getLogger(QuantApplication.class);
     private static BinanceLive binanceLive;
+    private static BacktestParameterCombos backtestParameterCombos;
+    private static BacktestStaticParameters backtestStaticParameters;
+    private static BinanceCaptureHistory binanceCaptureHistory;
 
-    public QuantApplication(BinanceLive binanceLive) {
+    public QuantApplication(BinanceLive binanceLive, BacktestParameterCombos backtestParameterCombos, BacktestStaticParameters backtestStaticParameters, BinanceCaptureHistory binanceCaptureHistory) {
         QuantApplication.binanceLive = binanceLive;
+        QuantApplication.backtestParameterCombos = backtestParameterCombos;
+        QuantApplication.backtestStaticParameters = backtestStaticParameters;
+        QuantApplication.binanceCaptureHistory = binanceCaptureHistory;
     }
 
     public static void main(String[] args) {
@@ -43,10 +50,11 @@ public class QuantApplication {
 
         if (args.length > 0) {
             switch (args[0]) {
-                case "combos" -> BacktestParameterCombos.findBestCombos(Arrays.copyOfRange(args, 1, args.length));
-                case "backtest" -> BacktestStaticParameters.runBacktest();
+                case "combos" -> backtestParameterCombos.findBestCombos(Arrays.copyOfRange(args, 1, args.length));
+                case "backtest" -> backtestStaticParameters.runBacktest();
                 case "paper" -> AlpacaLive.doPaperTrading();
                 case "binance" -> binanceLive.doLive();
+                case "capture" -> binanceCaptureHistory.doCapture();
                 default -> LOG.error("1st arg must be \"combos\", \"backtest\", \"paper\", or \"binance\".");
             }
         }

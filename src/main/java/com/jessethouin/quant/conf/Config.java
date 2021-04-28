@@ -34,7 +34,6 @@ public class Config {
     private BuyStrategyTypes buyStrategy;
     private SellStrategyTypes sellStrategy;
     private boolean backTest;
-    private int backtestQty;
     private Date backtestStart;
     private Date backtestEnd;
     private boolean backtestLowRisk;
@@ -75,7 +74,6 @@ public class Config {
             setBuyStrategy(BuyStrategyTypes.valueOf(prop.getProperty("buyStrategy")));
             setSellStrategy(SellStrategyTypes.valueOf(prop.getProperty("sellStrategy")));
             setBackTest(Boolean.parseBoolean(prop.getProperty("backTest")));
-            setBacktestQty(Integer.parseInt(prop.getProperty("backtestQty")));
             setBacktestStart(Date.from(LocalDateTime.parse(prop.getProperty("backtestStart")).toInstant(ZoneOffset.UTC)));
             setBacktestEnd(Date.from(LocalDateTime.parse(prop.getProperty("backtestEnd")).toInstant(ZoneOffset.UTC)));
             setBacktestLowRisk(Boolean.parseBoolean(prop.getProperty("backtestLowRisk")));

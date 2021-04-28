@@ -1,0 +1,3 @@
+<configuration>
+  <logger name="si.mazi.rescu.HttpTemplate" level="DEBUG"/>
+</configuration>
