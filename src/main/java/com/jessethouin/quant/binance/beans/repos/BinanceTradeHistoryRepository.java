@@ -11,6 +11,7 @@ import java.util.List;
 @Repository
 public interface BinanceTradeHistoryRepository extends CrudRepository<BinanceTradeHistory, Long> {
     List<BinanceTradeHistory> getBinanceTradeHistoriesByTimestampBetween(Date start, Date end);
+    Long countBinanceTradeHistoriesByTimestampBetween(Date start, Date end);
 
     @Query(value = "select max(timestamp) from BinanceTradeHistory")
     Date getMaxTimestamp();

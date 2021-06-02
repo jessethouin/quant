@@ -18,6 +18,6 @@ public class BinanceTestOrderSubscription {
     }
 
     public Disposable subscribe() {
-        return subscribeWebClient.get().retrieve().bodyToFlux(LimitOrder.class).subscribe(BinanceStreamProcessing::processRemoteOrder);
+        return subscribeWebClient.get().retrieve().bodyToFlux(LimitOrder.class).subscribe(BinanceStreamProcessing::processRemoteOrder, throwable -> LOG.error("Error in test order subscription", throwable));
     }
 }

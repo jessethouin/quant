@@ -44,7 +44,7 @@ public class BacktestParameterCombos extends AbstractBacktest {
 
     public BacktestParameterResults findBestCombo() {
         save = false;
-        findBestCombos(new String[]{"1000", "2000", "1.00", "0.25"});
+        findBestCombos(new String[]{"5", "500", "1.00", "0.10"});
         return bestv;
     }
 
@@ -113,6 +113,8 @@ public class BacktestParameterCombos extends AbstractBacktest {
         watch.stop();
         Duration elapsedTime = Duration.ofMillis(watch.getTime(TimeUnit.MILLISECONDS));
         LOG.info("Time Elapsed: {}", String.format("%02d:%02d:%02d", elapsedTime.toHours(), elapsedTime.toMinutesPart(), elapsedTime.toSecondsPart()));
+
+        if (save) System.exit(0);
     }
 
     private static void getAllowanceCombos(int minMALookback, int maxMALookback, BigDecimal riskMax, BigDecimal riskIncrement) {
@@ -142,7 +144,7 @@ public class BacktestParameterCombos extends AbstractBacktest {
         int longLookback = minMALookback;
         while (longLookback <= maxMALookback) {
 //            shortLookback = minMALookback;
-            shortLookback = longLookback - 2; //having a difference of more than x has not proven to be profitable
+            shortLookback = Math.max(minMALookback, longLookback - 2); //having a difference of more than x has not proven to be profitable
             while (shortLookback < longLookback) { // there's no need to test equal short and long tail MAs because they will never separate or converge. That's why this is < and not <=.
                 getRiskCombos(buyStrategyType, sellStrategyType, riskMax, riskIncrement, shortLookback, longLookback, allowance);
                 shortLookback++;

@@ -1,6 +1,8 @@
 package com.jessethouin.quant.backtest;
 
 import static com.jessethouin.quant.conf.Config.CONFIG;
+import static java.time.temporal.ChronoUnit.MINUTES;
+import static java.time.temporal.ChronoUnit.SECONDS;
 
 import com.jessethouin.quant.backtest.beans.repos.BacktestParameterResultsRepository;
 import com.jessethouin.quant.binance.BinanceCaptureHistory;
@@ -9,6 +11,8 @@ import com.jessethouin.quant.binance.beans.repos.BinanceTradeHistoryRepository;
 import com.jessethouin.quant.broker.Util;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.logging.log4j.LogManager;
@@ -17,6 +21,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public abstract class AbstractBacktest {
+
     private static final Logger LOG = LogManager.getLogger(AbstractBacktest.class);
     public static final List<BigDecimal> INTRADAY_PRICES = new ArrayList<>();
     static BinanceTradeHistoryRepository binanceTradeHistoryRepository;
@@ -43,7 +48,20 @@ public abstract class AbstractBacktest {
     }
 
     private void updateBinanceTradeHistoryTable() {
-        binanceTradeHistoryRepository.deleteAll();
+        LocalDateTime start = LocalDateTime.ofInstant(CONFIG.getBacktestStart().toInstant(), ZoneId.systemDefault());
+        LocalDateTime end = LocalDateTime.ofInstant(CONFIG.getBacktestEnd().toInstant(), ZoneId.systemDefault());
+        long diff = 0L;
+
+        switch (CONFIG.getDataFeed()) {
+            case TICKER -> diff = SECONDS.between(start, end);
+            case KLINE -> diff = MINUTES.between(start, end);
+            default -> binanceTradeHistoryRepository.deleteAll();
+        }
+
+        final Long bthCount = binanceTradeHistoryRepository.countBinanceTradeHistoriesByTimestampBetween(CONFIG.getBacktestStart(), CONFIG.getBacktestEnd());
+        if (bthCount + 1 != diff) binanceTradeHistoryRepository.deleteAll();
+        else return;
+
         binanceCaptureHistory.doCapture();
     }
 }

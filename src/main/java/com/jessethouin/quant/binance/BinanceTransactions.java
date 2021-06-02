@@ -61,7 +61,7 @@ public class BinanceTransactions {
         CurrencyPair currencyPair = new CurrencyPair(binanceLimitOrder.getInstrument());
         Currency base = Util.getCurrencyFromPortfolio(currencyPair.base.getSymbol(), portfolio);
         Currency counter = Util.getCurrencyFromPortfolio(currencyPair.counter.getSymbol(), portfolio);
-        Currency commissionAsset = Objects.requireNonNullElse(binanceLimitOrder.getCommissionAsset(), counter);
+        Currency commissionAsset = Objects.requireNonNullElse(binanceLimitOrder.getCommissionAsset(), base);
         BigDecimal limitPrice = binanceLimitOrder.getLimitPrice();
         BigDecimal bid = binanceLimitOrder.getOriginalAmount().multiply(limitPrice).setScale(8, RoundingMode.HALF_UP);
         BigDecimal ask = binanceLimitOrder.getOriginalAmount();
@@ -86,7 +86,7 @@ public class BinanceTransactions {
             }
             case ASK -> {
                 switch (binanceLimitOrder.getStatus()) {
-                    case NEW -> Util.debit(base, ask, String.format("New Binance Sell Limit order %s", orderId));
+                    case NEW -> Util.debit(base, ask, "New Binance Sell Limit order");
                     case FILLED -> {
                         Util.credit(counter, proceeds, String.format("Filled Binance Sell Limit order %s", orderId));
                         Util.debit(commissionAsset, fee, String.format("Fee for Filled Binance Sell Limit order %s", orderId));

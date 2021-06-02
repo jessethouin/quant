@@ -8,7 +8,6 @@ import com.jessethouin.quant.beans.repos.PortfolioRepository;
 import com.jessethouin.quant.binance.subscriptions.BinanceExecutionReportsSubscription;
 import com.jessethouin.quant.binance.subscriptions.BinanceKlineSubscription;
 import com.jessethouin.quant.binance.subscriptions.BinanceOrderBookSubscription;
-import com.jessethouin.quant.binance.subscriptions.BinanceStopLossSubscription;
 import com.jessethouin.quant.binance.subscriptions.BinanceTestOrderSubscription;
 import com.jessethouin.quant.binance.subscriptions.BinanceTickerSubscription;
 import com.jessethouin.quant.binance.subscriptions.BinanceTradeSubscription;
@@ -76,7 +75,7 @@ public class BinanceLive {
         }
 
         List<CurrencyPair> currencyPairs = BinanceUtil.getAllCryptoCurrencyPairs(CONFIG);
-        currencyPairs.forEach(currencyPair -> COMPOSITE_DISPOSABLE.add(BinanceStopLossSubscription.builder().fundamentals(getFundamentals(currencyPair)).build().subscribe()));
+        // currencyPairs.forEach(currencyPair -> COMPOSITE_DISPOSABLE.add(BinanceStopLossSubscription.builder().fundamentals(getFundamentals(currencyPair)).build().subscribe()));
         switch (CONFIG.getDataFeed()) {
             case KLINE -> currencyPairs.forEach(currencyPair -> COMPOSITE_DISPOSABLE.add(BinanceKlineSubscription.builder().fundamentals(getFundamentals(currencyPair)).build().subscribe()));
             case TICKER -> currencyPairs.forEach(currencyPair -> COMPOSITE_DISPOSABLE.add(BinanceTickerSubscription.builder().fundamentals(getFundamentals(currencyPair)).build().subscribe()));
@@ -91,9 +90,14 @@ public class BinanceLive {
         return fundamentals;
     }
 
-    @Scheduled(fixedRateString = "#{${recalibrateFreq} * 1000}", initialDelayString = "#{${recalibrateFreq} * 1000}")
+    @Scheduled(fixedRateString = "#{${recalibrateFreq} * 60 * 1000}", initialDelayString = "#{${recalibrateFreq} * 60 * 1000}")
     protected void recalibrate() {
-        if (CONFIG.isRecalibrate()) Util.relacibrate(CONFIG, true);
+        if (CONFIG.isRecalibrate() && !CONFIG.isBackTest()) {
+            long start = new Date().getTime();
+            CONFIG.setBacktestStart(new Date(start - Duration.ofHours(CONFIG.getRecalibrateHours()).toMillis()));
+            CONFIG.setBacktestEnd(new Date(start));
+            Util.relacibrate(CONFIG, true);
+        }
     }
 
     // @Scheduled(fixedRate = 1000, initialDelay = 1000)

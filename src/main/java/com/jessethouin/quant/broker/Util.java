@@ -92,7 +92,10 @@ public class Util {
             return c.get();
         } else {
             Currency currency = new Currency();
-            currency.setCurrencyType(CurrencyTypes.FIAT); // todo: don't make this assumption
+            switch (CONFIG.getBroker()) {
+                case COINBASE, CEXIO, BINANCE, BINANCE_TEST -> currency.setCurrencyType(CurrencyTypes.CRYPTO);
+                case ALPACA -> currency.setCurrencyType(CurrencyTypes.FIAT);
+            }
             currency.setSymbol(symbol);
             currency.setQuantity(BigDecimal.ZERO);
             currency.setPortfolio(portfolio);

@@ -68,7 +68,7 @@ public class BacktestStaticParameters extends AbstractBacktest {
 
             switch (CONFIG.getBroker()) {
                 case ALPACA_TEST -> LOG.trace(MessageFormat.format("{8,number,000} : {0,number,00} : {5,number,000.000} : {1,number,00} : {6,number,000.000} : {7,number,000.000} : {2,number,0.00} : {3,number,0.00} : {4,number,000000.000}", CONFIG.getShortLookback(), CONFIG.getLongLookback(), CONFIG.getLowRisk(), CONFIG.getHighRisk(), Util.getPortfolioValue(portfolio, c.getSecurity().getCurrency(), price), shortMAValue, longMAValue, price, i));
-                case BINANCE_TEST -> LOG.info("{} : ma1({}) {} : ma2({}) {} : l({}) {} : h({}) {} : p {} : v {}", i, CONFIG.getShortLookback(), shortMAValue, CONFIG.getLongLookback(), longMAValue, CONFIG.getLowRisk(), c.getLow(), CONFIG.getHighRisk(), c.getHigh(), price, Util.getValueAtPrice(c.getBase(), price).add(c.getCounter().getQuantity()));
+                case BINANCE_TEST -> LOG.info("{} : ma1({}) {} : ma2({}) {} : l({}) {} : h({}) {} : p {} : v {} (counter: {} base: {})", i, CONFIG.getShortLookback(), shortMAValue, CONFIG.getLongLookback(), longMAValue, CONFIG.getLowRisk(), c.getLow(), CONFIG.getHighRisk(), c.getHigh(), price, Util.getValueAtPrice(c.getBase(), price).add(c.getCounter().getQuantity()), c.getBase().getQuantity().toPlainString(), c.getCounter().getQuantity().toPlainString());
             }
 
             c.decide();
@@ -84,7 +84,7 @@ public class BacktestStaticParameters extends AbstractBacktest {
                 LOG.info("base   : value: {}", Util.formatFiat(c.getBase().getQuantity()));
                 LOG.info("counter: value: {}", Util.formatFiat(c.getCounter().getQuantity()));
                 LOG.info("orders : {}", portfolio.getBinanceLimitOrders().size());
-                LOG.info("fees   : {}", Util.formatFiat(portfolio.getBinanceLimitOrders().stream().map(BinanceLimitOrder::getFee).reduce(BigDecimal.ZERO, BigDecimal::add)));
+                LOG.info("fees   : {}", Util.formatFiat(portfolio.getBinanceLimitOrders().stream().map(BinanceLimitOrder::getCommissionAmount).reduce(BigDecimal.ZERO, BigDecimal::add).multiply(price)));
             }
         }
 
@@ -93,7 +93,9 @@ public class BacktestStaticParameters extends AbstractBacktest {
             case ALPACA_TEST -> portfolioValue = Util.getPortfolioValue(portfolio, c.getBase(), price);
             case BINANCE_TEST -> portfolioValue = Util.getValueAtPrice(c.getBase(), price).add(c.getCounter().getQuantity());
         }
-        LOG.debug(MessageFormat.format("{0,number,00} : {1,number,00} : {2,number,0.00} : {3,number,0.00} : {4}", CONFIG.getShortLookback(), CONFIG.getLongLookback(), CONFIG.getLowRisk(), CONFIG.getHighRisk(), Util.formatFiat(portfolioValue)));
+        LOG.info(MessageFormat.format("{0,number,00} : {1,number,00} : {2,number,0.00} : {3,number,0.00} : {4}", CONFIG.getShortLookback(), CONFIG.getLongLookback(), CONFIG.getLowRisk(), CONFIG.getHighRisk(), Util.formatFiat(portfolioValue)));
+
+        System.exit(0);
     }
 
     private static BigDecimal stopLoss(BigDecimal price, BigDecimal previousValue, Calc c) {

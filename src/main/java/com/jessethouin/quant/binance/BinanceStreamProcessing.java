@@ -4,20 +4,23 @@ import static com.jessethouin.quant.conf.Config.CONFIG;
 import static java.util.Objects.requireNonNullElse;
 
 import com.jessethouin.quant.beans.Currency;
-import com.jessethouin.quant.binance.beans.repos.OrderHistoryLookupRepository;
-import com.jessethouin.quant.broker.Fundamentals;
 import com.jessethouin.quant.binance.beans.BinanceLimitOrder;
 import com.jessethouin.quant.binance.beans.BinanceTradeHistory;
 import com.jessethouin.quant.binance.beans.OrderHistoryLookup;
 import com.jessethouin.quant.binance.beans.repos.BinanceLimitOrderRepository;
 import com.jessethouin.quant.binance.beans.repos.BinanceTradeHistoryRepository;
+import com.jessethouin.quant.binance.beans.repos.OrderHistoryLookupRepository;
+import com.jessethouin.quant.broker.Fundamentals;
 import com.jessethouin.quant.broker.Util;
+import com.jessethouin.quant.conf.Broker;
 import info.bitrich.xchangestream.binance.dto.ExecutionReportBinanceUserTransaction;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Date;
 import lombok.Getter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.springframework.stereotype.Component;
@@ -65,7 +68,7 @@ public class BinanceStreamProcessing {
         orderHistoryLookup.setValue(value);
         orderHistoryLookupRepository.save(orderHistoryLookup);
 
-        LOG.info("{}/{} - {} : ma1 {} : ma2 {} : l {} : h {} : p {} : v {}",
+        LOG.info("{}/{} - {} : ma1 {} : ma2 {} : l {} : h {} : p {} : v {} ({}, {})",
             fundamentals.getBaseCurrency().getSymbol(),
             fundamentals.getCounterCurrency().getSymbol(),
             fundamentals.getCount(),
@@ -74,7 +77,9 @@ public class BinanceStreamProcessing {
             fundamentals.getCalc().getLow(),
             fundamentals.getCalc().getHigh(),
             fundamentals.getPrice(),
-            value);
+            value,
+            fundamentals.getBaseCurrency().getQuantity().toPlainString(),
+            fundamentals.getCounterCurrency().getQuantity().toPlainString());
 
         fundamentals.setPreviousShortMAValue(fundamentals.getShortMAValue());
         fundamentals.setPreviousLongMAValue(fundamentals.getLongMAValue());
@@ -92,7 +97,19 @@ public class BinanceStreamProcessing {
     }
 
     public static synchronized void processRemoteOrder(Order order) {
-        processRemoteOrder(order, null, null);
+        if (CONFIG.getBroker() == Broker.BINANCE_TEST) {
+            final Currency bnb = Util.getCurrencyFromPortfolio("BNB", binanceLive.getPortfolio());
+            final CurrencyPair currencyPair = order.getInstrument() instanceof CurrencyPair ? ((CurrencyPair) order.getInstrument()) : null;
+            if (currencyPair != null) {
+                final BigDecimal bnbPrice = BinanceUtil.getTickerPrice(bnb.getSymbol(), currencyPair.base.getSymbol());
+                final BigDecimal orderCommission = order.getOriginalAmount().multiply(CONFIG.getFee());
+                processRemoteOrder(order, bnb, orderCommission.divide(bnbPrice,8, RoundingMode.HALF_UP));
+            } else {
+                processRemoteOrder(order, null, null);
+            }
+        } else {
+            processRemoteOrder(order, null, null);
+        }
     }
 
     public static synchronized void processRemoteOrder(Order order, Currency commissionAsset, BigDecimal commissionAmount) {

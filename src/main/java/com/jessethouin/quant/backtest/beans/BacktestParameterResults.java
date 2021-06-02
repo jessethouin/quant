@@ -39,5 +39,7 @@ public class BacktestParameterResults {
     @Convert(converter = BigDecimalConverter.class)
     BigDecimal bids;
     @Convert(converter = BigDecimalConverter.class)
+    BigDecimal fees;
+    @Convert(converter = BigDecimalConverter.class)
     BigDecimal value;
 }
