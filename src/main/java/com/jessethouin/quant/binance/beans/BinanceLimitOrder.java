@@ -105,9 +105,9 @@ public class BinanceLimitOrder implements Comparable<BinanceLimitOrder> {
                 + ", userReference="
                 + userReference
                 + ", commissionAsset="
-                + commissionAsset
+                + (commissionAsset == null ? null : commissionAsset.getSymbol())
                 + ", commissionAmount="
-                + commissionAmount
+                + print(commissionAmount)
                 + "]";
     }
 
@@ -133,7 +133,7 @@ public class BinanceLimitOrder implements Comparable<BinanceLimitOrder> {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         BinanceLimitOrder that = (BinanceLimitOrder) o;
-        return orderId.equals(that.orderId) &&
+        return Objects.equals(orderId, that.orderId) &&
                 Objects.equals(portfolio, that.portfolio) &&
                 type == that.type &&
                 Objects.equals(originalAmount, that.originalAmount) &&

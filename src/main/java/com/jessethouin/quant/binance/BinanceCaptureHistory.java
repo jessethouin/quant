@@ -31,7 +31,7 @@ public class BinanceCaptureHistory {
     public void doCapture() {
         CurrencyPair currencyPair = CurrencyPair.BTC_USDT;
         try {
-            List<BinanceTradeHistory> bs = new ArrayList<>(); // bs is plural for BinanceTradeHistory - not bullshit. I suppose I could have used bths. But that just looks like baths - which I may take if this software sucks.
+            List<BinanceTradeHistory> bs = new ArrayList<>(); // bs is plural for BinanceTradeHistor-ies - not bullshit. I suppose I could have used bths. But that just looks like baths - which I may take if this software sucks.
 
             switch(CONFIG.getDataFeed()) {
                 case KLINE -> {

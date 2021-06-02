@@ -50,8 +50,14 @@ public class QuantApplication {
 
         if (args.length > 0) {
             switch (args[0]) {
-                case "combos" -> backtestParameterCombos.findBestCombos(Arrays.copyOfRange(args, 1, args.length));
-                case "backtest" -> backtestStaticParameters.runBacktest();
+                case "combos" -> {
+                    CONFIG.setBackTest(true);
+                    backtestParameterCombos.findBestCombos(Arrays.copyOfRange(args, 1, args.length));
+                }
+                case "backtest" -> {
+                    CONFIG.setBackTest(true);
+                    backtestStaticParameters.runBacktest();
+                }
                 case "paper" -> AlpacaLive.doPaperTrading();
                 case "binance" -> binanceLive.doLive();
                 case "capture" -> binanceCaptureHistory.doCapture();

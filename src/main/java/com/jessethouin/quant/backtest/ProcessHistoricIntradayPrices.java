@@ -83,18 +83,22 @@ public class ProcessHistoricIntradayPrices implements Runnable {
 
         BigDecimal portfolioValue;
         BigDecimal bids;
+        BigDecimal fees;
         switch (config.getBroker()) {
             case ALPACA_TEST -> {
                 portfolioValue = Util.getPortfolioValue(portfolio, c.getBase(), price);
                 bids = BigDecimal.valueOf(portfolio.getAlpacaOrders().stream().filter(alpacaOrder -> alpacaOrder.getType().equals(OrderSide.BUY.getAPIName())).count());
+                fees = BigDecimal.ZERO; // Alpaca has no fees
             }
             case BINANCE_TEST -> {
                 portfolioValue = Util.getValueAtPrice(c.getBase(), price).add(c.getCounter().getQuantity());
                 bids = BigDecimal.valueOf(portfolio.getBinanceLimitOrders().stream().filter(binanceLimitOrder -> binanceLimitOrder.getType().equals(Order.OrderType.BID)).count());
+                fees = portfolio.getBinanceLimitOrders().stream().map(binanceLimitOrder -> binanceLimitOrder.getCommissionAmount().multiply(binanceLimitOrder.getLimitPrice())).reduce(BigDecimal.ZERO, BigDecimal::add);
             }
             default -> {
                 portfolioValue = BigDecimal.ZERO;
                 bids = BigDecimal.ZERO;
+                fees = BigDecimal.ZERO;
             }
         }
 
@@ -109,6 +113,7 @@ public class ProcessHistoricIntradayPrices implements Runnable {
                 .shortLookback(shortLookback)
                 .longLookback(longLookback)
                 .bids(bids)
+                .fees(fees)
                 .value(portfolioValue)
                 .build();
 

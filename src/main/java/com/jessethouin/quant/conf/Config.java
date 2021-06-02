@@ -73,7 +73,6 @@ public class Config {
             setLongLookback(Integer.parseInt(prop.getProperty("longLookback")));
             setBuyStrategy(BuyStrategyTypes.valueOf(prop.getProperty("buyStrategy")));
             setSellStrategy(SellStrategyTypes.valueOf(prop.getProperty("sellStrategy")));
-            setBackTest(Boolean.parseBoolean(prop.getProperty("backTest")));
             setBacktestStart(Date.from(LocalDateTime.parse(prop.getProperty("backtestStart")).toInstant(ZoneOffset.UTC)));
             setBacktestEnd(Date.from(LocalDateTime.parse(prop.getProperty("backtestEnd")).toInstant(ZoneOffset.UTC)));
             setBacktestLowRisk(Boolean.parseBoolean(prop.getProperty("backtestLowRisk")));
