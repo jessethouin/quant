@@ -1,18 +1,9 @@
 package com.jessethouin.quant.binance;
 
-import static com.jessethouin.quant.binance.config.BinanceExchangeServices.BINANCE_MIN_TRADES;
-import static com.jessethouin.quant.binance.config.BinanceExchangeServices.BINANCE_TRADE_SERVICE;
-import static org.knowm.xchange.dto.Order.OrderType.ASK;
-import static org.knowm.xchange.dto.Order.OrderType.BID;
-
 import com.jessethouin.quant.beans.Currency;
 import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.binance.beans.BinanceLimitOrder;
 import com.jessethouin.quant.broker.Util;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.Date;
-import java.util.Objects;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.knowm.xchange.currency.CurrencyPair;
@@ -20,6 +11,16 @@ import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderType;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.springframework.stereotype.Component;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.Date;
+import java.util.Objects;
+
+import static com.jessethouin.quant.binance.config.BinanceExchangeServices.BINANCE_MIN_TRADES;
+import static com.jessethouin.quant.binance.config.BinanceExchangeServices.BINANCE_TRADE_SERVICE;
+import static org.knowm.xchange.dto.Order.OrderType.ASK;
+import static org.knowm.xchange.dto.Order.OrderType.BID;
 
 @Component
 public class BinanceTransactions {
@@ -49,7 +50,7 @@ public class BinanceTransactions {
             LOG.info("Our Limit Order build (local): " + limitOrder.toString());
             String id = BINANCE_TRADE_SERVICE.placeLimitOrder(limitOrder);
             if (id == null) throw new Exception("Limit Order id was null from server.");
-            BinanceStreamProcessing.getOrderHistoryLookup().setOrderId(Long.parseLong(id));
+            BinanceStreamProcessor.getOrderHistoryLookup().setOrderId(id);
         } catch (Exception e) {
             LOG.error(e.getLocalizedMessage());
         }

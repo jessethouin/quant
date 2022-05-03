@@ -1,4 +1,4 @@
-package com.jessethouin.quant.binance.beans;
+package com.jessethouin.quant.beans;
 
 import com.jessethouin.quant.db.BigDecimalConverter;
 import lombok.*;
@@ -8,13 +8,13 @@ import java.math.BigDecimal;
 import java.util.Date;
 
 @Entity
-@Table(name = "BINANCE_TRADE_HISTORY")
+@Table(name = "TRADE_HISTORY")
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class BinanceTradeHistory {
+public class TradeHistory {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long tradeId;

@@ -1,17 +1,11 @@
 package com.jessethouin.quant.binance.config;
 
-import static com.jessethouin.quant.conf.Config.CONFIG;
-
 import com.jessethouin.quant.binance.BinanceUtil;
 import info.bitrich.xchangestream.binance.BinanceStreamingExchange;
 import info.bitrich.xchangestream.binance.BinanceStreamingMarketDataService;
 import info.bitrich.xchangestream.binance.BinanceStreamingTradeService;
 import info.bitrich.xchangestream.core.ProductSubscription;
 import info.bitrich.xchangestream.core.StreamingExchangeFactory;
-import java.math.BigDecimal;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import org.knowm.xchange.ExchangeFactory;
 import org.knowm.xchange.ExchangeSpecification;
 import org.knowm.xchange.binance.BinanceExchange;
@@ -20,6 +14,13 @@ import org.knowm.xchange.binance.service.BinanceAccountService;
 import org.knowm.xchange.binance.service.BinanceMarketDataService;
 import org.knowm.xchange.binance.service.BinanceTradeService;
 import org.knowm.xchange.currency.CurrencyPair;
+
+import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static com.jessethouin.quant.conf.Config.CONFIG;
 
 public class BinanceExchangeServices {
     public static final BinanceApiConfig BINANCE_API_CONFIG = BinanceApiConfig.INSTANCE;
@@ -44,7 +45,7 @@ public class BinanceExchangeServices {
         /* Streaming API Exchange */
         ProductSubscription.ProductSubscriptionBuilder productSubscriptionBuilder = ProductSubscription.create();
         if (!CONFIG.isBackTest()) {
-            List<CurrencyPair> currencyPairs = BinanceUtil.getAllCryptoCurrencyPairs(CONFIG);
+            List<CurrencyPair> currencyPairs = BinanceUtil.getAllCryptoCurrencyPairs();
             currencyPairs.forEach(productSubscriptionBuilder::addOrders);
             currencyPairs.forEach(productSubscriptionBuilder::addUserTrades);
             switch (CONFIG.getDataFeed()) {
@@ -58,7 +59,7 @@ public class BinanceExchangeServices {
         BINANCE_STREAMING_EXCHANGE.connect(productSubscriptionBuilder.build()).blockingAwait();
         BINANCE_STREAMING_MARKET_DATA_SERVICE = BINANCE_STREAMING_EXCHANGE.getStreamingMarketDataService();
         BINANCE_STREAMING_TRADE_SERVICE = BINANCE_STREAMING_EXCHANGE.getStreamingTradeService();
-        BinanceUtil.getAllCryptoCurrencyPairs(CONFIG).forEach(currencyPair -> BINANCE_MIN_TRADES.put(currencyPair, BinanceUtil.getMinTrade(currencyPair)));
+        BinanceUtil.getAllCryptoCurrencyPairs().forEach(currencyPair -> BINANCE_MIN_TRADES.put(currencyPair, BinanceUtil.getMinTrade(currencyPair)));
     }
 
     private static ExchangeSpecification configureExchangeSpec(ExchangeSpecification exSpec) {

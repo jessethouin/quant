@@ -1,23 +1,9 @@
 package com.jessethouin.quant;
 
-import static com.jessethouin.quant.conf.Config.CONFIG;
-
-import com.google.gson.ExclusionStrategy;
-import com.google.gson.FieldAttributes;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonDeserializer;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.google.gson.*;
 import com.jessethouin.quant.beans.repos.PortfolioRepository;
 import com.jessethouin.quant.binance.BinanceLive;
 import com.jessethouin.quant.db.Exclude;
-import java.math.BigDecimal;
-import java.time.ZonedDateTime;
-import java.util.Date;
-import java.util.Timer;
-import java.util.TimerTask;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.knowm.xchange.currency.CurrencyPair;
@@ -28,25 +14,29 @@ import org.knowm.xchange.dto.trade.LimitOrder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 import reactor.core.publisher.Sinks.Many;
 
-@RestController
-public class QuantController {
+import java.math.BigDecimal;
+import java.time.ZonedDateTime;
+import java.util.Date;
+import java.util.Timer;
+import java.util.TimerTask;
 
-    private static final Logger LOG = LogManager.getLogger(QuantController.class);
+import static com.jessethouin.quant.conf.Config.CONFIG;
+
+@RestController()
+public class BinanceQuantController {
+
+    private static final Logger LOG = LogManager.getLogger(BinanceQuantController.class);
     private final PortfolioRepository portfolioRepository;
     private final BinanceLive binanceLive;
     private static final ExclusionStrategy EXCLUSION_STRATEGY;
     private static final Gson GSON;
-    private final Flux<LimitOrder> flux;
-    private final Sinks.Many<LimitOrder> sink;
+    private final Flux<LimitOrder> binanceFlux;
+    private final Sinks.Many<LimitOrder> binanceSink;
 
     static {
         EXCLUSION_STRATEGY = new ExclusionStrategy() {
@@ -66,14 +56,14 @@ public class QuantController {
             .create();
     }
 
-    public QuantController(PortfolioRepository portfolioRepository, BinanceLive binanceLive, Flux<LimitOrder> flux, Many<LimitOrder> sink) {
+    public BinanceQuantController(PortfolioRepository portfolioRepository, BinanceLive binanceLive, Flux<LimitOrder> binanceFlux, Many<LimitOrder> binanceSink) {
         this.portfolioRepository = portfolioRepository;
         this.binanceLive = binanceLive;
-        this.flux = flux;
-        this.sink = sink;
+        this.binanceFlux = binanceFlux;
+        this.binanceSink = binanceSink;
     }
 
-    @GetMapping(path = "/triggerBuy", produces = "application/json")
+    @GetMapping(path = "/binance/triggerBuy", produces = "application/json")
     public @ResponseBody
     Double triggerBuy() {
         LOG.info("Triggering manual buy/bid.");
@@ -81,7 +71,7 @@ public class QuantController {
         return (double) 0;
     }
 
-    @GetMapping(path = "/triggerSell", produces = "application/json")
+    @GetMapping(path = "/binance/triggerSell", produces = "application/json")
     public @ResponseBody
     Double triggerSell() {
         LOG.info("Triggering manual sell/ask.");
@@ -89,25 +79,25 @@ public class QuantController {
         return (double) 0;
     }
 
-    @GetMapping(path = "/portfolio", produces = "application/json")
+    @GetMapping(path = "/binance/portfolio", produces = "application/json")
     public @ResponseBody
     String report() {
         return GSON.toJson(binanceLive.getPortfolio());
     }
 
-    @GetMapping(path = "/currencies", produces = "application/json")
+    @GetMapping(path = "/binance/currencies", produces = "application/json")
     public @ResponseBody
     String currencies() {
         return GSON.toJson(portfolioRepository.getTop1ByPortfolioIdIsNotNullOrderByPortfolioIdDesc().getCurrencies());
     }
 
-    @GetMapping(value = "/streamingLimitOrders", produces = MediaType.APPLICATION_NDJSON_VALUE)
+    @GetMapping(value = "/binance/streamingLimitOrders", produces = MediaType.APPLICATION_NDJSON_VALUE)
     public Flux<LimitOrder> getLimitOrdersStream(){
-        return flux;
+        return binanceFlux;
     }
 
-    @PostMapping("/limitOrder")
-    public ResponseEntity<String> saveLimitOrder(@RequestBody String limitOrderString) throws InterruptedException {
+    @PostMapping("/binance/limitOrder")
+    public ResponseEntity<String> saveLimitOrder(@RequestBody String limitOrderString) {
         JsonObject jsonOrder = JsonParser.parseString(limitOrderString).getAsJsonObject();
         LOG.info(jsonOrder);
 
@@ -146,7 +136,7 @@ public class QuantController {
         new Timer("Receive Timer").schedule(new TimerTask() {
             @Override
             public void run() {
-                sink.tryEmitNext(limitOrder);
+                binanceSink.tryEmitNext(limitOrder);
             }
         }, 250L);
 
@@ -157,7 +147,7 @@ public class QuantController {
                 limitOrder.setAveragePrice(BigDecimal.ONE);
                 limitOrder.setCumulativeAmount(limitOrder.getOriginalAmount());
 
-                sink.tryEmitNext(limitOrder);
+                binanceSink.tryEmitNext(limitOrder);
             }
         }, 750L);
     }

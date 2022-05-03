@@ -1,9 +1,14 @@
 package com.jessethouin.quant.alpaca.beans;
 
 import com.jessethouin.quant.beans.Portfolio;
+import com.jessethouin.quant.db.Exclude;
 import lombok.Getter;
 import lombok.Setter;
-import net.jacobpeterson.domain.alpaca.order.Order;
+import net.jacobpeterson.alpaca.model.endpoint.orders.Order;
+import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderSide;
+import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderStatus;
+import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderTimeInForce;
+import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderType;
 
 import javax.persistence.*;
 import java.time.ZonedDateTime;
@@ -17,6 +22,7 @@ public class AlpacaOrder {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long orderId;
+    @Exclude
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "portfolio_id")
     private Portfolio portfolio;
@@ -37,17 +43,17 @@ public class AlpacaOrder {
     private String assetClass;
     private String qty;
     private String filledQty;
-    private String type;
-    private String side;
-    private String timeInForce;
+    private OrderType type;
+    private OrderSide side;
+    private OrderTimeInForce timeInForce;
     private String limitPrice;
     private String stopPrice;
     private String filledAvgPrice;
-    private String status;
+    private OrderStatus status;
     private Boolean extendedHours;
     private String trailPrice;
     private String trailPercent;
-    private String hwm;
+    private String highWaterMark;
 
     public AlpacaOrder() {
     }
@@ -69,19 +75,19 @@ public class AlpacaOrder {
         this.assetId = order.getAssetId();
         this.symbol = order.getSymbol();
         this.assetClass = order.getAssetClass();
-        this.qty = order.getQty();
-        this.filledQty = order.getFilledQty();
+        this.qty = order.getQuantity();
+        this.filledQty = order.getFilledQuantity();
         this.type = order.getType();
         this.side = order.getSide();
         this.timeInForce = order.getTimeInForce();
         this.limitPrice = order.getLimitPrice();
         this.stopPrice = order.getStopPrice();
-        this.filledAvgPrice = order.getFilledAvgPrice();
+        this.filledAvgPrice = order.getAverageFillPrice();
         this.status = order.getStatus();
         this.extendedHours = order.getExtendedHours();
         this.trailPrice = order.getTrailPrice();
         this.trailPercent = order.getTrailPercent();
-        this.hwm = order.getHwm();
+        this.highWaterMark = order.getHighWaterMark();
     }
 
     public String toString() {
@@ -197,7 +203,7 @@ public class AlpacaOrder {
         sb.append(',');
         sb.append("hwm");
         sb.append('=');
-        sb.append(this.hwm == null ? "<null>" : this.hwm);
+        sb.append(this.highWaterMark == null ? "<null>" : this.highWaterMark);
         sb.append(',');
         if (sb.charAt(sb.length() - 1) == ',') {
             sb.setCharAt(sb.length() - 1, ']');
@@ -242,11 +248,11 @@ public class AlpacaOrder {
                 Objects.equals(extendedHours, that.extendedHours) &&
                 Objects.equals(trailPrice, that.trailPrice) &&
                 Objects.equals(trailPercent, that.trailPercent) &&
-                Objects.equals(hwm, that.hwm);
+                Objects.equals(highWaterMark, that.highWaterMark);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(orderId, portfolio, id, clientOrderId, createdAt, updatedAt, submittedAt, filledAt, expiredAt, canceledAt, failedAt, replacedAt, replacedBy, replaces, assetId, symbol, assetClass, qty, filledQty, type, side, timeInForce, limitPrice, stopPrice, filledAvgPrice, status, extendedHours, trailPrice, trailPercent, hwm);
+        return Objects.hash(orderId, portfolio, id, clientOrderId, createdAt, updatedAt, submittedAt, filledAt, expiredAt, canceledAt, failedAt, replacedAt, replacedBy, replaces, assetId, symbol, assetClass, qty, filledQty, type, side, timeInForce, limitPrice, stopPrice, filledAvgPrice, status, extendedHours, trailPrice, trailPercent, highWaterMark);
     }
 }

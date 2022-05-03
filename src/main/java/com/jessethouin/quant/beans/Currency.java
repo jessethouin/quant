@@ -23,7 +23,7 @@ public class Currency {
     @Convert(converter = BigDecimalConverter.class)
     private BigDecimal quantity;
     @Convert(converter = BigDecimalConverter.class)
-    private BigDecimal avgCostBais;
+    private BigDecimal avgCostBasis;
     @Exclude
     @ManyToOne
     @JoinColumn(name = "portfolio_id")
