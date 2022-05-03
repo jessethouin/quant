@@ -1,6 +1,6 @@
 package com.jessethouin.quant.binance.subscriptions;
 
-import com.jessethouin.quant.binance.BinanceStreamProcessing;
+import com.jessethouin.quant.binance.BinanceStreamProcessor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.knowm.xchange.dto.trade.LimitOrder;
@@ -11,13 +11,13 @@ import reactor.core.Disposable;
 @Component
 public class BinanceTestOrderSubscription {
     private static final Logger LOG = LogManager.getLogger(BinanceTestOrderSubscription.class);
-    private final WebClient subscribeWebClient;
+    private final WebClient binanceSubscribeWebClient;
 
-    public BinanceTestOrderSubscription(WebClient subscribeWebClient) {
-        this.subscribeWebClient = subscribeWebClient;
+    public BinanceTestOrderSubscription(WebClient binanceSubscribeWebClient) {
+        this.binanceSubscribeWebClient = binanceSubscribeWebClient;
     }
 
     public Disposable subscribe() {
-        return subscribeWebClient.get().retrieve().bodyToFlux(LimitOrder.class).subscribe(BinanceStreamProcessing::processRemoteOrder, throwable -> LOG.error("Error in test order subscription", throwable));
+        return binanceSubscribeWebClient.get().retrieve().bodyToFlux(LimitOrder.class).subscribe(BinanceStreamProcessor::processRemoteOrder, throwable -> LOG.error("Error in test order subscription", throwable));
     }
 }

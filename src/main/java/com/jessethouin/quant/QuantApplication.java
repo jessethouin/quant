@@ -1,13 +1,10 @@
 package com.jessethouin.quant;
 
-import static com.jessethouin.quant.conf.Config.CONFIG;
-
 import com.jessethouin.quant.alpaca.AlpacaLive;
 import com.jessethouin.quant.backtest.BacktestParameterCombos;
 import com.jessethouin.quant.backtest.BacktestStaticParameters;
 import com.jessethouin.quant.binance.BinanceCaptureHistory;
 import com.jessethouin.quant.binance.BinanceLive;
-import java.util.Arrays;
 import lombok.Getter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -16,18 +13,24 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
+import java.util.Arrays;
+
+import static com.jessethouin.quant.conf.Config.CONFIG;
+
 @Getter
 @SpringBootApplication
 @EnableScheduling
 @PropertySource(name = "quantProperties", value = "/quant.properties")
 public class QuantApplication {
     private static final Logger LOG = LogManager.getLogger(QuantApplication.class);
+    private static AlpacaLive alpacaLive;
     private static BinanceLive binanceLive;
     private static BacktestParameterCombos backtestParameterCombos;
     private static BacktestStaticParameters backtestStaticParameters;
     private static BinanceCaptureHistory binanceCaptureHistory;
 
-    public QuantApplication(BinanceLive binanceLive, BacktestParameterCombos backtestParameterCombos, BacktestStaticParameters backtestStaticParameters, BinanceCaptureHistory binanceCaptureHistory) {
+    public QuantApplication(AlpacaLive alpacaLive, BinanceLive binanceLive, BacktestParameterCombos backtestParameterCombos, BacktestStaticParameters backtestStaticParameters, BinanceCaptureHistory binanceCaptureHistory) {
+        QuantApplication.alpacaLive = alpacaLive;
         QuantApplication.binanceLive = binanceLive;
         QuantApplication.backtestParameterCombos = backtestParameterCombos;
         QuantApplication.backtestStaticParameters = backtestStaticParameters;
@@ -58,7 +61,7 @@ public class QuantApplication {
                     CONFIG.setBackTest(true);
                     backtestStaticParameters.runBacktest();
                 }
-                case "paper" -> AlpacaLive.doPaperTrading();
+                case "paper" -> alpacaLive.doLive();
                 case "binance" -> binanceLive.doLive();
                 case "capture" -> binanceCaptureHistory.doCapture();
                 default -> LOG.error("1st arg must be \"combos\", \"backtest\", \"paper\", or \"binance\".");

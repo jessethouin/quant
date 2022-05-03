@@ -25,7 +25,7 @@ public class SecurityPosition {
     @Convert(converter = BigDecimalConverter.class)
     private BigDecimal price;
     @Exclude
-    @ManyToOne
+    @OneToOne
     @JoinColumn(name = "security_id")
     private Security security;
 }

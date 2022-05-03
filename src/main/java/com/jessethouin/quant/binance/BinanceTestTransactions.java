@@ -1,17 +1,9 @@
 package com.jessethouin.quant.binance;
 
-import static com.jessethouin.quant.binance.config.BinanceExchangeServices.BINANCE_MIN_TRADES;
-import static com.jessethouin.quant.conf.Config.CONFIG;
-import static org.knowm.xchange.dto.Order.OrderType.ASK;
-import static org.knowm.xchange.dto.Order.OrderType.BID;
-
 import com.jessethouin.quant.beans.Currency;
 import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.binance.beans.BinanceLimitOrder;
 import com.jessethouin.quant.broker.Util;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.Date;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.knowm.xchange.currency.CurrencyPair;
@@ -21,13 +13,22 @@ import org.knowm.xchange.dto.trade.LimitOrder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.Date;
+
+import static com.jessethouin.quant.binance.config.BinanceExchangeServices.BINANCE_MIN_TRADES;
+import static com.jessethouin.quant.conf.Config.CONFIG;
+import static org.knowm.xchange.dto.Order.OrderType.ASK;
+import static org.knowm.xchange.dto.Order.OrderType.BID;
+
 @Service
 public class BinanceTestTransactions {
     private static final Logger LOG = LogManager.getLogger(BinanceTestTransactions.class);
-    private static WebClient publishWebClient;
+    private static WebClient binancePublishWebClient;
 
-    public BinanceTestTransactions(WebClient publishWebClient) {
-        BinanceTestTransactions.publishWebClient = publishWebClient;
+    public BinanceTestTransactions(WebClient binancePublishWebClient) {
+        BinanceTestTransactions.binancePublishWebClient = binancePublishWebClient;
     }
 
     public static void buyTestCurrency(Portfolio portfolio, CurrencyPair currencyPair, BigDecimal qty, BigDecimal price) {
@@ -58,10 +59,10 @@ public class BinanceTestTransactions {
         } else {
             try {
                 LOG.info("Our Test Limit Order build (local): {}", limitOrder.toString());
-                String id = publishWebClient.post().bodyValue(limitOrder).retrieve().bodyToMono(String.class).block();
+                String id = binancePublishWebClient.post().bodyValue(limitOrder).retrieve().bodyToMono(String.class).block();
                 LOG.info("Order id received from remote server: {}", id);
                 if (id == null) throw new Exception("Limit Order id was null from server.");
-                BinanceStreamProcessing.getOrderHistoryLookup().setOrderId(Long.parseLong(id));
+                BinanceStreamProcessor.getOrderHistoryLookup().setOrderId(id);
             } catch (Exception e) {
                 LOG.error(e.getMessage());
             }

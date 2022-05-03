@@ -5,25 +5,25 @@ import com.jessethouin.quant.beans.Security;
 import com.jessethouin.quant.broker.Transactions;
 import com.jessethouin.quant.broker.Util;
 import com.jessethouin.quant.conf.Config;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 @Getter
 @Setter
 public class Calc {
-
     private static final Logger LOG = LogManager.getLogger(Calc.class);
 
-    private final Security security;
     private final Config config;
 
+    private Security security;
     private Currency base;
     private Currency counter;
     private BigDecimal price;
@@ -74,7 +74,7 @@ public class Calc {
         if (getMa1().equals(BigDecimal.ZERO)) {
             setMa1(ma1);
         }
-        setQty(Util.getBudget(price, config.getAllowance(), getCounter(), getSecurity()));
+        setQty(Util.getPurchaseBudget(price, config.getAllowance(), getBase(), getSecurity()));
         if (ma1.compareTo(getMa1()) >= 0) {
             setMa1rising(true);
             if (maTrend < 0) {

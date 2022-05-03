@@ -1,18 +1,16 @@
 package com.jessethouin.quant.broker;
 
-import static com.jessethouin.quant.conf.Config.CONFIG;
-import static java.util.Objects.requireNonNullElse;
-
 import com.jessethouin.quant.backtest.BacktestParameterCombos;
 import com.jessethouin.quant.backtest.beans.BacktestParameterResults;
-import com.jessethouin.quant.beans.Currency;
-import com.jessethouin.quant.beans.CurrencyLedger;
-import com.jessethouin.quant.beans.Portfolio;
-import com.jessethouin.quant.beans.Security;
+import com.jessethouin.quant.beans.*;
 import com.jessethouin.quant.calculators.MA;
 import com.jessethouin.quant.conf.Config;
 import com.jessethouin.quant.conf.CurrencyTypes;
 import com.jessethouin.quant.conf.MATypes;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.springframework.stereotype.Component;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.NumberFormat;
@@ -21,10 +19,13 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
-import org.springframework.stereotype.Component;
+
+import static com.jessethouin.quant.conf.Config.CONFIG;
+import static java.util.Objects.requireNonNullElse;
 
 @Component
 public class Util {
+    private static final Logger LOG = LogManager.getLogger(Util.class);
     static BacktestParameterCombos backtestParameterCombos;
 
     public Util(BacktestParameterCombos backtestParameterCombos) {
@@ -36,8 +37,8 @@ public class Util {
         holdings.updateAndGet(v -> v.add(currency.getQuantity()));
         portfolio.getSecurities().stream()
                 .filter(security -> security.getCurrency().equals(currency))
-                .forEach(security -> security.getSecurityPositions()
-                        .forEach(position -> holdings.updateAndGet(v -> v.add(price.multiply(position.getQuantity())))));
+                .forEach(security ->
+                        holdings.updateAndGet(v -> v.add(security.getSecurityPosition().getQuantity().multiply(security.getSecurityPosition().getPrice()))));
         return holdings.get();
     }
 
@@ -45,19 +46,24 @@ public class Util {
         return base.getQuantity().multiply(marketPrice).setScale(8, RoundingMode.HALF_UP);
     }
 
-    public static BigDecimal getBudget(BigDecimal price, BigDecimal allowance, Currency currency, Security security) {
-        int scale = security == null ? 8 : 0;
-        return currency.getQuantity().multiply(allowance).divide(price, scale, RoundingMode.FLOOR);
+    public static BigDecimal getValueAtPrice(Security security, BigDecimal marketPrice) {
+        return security.getSecurityPosition().getQuantity().multiply(marketPrice).setScale(8, RoundingMode.HALF_UP);
+    }
+
+    public static BigDecimal getPurchaseBudget(BigDecimal price, BigDecimal allowance, Currency base, Security security) {
+        int scale = security == null ? 4 : 0;
+        return base.getQuantity().multiply(allowance).divide(price, scale, RoundingMode.FLOOR);
     }
 
     public static BigDecimal getMA(BigDecimal previousMA, int lookback, BigDecimal price) {
-        if (previousMA == null || previousMA.compareTo(BigDecimal.ZERO) == 0 || previousMA.compareTo(BigDecimal.valueOf(0)) == 0) previousMA = price;
+        if (previousMA == null || previousMA.compareTo(BigDecimal.ZERO) == 0 || previousMA.compareTo(BigDecimal.valueOf(0)) == 0)
+            previousMA = price;
         return MA.ma(price, previousMA, lookback, MATypes.TEMA);
     }
 
     /**
      * If a Security with the symbol exists in the portfolio, returns that Security, otherwise creates a new Security,
-     * adds to portfolio, and returnes the new Security.
+     * adds to portfolio, and returns the new Security.
      *
      * @param symbol    Stock symbol
      * @param portfolio Active portfolio
@@ -72,35 +78,61 @@ public class Util {
             Security security = new Security();
             security.setSymbol(symbol);
             security.setPortfolio(portfolio);
-            security.setCurrency(getCurrencyFromPortfolio("USD", portfolio)); // todo: find a dynamic way to get currency of a security.
+            security.setCurrency(getCurrencyFromPortfolio("USD", portfolio, CurrencyTypes.FIAT)); // todo: find a dynamic way to get currency of a security.
+            SecurityPosition securityPosition = security.getSecurityPosition();
+            securityPosition.setSecurity(security);
+            securityPosition.setOpened(new Date());
+            securityPosition.setPrice(BigDecimal.ZERO);
+            securityPosition.setQuantity(BigDecimal.ZERO);
+            portfolio.getSecurities().add(security);
             return security;
         }
     }
 
     /**
      * If a Currency with the symbol exists in the portfolio, returns that Currency, otherwise creates a new Currency,
-     * adds to portfolio, and returnes the new Currency.
+     * adds to portfolio, and returns the new Currency.
      *
      * @param symbol    Currency symbol
      * @param portfolio Active portfolio
      * @return A Currency object, either existing or new
      */
     public static Currency getCurrencyFromPortfolio(String symbol, Portfolio portfolio) {
+        switch (CONFIG.getBroker()) {
+            case COINBASE, CEXIO, BINANCE, BINANCE_TEST -> {
+                return getCurrencyFromPortfolio(symbol, portfolio, CurrencyTypes.CRYPTO);
+            }
+            default -> {
+                return getCurrencyFromPortfolio(symbol, portfolio, CurrencyTypes.FIAT);
+            }
+        }
+    }
+
+    public static Currency getCurrencyFromPortfolio(String symbol, Portfolio portfolio, CurrencyTypes currencyType) {
         Optional<Currency> c = portfolio.getCurrencies().stream().filter(currency -> currency.getSymbol().equals(symbol)).findFirst();
 
         if (c.isPresent()) {
             return c.get();
         } else {
             Currency currency = new Currency();
-            switch (CONFIG.getBroker()) {
-                case COINBASE, CEXIO, BINANCE, BINANCE_TEST -> currency.setCurrencyType(CurrencyTypes.CRYPTO);
-                case ALPACA -> currency.setCurrencyType(CurrencyTypes.FIAT);
-            }
+            currency.setCurrencyType(currencyType);
             currency.setSymbol(symbol);
             currency.setQuantity(BigDecimal.ZERO);
             currency.setPortfolio(portfolio);
+            portfolio.getCurrencies().add(currency);
             return currency;
         }
+    }
+
+    public static Portfolio createEmptyPortfolio() {
+        Portfolio portfolio = new Portfolio();
+        Currency currency = new Currency();
+        currency.setSymbol("USD");
+        currency.setQuantity(BigDecimal.ZERO);
+        currency.setCurrencyType(CurrencyTypes.FIAT);
+        currency.setPortfolio(portfolio);
+        portfolio.getCurrencies().add(currency);
+        return portfolio;
     }
 
     public static Portfolio createPortfolio() {
@@ -137,7 +169,7 @@ public class Util {
             portfolio.getCurrencies().add(currency);
         });
 
-        Currency usdt = getCurrencyFromPortfolio("USDT", portfolio);
+        Currency usdt = getCurrencyFromPortfolio("USDT", portfolio, CurrencyTypes.CRYPTO);
         Util.credit(usdt, CONFIG.getInitialCash(), "Initializing portfolio with default config values");
 
         return portfolio;
@@ -163,7 +195,7 @@ public class Util {
         currency.setQuantity(currency.getQuantity().add(requireNonNullElse(qty, BigDecimal.ZERO)));
     }
 
-    public static void relacibrate(Config config, boolean updateBacktest) {
+    public static void recalibrate(Config config, boolean updateBacktest) {
         if (updateBacktest) CONFIG.setBackTest(true);
         BacktestParameterResults bestCombo = backtestParameterCombos.findBestCombo();
         config.setLowRisk(bestCombo.getLowRisk());
@@ -177,4 +209,5 @@ public class Util {
         config.setBacktestEnd(new Date(config.getBacktestEnd().getTime() + Duration.ofMinutes(config.getRecalibrateFreq()).toMillis()));
         if (updateBacktest) CONFIG.setBackTest(false);
     }
+
 }

@@ -1,4 +1,4 @@
-package com.jessethouin.quant.binance.beans;
+package com.jessethouin.quant.beans;
 
 import com.jessethouin.quant.db.BigDecimalConverter;
 import lombok.*;
@@ -18,7 +18,7 @@ public class OrderHistoryLookup {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private long tradeId;
-    private long orderId;
+    private String orderId;
     @Convert(converter = BigDecimalConverter.class)
     private BigDecimal value;
 }

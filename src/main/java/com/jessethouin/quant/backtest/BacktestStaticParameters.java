@@ -1,33 +1,35 @@
 package com.jessethouin.quant.backtest;
 
-import static com.jessethouin.quant.conf.Config.CONFIG;
-
 import com.jessethouin.quant.backtest.beans.repos.BacktestParameterResultsRepository;
 import com.jessethouin.quant.beans.Currency;
 import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.beans.Security;
+import com.jessethouin.quant.beans.repos.TradeHistoryRepository;
 import com.jessethouin.quant.binance.BinanceCaptureHistory;
 import com.jessethouin.quant.binance.beans.BinanceLimitOrder;
-import com.jessethouin.quant.binance.beans.repos.BinanceTradeHistoryRepository;
 import com.jessethouin.quant.broker.Transactions;
 import com.jessethouin.quant.broker.Util;
 import com.jessethouin.quant.calculators.Calc;
+import com.jessethouin.quant.conf.CurrencyTypes;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.springframework.stereotype.Component;
+
 import java.math.BigDecimal;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.springframework.stereotype.Component;
+
+import static com.jessethouin.quant.conf.Config.CONFIG;
 
 @Component
 public class BacktestStaticParameters extends AbstractBacktest {
     private static final Logger LOG = LogManager.getLogger(BacktestStaticParameters.class);
 
-    public BacktestStaticParameters(BinanceTradeHistoryRepository binanceTradeHistoryRepository, BacktestParameterResultsRepository backtestParameterResultsRepository, BinanceCaptureHistory binanceCaptureHistory) {
-        super(binanceTradeHistoryRepository, backtestParameterResultsRepository, binanceCaptureHistory);
+    public BacktestStaticParameters(TradeHistoryRepository tradeHistoryRepository, BacktestParameterResultsRepository backtestParameterResultsRepository, BinanceCaptureHistory binanceCaptureHistory) {
+        super(tradeHistoryRepository, backtestParameterResultsRepository, binanceCaptureHistory);
     }
 
     public void runBacktest() {
@@ -51,15 +53,15 @@ public class BacktestStaticParameters extends AbstractBacktest {
                 c = new Calc(aapl, CONFIG, price);
             }
             case BINANCE_TEST -> {
-                Currency base = Util.getCurrencyFromPortfolio("BTC", portfolio);
-                Currency counter = Util.getCurrencyFromPortfolio("USDT", portfolio);
+                Currency base = Util.getCurrencyFromPortfolio("BTC", portfolio, CurrencyTypes.CRYPTO);
+                Currency counter = Util.getCurrencyFromPortfolio("USDT", portfolio, CurrencyTypes.CRYPTO);
                 c = new Calc(base, counter, CONFIG, BigDecimal.ZERO);
             }
             default -> throw new IllegalStateException("Unexpected value: " + CONFIG.getBroker());
         }
 
         for (int i = 0; i < intradayPrices.size(); i++) {
-            if (CONFIG.isRecalibrate() && i % CONFIG.getRecalibrateFreq() == 0) Util.relacibrate(CONFIG, false);
+            if (CONFIG.isRecalibrate() && i % CONFIG.getRecalibrateFreq() == 0) Util.recalibrate(CONFIG, false);
 
             price = intradayPrices.get(i);
             shortMAValue = Util.getMA(shortMAValue, CONFIG.getShortLookback(), price);
@@ -79,7 +81,7 @@ public class BacktestStaticParameters extends AbstractBacktest {
         super.logMarketChange(intradayPrices.get(intradayPrices.size() - 1), intradayPrices.get(0), LOG);
 
         switch (CONFIG.getBroker()) {
-            case ALPACA_TEST -> c.getSecurity().getSecurityPositions().forEach(ps -> LOG.info(ps.getPrice() + ", " + ps.getQuantity() + " : " + ps.getPrice().multiply(ps.getQuantity())));
+            case ALPACA_TEST -> LOG.info(c.getSecurity().getSecurityPosition().getPrice() + ", " + c.getSecurity().getSecurityPosition().getQuantity() + " : " + c.getSecurity().getSecurityPosition().getPrice().multiply(c.getSecurity().getSecurityPosition().getQuantity()));
             case BINANCE_TEST -> {
                 LOG.info("base   : value: {}", Util.formatFiat(c.getBase().getQuantity()));
                 LOG.info("counter: value: {}", Util.formatFiat(c.getCounter().getQuantity()));

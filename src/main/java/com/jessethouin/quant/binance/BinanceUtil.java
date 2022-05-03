@@ -1,15 +1,17 @@
 package com.jessethouin.quant.binance;
 
-import static com.jessethouin.quant.binance.config.BinanceExchangeServices.BINANCE_ACCOUNT_SERVICE;
-import static com.jessethouin.quant.binance.config.BinanceExchangeServices.BINANCE_EXCHANGE;
-import static com.jessethouin.quant.binance.config.BinanceExchangeServices.BINANCE_EXCHANGE_INFO;
-import static com.jessethouin.quant.binance.config.BinanceExchangeServices.BINANCE_MARKET_DATA_SERVICE;
-
 import com.jessethouin.quant.beans.Currency;
 import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.broker.Util;
-import com.jessethouin.quant.conf.Config;
 import com.jessethouin.quant.conf.CurrencyTypes;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.knowm.xchange.binance.dto.meta.exchangeinfo.Filter;
+import org.knowm.xchange.binance.dto.meta.exchangeinfo.Symbol;
+import org.knowm.xchange.currency.CurrencyPair;
+import org.knowm.xchange.dto.account.Fee;
+import org.knowm.xchange.exceptions.CurrencyPairNotValidException;
+
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -18,13 +20,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.knowm.xchange.binance.dto.meta.exchangeinfo.Filter;
-import org.knowm.xchange.binance.dto.meta.exchangeinfo.Symbol;
-import org.knowm.xchange.currency.CurrencyPair;
-import org.knowm.xchange.dto.account.Fee;
-import org.knowm.xchange.exceptions.CurrencyPairNotValidException;
+
+import static com.jessethouin.quant.binance.config.BinanceExchangeServices.*;
+import static com.jessethouin.quant.conf.Config.CONFIG;
 
 public class BinanceUtil {
     private static final Logger LOG = LogManager.getLogger(BinanceUtil.class);
@@ -86,16 +84,6 @@ public class BinanceUtil {
         return ret;
     }
 
-    public static List<CurrencyPair> getAllCryptoCurrencyPairs(Config config) {
-        List<CurrencyPair> currencyPairs = new ArrayList<>();
-        config.getCryptoCurrencies().forEach(base -> config.getCryptoCurrencies().forEach(counter -> {
-            if (!base.equals(counter) && !currencyPairs.contains(new CurrencyPair(counter, base))) {
-                BINANCE_EXCHANGE.getExchangeSymbols().stream().filter(currencyPair -> currencyPair.base.getSymbol().equals(base) && currencyPair.counter.getSymbol().equals(counter)).forEach(currencyPairs::add);
-            }
-        }));
-        return currencyPairs;
-    }
-
     public static void showWallets() {
         try {
             StringBuilder sb = new StringBuilder();
@@ -132,7 +120,7 @@ public class BinanceUtil {
 
     public static void reconcile(Portfolio portfolio) {
         try {
-            BINANCE_EXCHANGE.getTradeService().getOpenOrders().getOpenOrders().forEach(BinanceStreamProcessing::processRemoteOrder);
+            BINANCE_EXCHANGE.getTradeService().getOpenOrders().getOpenOrders().forEach(BinanceStreamProcessor::processRemoteOrder);
 
             BINANCE_EXCHANGE.getAccountService().getAccountInfo().getWallets().forEach((s, wallet) -> wallet.getBalances().forEach((remoteCurrency, balance) -> {
                 Currency currency = Util.getCurrencyFromPortfolio(remoteCurrency.getSymbol(), portfolio);
@@ -154,5 +142,15 @@ public class BinanceUtil {
         } catch (IOException e) {
             LOG.error(e.getLocalizedMessage());
         }
+    }
+
+    public static List<CurrencyPair> getAllCryptoCurrencyPairs() {
+        List<CurrencyPair> currencyPairs = new ArrayList<>();
+        CONFIG.getCryptoCurrencies().forEach(base -> CONFIG.getCryptoCurrencies().forEach(counter -> {
+            if (!base.equals(counter) && !currencyPairs.contains(new CurrencyPair(counter, base))) {
+                BINANCE_EXCHANGE.getExchangeSymbols().stream().filter(currencyPair -> currencyPair.base.getSymbol().equals(base) && currencyPair.counter.getSymbol().equals(counter)).forEach(currencyPairs::add);
+            }
+        }));
+        return currencyPairs;
     }
 }

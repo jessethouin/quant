@@ -1,8 +1,5 @@
 package com.jessethouin.quant.backtest;
 
-import static com.jessethouin.quant.backtest.BacktestParameterCombos.BACKTEST_RESULTS_QUEUE;
-import static com.jessethouin.quant.backtest.BacktestParameterCombos.INTRADAY_PRICES;
-
 import com.jessethouin.quant.backtest.beans.BacktestParameterResults;
 import com.jessethouin.quant.beans.Currency;
 import com.jessethouin.quant.beans.Portfolio;
@@ -11,13 +8,18 @@ import com.jessethouin.quant.broker.Util;
 import com.jessethouin.quant.calculators.Calc;
 import com.jessethouin.quant.conf.BuyStrategyTypes;
 import com.jessethouin.quant.conf.Config;
+import com.jessethouin.quant.conf.CurrencyTypes;
 import com.jessethouin.quant.conf.SellStrategyTypes;
-import java.math.BigDecimal;
-import java.util.Date;
-import net.jacobpeterson.alpaca.enums.OrderSide;
+import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderSide;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.knowm.xchange.dto.Order;
+
+import java.math.BigDecimal;
+import java.util.Date;
+
+import static com.jessethouin.quant.backtest.BacktestParameterCombos.BACKTEST_RESULTS_QUEUE;
+import static com.jessethouin.quant.backtest.BacktestParameterCombos.INTRADAY_PRICES;
 
 public class ProcessHistoricIntradayPrices implements Runnable {
     private static final Logger LOG = LogManager.getLogger(ProcessHistoricIntradayPrices.class);
@@ -62,8 +64,8 @@ public class ProcessHistoricIntradayPrices implements Runnable {
                 c = new Calc(aapl, config, price);
             }
             case BINANCE_TEST -> {
-                Currency base = Util.getCurrencyFromPortfolio("BTC", portfolio);
-                Currency counter = Util.getCurrencyFromPortfolio("USDT", portfolio);
+                Currency base = Util.getCurrencyFromPortfolio("BTC", portfolio, CurrencyTypes.CRYPTO);
+                Currency counter = Util.getCurrencyFromPortfolio("USDT", portfolio, CurrencyTypes.CRYPTO);
                 c = new Calc(base, counter, config, BigDecimal.ZERO);
             }
             default -> throw new IllegalStateException("Unexpected value: " + config.getBroker());
@@ -87,7 +89,7 @@ public class ProcessHistoricIntradayPrices implements Runnable {
         switch (config.getBroker()) {
             case ALPACA_TEST -> {
                 portfolioValue = Util.getPortfolioValue(portfolio, c.getBase(), price);
-                bids = BigDecimal.valueOf(portfolio.getAlpacaOrders().stream().filter(alpacaOrder -> alpacaOrder.getType().equals(OrderSide.BUY.getAPIName())).count());
+                bids = BigDecimal.valueOf(portfolio.getAlpacaOrders().stream().filter(alpacaOrder -> alpacaOrder.getSide().equals(OrderSide.BUY)).count());
                 fees = BigDecimal.ZERO; // Alpaca has no fees
             }
             case BINANCE_TEST -> {
