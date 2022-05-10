@@ -42,12 +42,15 @@ public class Transactions {
 
         switch (broker) {
             case ALPACA -> {
-                LOG.info("Placing Alpaca BUY LIMIT order for {} of {} at {}", qty.toPlainString(), counter.getSymbol(), price);
+                LOG.debug("Placing Alpaca BUY LIMIT order for {} of {} at {}", qty.toPlainString(), counter.getSymbol(), price);
                 AlpacaTransactions.buyCurrency(base, counter, qty, price);
             }
-            case ALPACA_TEST -> LOG.info("Place ALPACA_TEST buy order here");
+            case ALPACA_CRYPTO_TEST -> {
+                LOG.debug("Placing Alpaca BUY LIMIT order for {} of {} at {}", qty.toPlainString(), counter.getSymbol(), price);
+                AlpacaTestTransactions.placeTestCurrencyBuyOrder(base, counter, qty, price);
+            }
             case BINANCE -> {
-                LOG.info("Placing Binance BUY LIMIT order for {} of {} at {}", qty.toPlainString(), base.getSymbol(), price);
+                LOG.debug("Placing Binance BUY LIMIT order for {} of {} at {}", qty.toPlainString(), base.getSymbol(), price);
                 BinanceTransactions.buyCurrency(new CurrencyPair(base.getSymbol(), counter.getSymbol()), qty, price);
             }
             case BINANCE_TEST -> {
@@ -63,12 +66,15 @@ public class Transactions {
 
         switch (broker) {
             case ALPACA -> {
-                LOG.info("Placing Alpaca SELL LIMIT order for {} of {} at {}", base.getQuantity().toPlainString(), counter.getSymbol(), price);
+                LOG.debug("Placing Alpaca SELL LIMIT order for {} of {} at {}", counter.getQuantity().toPlainString(), counter.getSymbol() + base.getSymbol(), price);
                 AlpacaTransactions.sellCurrency(base, counter, counter.getQuantity(), price);
             }
-            case ALPACA_TEST -> LOG.info("Place ALPACA_TEST sell order here");
+            case ALPACA_CRYPTO_TEST -> {
+                LOG.debug("Placing Alpaca SELL LIMIT order for {} of {} at {}", counter.getQuantity().toPlainString(), counter.getSymbol() + base.getSymbol(), price);
+                AlpacaTestTransactions.placeTestCurrencySellOrder(base, counter, counter.getQuantity(), price);
+            }
             case BINANCE -> {
-                LOG.info("Placing Binance SELL LIMIT Order for {} of {} at {}", base.getQuantity().toPlainString(), base.getSymbol(), price);
+                LOG.debug("Placing Binance SELL LIMIT Order for {} of {} at {}", base.getQuantity().toPlainString(), base.getSymbol(), price);
                 BinanceTransactions.sellCurrency(new CurrencyPair(base.getSymbol(), counter.getSymbol()), base.getQuantity(), price);
             }
             case BINANCE_TEST -> {
@@ -85,7 +91,7 @@ public class Transactions {
 
         switch (broker) {
             case ALPACA -> AlpacaTransactions.buySecurity(security, qty, price);
-            case ALPACA_TEST -> AlpacaTestTransactions.placeTestSecurityBuyOrder(security, qty, price);
+            case ALPACA_SECURITY_TEST -> AlpacaTestTransactions.placeTestSecurityBuyOrder(security, qty, price);
             default -> throw new IllegalStateException("Unexpected broker: " + broker);
         }
     }
@@ -96,7 +102,7 @@ public class Transactions {
 
         switch (broker) {
             case ALPACA -> AlpacaTransactions.sellSecurity(security, sellQty, price);
-            case ALPACA_TEST -> AlpacaTestTransactions.placeTestSecuritySellOrder(security, sellQty, price);
+            case ALPACA_SECURITY_TEST -> AlpacaTestTransactions.placeTestSecuritySellOrder(security, sellQty, price);
             default -> throw new IllegalStateException("Unexpected broker: " + broker);
         }
         return true;

@@ -82,9 +82,25 @@ public class Config {
             setRecalibrate(Boolean.parseBoolean(prop.getProperty("recalibrate")));
             setRecalibrateFreq(Integer.parseInt(prop.getProperty("recalibrateFreq")));
             setRecalibrateHours(Integer.parseInt(prop.getProperty("recalibrateHours")));
-            setSecurities(Stream.of(prop.getProperty("securities").split(",", -1)).collect(Collectors.toList()));
-            setFiatCurrencies(Stream.of(prop.getProperty("fiatCurrencies").split(",", -1)).collect(Collectors.toList()));
-            setCryptoCurrencies(Stream.of(prop.getProperty("cryptoCurrencies").split(",", -1)).collect(Collectors.toList()));
+
+            String securitiesProperty = prop.getProperty("securities");
+            if (securitiesProperty.length() > 0 )
+                setSecurities(Stream.of(securitiesProperty.split(",", -1)).collect(Collectors.toList()));
+            else
+                setSecurities(List.of());
+
+            String fiatCurrenciesProperty = prop.getProperty("fiatCurrencies");
+            if (fiatCurrenciesProperty.length() > 0)
+                setFiatCurrencies(Stream.of(fiatCurrenciesProperty.split(",", -1)).collect(Collectors.toList()));
+            else
+                setFiatCurrencies(List.of());
+
+            String cryptoCurrenciesProperty = prop.getProperty("cryptoCurrencies");
+            if (cryptoCurrenciesProperty.length() > 0)
+                setCryptoCurrencies(Stream.of(cryptoCurrenciesProperty.split(",", -1)).collect(Collectors.toList()));
+            else
+                setCryptoCurrencies(List.of());
+
             setBroker(Broker.valueOf(prop.getProperty("broker")));
             setDataFeed(DataFeed.valueOf(prop.getProperty("dataFeed")));
             setTriggerBuy(false);

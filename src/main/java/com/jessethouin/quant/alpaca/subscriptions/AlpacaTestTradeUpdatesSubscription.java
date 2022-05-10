@@ -17,7 +17,15 @@ public class AlpacaTestTradeUpdatesSubscription {
         this.alpacaSubscribeWebClient = alpacaSubscribeWebClient;
     }
 
+    /**
+     * Subscribes to the feed accepting new Orders, mimicking Alpaca server
+     * @return The subscription
+     */
     public Disposable subscribe() {
-        return alpacaSubscribeWebClient.get().retrieve().bodyToFlux(Order.class).subscribe(AlpacaStreamProcessor::processRemoteOrder, throwable -> LOG.error("Error in test order subscription", throwable));
+        return alpacaSubscribeWebClient
+                .get()
+                .retrieve()
+                .bodyToFlux(Order.class)
+                .subscribe(AlpacaStreamProcessor::processRemoteOrder, throwable -> LOG.error("Error in test order subscription"));
     }
 }

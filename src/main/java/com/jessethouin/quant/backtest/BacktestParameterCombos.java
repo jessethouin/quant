@@ -1,5 +1,6 @@
 package com.jessethouin.quant.backtest;
 
+import com.jessethouin.quant.alpaca.AlpacaCaptureHistory;
 import com.jessethouin.quant.backtest.beans.BacktestParameterResults;
 import com.jessethouin.quant.backtest.beans.repos.BacktestParameterResultsRepository;
 import com.jessethouin.quant.beans.repos.TradeHistoryRepository;
@@ -35,8 +36,8 @@ public class BacktestParameterCombos extends AbstractBacktest {
     static int count = 0;
     static boolean save = true;
 
-    public BacktestParameterCombos(TradeHistoryRepository tradeHistoryRepository, BacktestParameterResultsRepository backtestParameterResultsRepository, BinanceCaptureHistory binanceCaptureHistory) {
-        super(tradeHistoryRepository, backtestParameterResultsRepository, binanceCaptureHistory);
+    public BacktestParameterCombos(TradeHistoryRepository tradeHistoryRepository, BacktestParameterResultsRepository backtestParameterResultsRepository, BinanceCaptureHistory binanceCaptureHistory, AlpacaCaptureHistory alpacaCaptureHistory) {
+        super(tradeHistoryRepository, backtestParameterResultsRepository, binanceCaptureHistory, alpacaCaptureHistory);
     }
 
     public BacktestParameterResults findBestCombo() {

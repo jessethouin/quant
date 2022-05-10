@@ -2,6 +2,7 @@ package com.jessethouin.quant.alpaca;
 
 import com.jessethouin.quant.beans.*;
 import com.jessethouin.quant.broker.Util;
+import com.jessethouin.quant.conf.AssetClassTypes;
 import com.jessethouin.quant.conf.CurrencyTypes;
 import net.jacobpeterson.alpaca.model.endpoint.account.Account;
 import net.jacobpeterson.alpaca.model.endpoint.common.enums.SortDirection;
@@ -26,8 +27,8 @@ public class AlpacaUtil {
 
     public static void reconcile(Portfolio portfolio) {
         try {
-            reconcileOrders(portfolio);
             reconcilePositions(portfolio);
+            reconcileOrders(portfolio);
             reconcileCurrency(portfolio, ALPACA_ACCOUNT_API.get().getCurrency(), new BigDecimal(ALPACA_ACCOUNT_API.get().getCash()), CurrencyTypes.FIAT);
         } catch (AlpacaClientException e) {
             LOG.error(e.getLocalizedMessage());
@@ -37,26 +38,37 @@ public class AlpacaUtil {
     private static void reconcileOrders(Portfolio portfolio) throws AlpacaClientException {
         portfolio.getAlpacaOrders().clear();
 
-        List<Order> orders = ALPACA_ORDERS_API.get(CurrentOrderStatus.ALL, 50, null, ZonedDateTime.now(), SortDirection.DESCENDING, Boolean.TRUE, null);
+        List<Order> orders = ALPACA_ORDERS_API.get(CurrentOrderStatus.OPEN, 50, null, ZonedDateTime.now(), SortDirection.ASCENDING, Boolean.TRUE, null);
         while (orders.size() > 0) {
-            orders.forEach(AlpacaStreamProcessor::reconcileRemoteOrder);
-            ZonedDateTime oldest = orders.get(orders.size() - 1).getSubmittedAt();
-            orders = ALPACA_ORDERS_API.get(CurrentOrderStatus.ALL, 50, null, oldest, SortDirection.DESCENDING, Boolean.TRUE, null);
+            orders.forEach(AlpacaStreamProcessor::processRemoteOrder);
+            ZonedDateTime newest = orders.get(orders.size() - 1).getSubmittedAt().plus(1, ChronoUnit.MILLIS);
+            orders = ALPACA_ORDERS_API.get(CurrentOrderStatus.OPEN, 50, newest, ZonedDateTime.now(), SortDirection.ASCENDING, Boolean.TRUE, null);
         }
     }
 
     private static void reconcilePositions(Portfolio portfolio) throws AlpacaClientException {
-        portfolio.getSecurities().clear();
-        portfolio.getCurrencies().clear();
+        portfolio.getCurrencies().stream().filter(currency -> !currency.getSymbol().equals("USD")).forEach(currency -> {
+            currency.getCurrencyLedgers().clear();
+            currency.setQuantity(BigDecimal.ZERO);
+            currency.setAvgCostBasis(BigDecimal.ZERO);
+        });
+
+        portfolio.getSecurities().forEach(security -> {
+            security.getSecurityPosition().setQuantity(BigDecimal.ZERO);
+            security.getSecurityPosition().setPrice(BigDecimal.ZERO);
+            security.getSecurityPosition().setOpened(new Date());
+        });
 
         ALPACA_POSITIONS_API.get().forEach(remotePosition -> {
             String remoteSymbol = remotePosition.getSymbol();
             BigDecimal remoteQuantity = new BigDecimal(remotePosition.getQuantity());
 
-            if (remotePosition.getAssetClass().equals("crypto")) {
+            AssetClassTypes assetClassType = AssetClassTypes.get(remotePosition.getAssetClass());
+
+            if (assetClassType.equals(AssetClassTypes.CRYPTO)) {
                 remoteSymbol = parseAlpacaCryptoSymbol(remoteSymbol);
                 reconcileCurrency(portfolio, remoteSymbol, remoteQuantity, CurrencyTypes.CRYPTO);
-            } else if (remotePosition.getAssetClass().equals("us_equity")) {
+            } else if (assetClassType.equals(AssetClassTypes.US_EQUITY)) {
                 reconcileSecurity(portfolio, remotePosition);
             }
         });
@@ -110,17 +122,21 @@ public class AlpacaUtil {
     }
 
     static Position getOpenPosition(String symbol) {
-        Position position = new Position();
+        Position position = null;
         try {
             position = ALPACA_POSITIONS_API.getBySymbol(symbol);
         } catch (AlpacaClientException e) {
-            LOG.error(e.getLocalizedMessage());
+            if (e.getAPIResponseCode() != null && e.getAPIResponseCode() == 40410000) {
+                LOG.info("No open positions found for {}", symbol);
+            } else {
+                LOG.error("Error when searching positions for {}. {}", symbol, e.getLocalizedMessage());
+            }
         }
         return position;
     }
 
     public static String parseAlpacaCryptoSymbol(String symbol) {
-        if (symbol.endsWith("USD")) {
+        if (symbol.length() > 3 && symbol.endsWith("USD")) {
             return symbol.substring(0, symbol.length() - 3);
         } else {
             return symbol;

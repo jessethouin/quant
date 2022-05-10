@@ -3,7 +3,6 @@ package com.jessethouin.quant.alpaca;
 import com.jessethouin.quant.alpaca.beans.AlpacaOrder;
 import com.jessethouin.quant.alpaca.beans.repos.AlpacaOrderRepository;
 import com.jessethouin.quant.beans.Currency;
-import com.jessethouin.quant.beans.OrderHistoryLookup;
 import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.beans.Security;
 import com.jessethouin.quant.beans.repos.OrderHistoryLookupRepository;
@@ -14,7 +13,6 @@ import com.jessethouin.quant.common.StreamProcessor;
 import com.jessethouin.quant.conf.CurrencyTypes;
 import lombok.Getter;
 import net.jacobpeterson.alpaca.model.endpoint.orders.Order;
-import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderSide;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -31,10 +29,7 @@ public class AlpacaStreamProcessor extends StreamProcessor {
 
     @Getter
     static AlpacaLive alpacaLive;
-    static OrderHistoryLookup orderHistoryLookup;
-    static OrderHistoryLookupRepository orderHistoryLookupRepository;
     static AlpacaOrderRepository alpacaOrderRepository;
-    static TradeHistoryRepository tradeHistoryRepository;
 
     public AlpacaStreamProcessor(AlpacaLive alpacaLive, OrderHistoryLookupRepository orderHistoryLookupRepository, AlpacaOrderRepository alpacaOrderRepository, TradeHistoryRepository tradeHistoryRepository) {
         super(orderHistoryLookupRepository, tradeHistoryRepository);
@@ -51,13 +46,13 @@ public class AlpacaStreamProcessor extends StreamProcessor {
         BigDecimal filledAvgPrice = new BigDecimal(ObjectUtils.defaultIfNull(alpacaOrder.getFilledAvgPrice(), "0"));
 
         switch (alpacaOrder.getAssetClass()) {
-            case "crypto" -> {
+            case CRYPTO -> {
                 String symbol = AlpacaUtil.parseAlpacaCryptoSymbol(alpacaOrder.getSymbol());
                 Currency counter = Util.getCurrencyFromPortfolio(symbol, portfolio, CurrencyTypes.CRYPTO);
                 Currency base = Util.getCurrencyFromPortfolio("USD", portfolio, CurrencyTypes.FIAT);
                 processRemoteCryptoOrder(alpacaOrder, counter, base, limitPrice, bidAskQty, filledQty, filledAvgPrice);
             }
-            case "us_equity" -> {
+            case US_EQUITY -> {
                 Security security = Util.getSecurityFromPortfolio(alpacaOrder.getSymbol(), portfolio);
                 processRemoteSecurityOrder(alpacaOrder, security, limitPrice, bidAskQty, filledQty, filledAvgPrice);
             }
@@ -79,12 +74,35 @@ public class AlpacaStreamProcessor extends StreamProcessor {
                     case SELL -> Util.credit(base, filledQty.multiply(filledAvgPrice), "Filled sell order " + alpacaOrder.getId());
                 }
             }
-            case CANCELED, EXPIRED -> {
+            case PARTIALLY_FILLED -> {
                 switch (alpacaOrder.getSide()) {
-                    case BUY -> Util.credit(base, bidAskQty.multiply(limitPrice), alpacaOrder.getStatus() + " buy order " + alpacaOrder.getId());
-                    case SELL -> Util.credit(counter, bidAskQty, alpacaOrder.getStatus() + " sell order " + alpacaOrder.getId());
+                    case BUY -> LOG.info("Partially filled BUY {} order {} of {} at {}.", alpacaOrder.getSymbol(), filledQty, bidAskQty, filledAvgPrice);
+                    case SELL -> LOG.info("Partially filled SELL {} order {} of {} at {}.", alpacaOrder.getSymbol(), filledQty, bidAskQty, filledAvgPrice);
                 }
             }
+            case CANCELED, EXPIRED, REJECTED -> {
+                switch (alpacaOrder.getSide()) {
+                    case BUY -> {
+                        if (BigDecimal.ZERO.compareTo(filledQty) > 0) {
+                            Util.credit(counter, filledQty, "Partially filled then cancelled buy order " + alpacaOrder.getId());
+                            BigDecimal unfilledQty = bidAskQty.subtract(filledQty);
+                            Util.credit(base, unfilledQty.multiply(filledAvgPrice), "Partially filled then cancelled buy order " + alpacaOrder.getId());
+                        } else {
+                            Util.credit(base, bidAskQty.multiply(limitPrice), alpacaOrder.getStatus() + " buy order " + alpacaOrder.getId());
+                        }
+                    }
+                    case SELL -> {
+                        if (BigDecimal.ZERO.compareTo(filledQty) > 0) {
+                            Util.credit(base, filledQty.multiply(filledAvgPrice), "Partially filled then cancelled sell order " + alpacaOrder.getId());
+                            BigDecimal unfilledQty = bidAskQty.subtract(filledQty);
+                            Util.credit(counter, unfilledQty, "Partially filled then cancelled sell order " + alpacaOrder.getId());
+                        } else {
+                            Util.credit(counter, bidAskQty, alpacaOrder.getStatus() + " sell order " + alpacaOrder.getId());
+                        }
+                    }
+                }
+            }
+            default -> LOG.error("Order {} has an unexpected status of {}.", alpacaOrder.getOrderId(), alpacaOrder.getStatus());
         }
     }
 
@@ -108,6 +126,7 @@ public class AlpacaStreamProcessor extends StreamProcessor {
                     case SELL -> Transactions.adjustSecurityPosition(security, bidAskQty, limitPrice);
                 }
             }
+            default -> LOG.error("Order {} has an unexpected status of {}.", alpacaOrder.getOrderId(), alpacaOrder.getStatus());
         }
     }
 
@@ -133,21 +152,5 @@ public class AlpacaStreamProcessor extends StreamProcessor {
         AlpacaTransactions.updateAlpacaOrder(alpacaOrder, order);
         alpacaLive.savePortfolio();
         return alpacaOrder;
-    }
-
-    public static void processFilledSecurityOrder(AlpacaOrder alpacaOrder) {
-        Portfolio portfolio = alpacaOrder.getPortfolio();
-        Security security = Util.getSecurityFromPortfolio(alpacaOrder.getSymbol(), portfolio);
-        BigDecimal filledQty = new BigDecimal(alpacaOrder.getFilledQty());
-        BigDecimal filledAvgPrice = new BigDecimal(alpacaOrder.getFilledAvgPrice());
-
-        if (alpacaOrder.getSide().equals(OrderSide.BUY)) {
-            Transactions.adjustSecurityPosition(security, filledQty, filledAvgPrice);
-            Util.debit(security.getCurrency(), filledQty.multiply(filledAvgPrice).negate(), "Buying Alpaca Security");
-        }
-        if (alpacaOrder.getSide().equals(OrderSide.SELL)) {
-            Util.credit(security.getCurrency(), filledQty.multiply(filledAvgPrice), "Selling Alpaca Security");
-            Transactions.adjustSecurityPosition(security, filledQty, filledAvgPrice);
-        }
     }
 }

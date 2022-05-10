@@ -5,6 +5,7 @@ import com.jessethouin.quant.alpaca.beans.repos.AlpacaOrderRepository;
 import com.jessethouin.quant.beans.Currency;
 import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.beans.Security;
+import com.jessethouin.quant.conf.AssetClassTypes;
 import net.jacobpeterson.alpaca.model.endpoint.orders.Order;
 import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderSide;
 import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderTimeInForce;
@@ -42,7 +43,7 @@ public class AlpacaTransactions {
     }
 
     private static void transact(Security security, Currency base, Currency counter, BigDecimal qty, BigDecimal price, OrderSide orderSide) {
-        if (qty.equals(BigDecimal.ZERO)) return;
+        if (qty.compareTo(BigDecimal.ZERO) == 0 || qty.equals(BigDecimal.ZERO)) return;
 
         String symbol;
         Portfolio portfolio;
@@ -65,7 +66,7 @@ public class AlpacaTransactions {
         } catch (Exception e) {
             LOG.error(e.getLocalizedMessage());
         }
-        LOG.error(orderSide + " order failed: " + base.getSymbol() + ", " + qty + ", " + price);
+        LOG.error(orderSide + " order failed: " + symbol + ", " + qty + ", " + price);
     }
 
     public static void updateAlpacaOrder(AlpacaOrder alpacaOrder, Order order) {
@@ -83,7 +84,7 @@ public class AlpacaTransactions {
         alpacaOrder.setReplaces(order.getReplaces());
         alpacaOrder.setAssetId(order.getAssetId());
         alpacaOrder.setSymbol(order.getSymbol());
-        alpacaOrder.setAssetClass(order.getAssetClass());
+        alpacaOrder.setAssetClass(AssetClassTypes.get(order.getAssetClass()));
         alpacaOrder.setQty(order.getQuantity());
         alpacaOrder.setFilledQty(order.getFilledQuantity());
         alpacaOrder.setType(order.getType());
