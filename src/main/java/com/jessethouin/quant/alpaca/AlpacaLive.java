@@ -13,6 +13,7 @@ import com.jessethouin.quant.conf.CurrencyTypes;
 import com.jessethouin.quant.conf.DataFeed;
 import com.jessethouin.quant.conf.Instruments;
 import lombok.Getter;
+import net.jacobpeterson.alpaca.model.endpoint.positions.Position;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.lang.NonNull;
@@ -67,9 +68,17 @@ public class AlpacaLive {
         AlpacaUtil.reconcile(portfolio);
         AlpacaUtil.showAlpacaAccountInfo();
 
+        CONFIG.getCryptoCurrencies().forEach(s -> Util.getCurrencyFromPortfolio(s, portfolio, CurrencyTypes.CRYPTO));
+        CONFIG.getSecurities().forEach(s -> Util.getSecurityFromPortfolio(s, portfolio));
+
         LOG.info("Portfolio Cash:");
         portfolio.getCurrencies().forEach(c -> LOG.info("\t{} : {}", c.getSymbol(), c.getQuantity()));
-        portfolio.getSecurities().forEach(security -> LOG.info("Open position:" + AlpacaUtil.getOpenPosition(security.getSymbol())));
+        portfolio.getSecurities().forEach(security -> {
+            Position openPosition = AlpacaUtil.getOpenPosition(security.getSymbol());
+            if (openPosition != null) {
+                LOG.info("\t{} : {}" + security.getSymbol(), openPosition);
+            }
+        });
 
         Currency usd = Util.getCurrencyFromPortfolio("USD", portfolio, CurrencyTypes.FIAT);
         portfolio.getCurrencies().stream().filter(currency -> currency.getCurrencyType().equals(CurrencyTypes.CRYPTO)).forEach(currency -> fundamentalList.add(new Fundamental(Instruments.CRYPTO, usd, currency)));

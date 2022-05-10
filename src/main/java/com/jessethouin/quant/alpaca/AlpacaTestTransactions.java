@@ -1,7 +1,12 @@
 package com.jessethouin.quant.alpaca;
 
 import com.jessethouin.quant.alpaca.beans.AlpacaOrder;
+import com.jessethouin.quant.beans.Currency;
+import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.beans.Security;
+import com.jessethouin.quant.broker.Transactions;
+import com.jessethouin.quant.broker.Util;
+import com.jessethouin.quant.conf.AssetClassTypes;
 import net.jacobpeterson.alpaca.model.endpoint.orders.Order;
 import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderSide;
 import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderStatus;
@@ -13,7 +18,24 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Random;
 
+/**
+ * This class is only used in backtesting.
+ */
 public class AlpacaTestTransactions {
+    public static void placeTestCurrencyBuyOrder(Currency base, Currency counter, BigDecimal qty, BigDecimal price) {
+        placeTestCurrencyOrder(base, counter, qty, price, OrderSide.BUY);
+    }
+
+    public static void placeTestCurrencySellOrder(Currency base, Currency counter, BigDecimal qty, BigDecimal price) {
+        placeTestCurrencyOrder(base, counter, qty, price, OrderSide.SELL);
+    }
+
+    private static void placeTestCurrencyOrder(Currency base, Currency counter, BigDecimal qty, BigDecimal price, OrderSide orderSide) {
+        if (qty.equals(BigDecimal.ZERO)) return;
+        Order order = getSampleOrder(counter.getSymbol() + base.getSymbol(), qty, price, orderSide, AssetClassTypes.CRYPTO);
+        processTestOrder(qty, price, new AlpacaOrder(order, base.getPortfolio()));
+    }
+
     public static void placeTestSecurityBuyOrder(Security security, BigDecimal qty, BigDecimal price) {
         placeTestSecurityOrder(security, qty, price, OrderSide.BUY);
     }
@@ -24,11 +46,11 @@ public class AlpacaTestTransactions {
 
     private static void placeTestSecurityOrder(Security security, BigDecimal qty, BigDecimal price, OrderSide orderSide) {
         if (qty.equals(BigDecimal.ZERO)) return;
-        Order order = getSampleOrder(security, qty, price, orderSide);
+        Order order = getSampleOrder(security.getSymbol(), qty, price, orderSide, AssetClassTypes.US_EQUITY);
         processTestOrder(qty, price, new AlpacaOrder(order, security.getPortfolio()));
     }
 
-    private static Order getSampleOrder(Security security, BigDecimal qty, BigDecimal price, OrderSide orderSide) {
+    private static Order getSampleOrder(String symbol, BigDecimal qty, BigDecimal price, OrderSide orderSide, AssetClassTypes assetClass) {
         /*
         * String id,
         * String clientOrderId,
@@ -68,16 +90,16 @@ public class AlpacaTestTransactions {
                 ZonedDateTime.now(),
                 ZonedDateTime.now(),
                 ZonedDateTime.now(),
-                ZonedDateTime.now(),
-                ZonedDateTime.now(),
-                ZonedDateTime.now(),
-                ZonedDateTime.now(),
-                ZonedDateTime.now(),
                 null,
                 null,
                 null,
-                security.getSymbol(),
                 null,
+                null,
+                null,
+                null,
+                null,
+                symbol,
+                assetClass.getAssetClass(),
                 null,
                 qty.toString(),
                 null,
@@ -101,10 +123,49 @@ public class AlpacaTestTransactions {
         // This code would normally be handled by the Order websocket feed
         if (alpacaOrder == null)
             return;
+        Portfolio portfolio = alpacaOrder.getPortfolio();
+        portfolio.getAlpacaOrders().add(alpacaOrder);
         alpacaOrder.setStatus(OrderStatus.FILLED);
         alpacaOrder.setFilledAt(ZonedDateTime.now());
         alpacaOrder.setFilledQty(qty.toPlainString());
         alpacaOrder.setFilledAvgPrice(price.toPlainString());
-        AlpacaStreamProcessor.processFilledSecurityOrder(alpacaOrder);
+        switch (alpacaOrder.getAssetClass()) {
+            case CRYPTO -> processFilledTestCurrencyOrder(alpacaOrder);
+            case US_EQUITY -> processFilledTestSecurityOrder(alpacaOrder);
+        }
+
+    }
+
+    private static void processFilledTestCurrencyOrder(AlpacaOrder alpacaOrder) {
+        Portfolio portfolio = alpacaOrder.getPortfolio();
+        Currency base = Util.getCurrencyFromPortfolio("USD", portfolio);
+        Currency counter = Util.getCurrencyFromPortfolio(AlpacaUtil.parseAlpacaCryptoSymbol(alpacaOrder.getSymbol()), portfolio);
+        BigDecimal filledQty = new BigDecimal(alpacaOrder.getFilledQty());
+        BigDecimal filledAvgPrice = new BigDecimal(alpacaOrder.getFilledAvgPrice());
+
+        if (alpacaOrder.getSide().equals(OrderSide.BUY)) {
+            Util.credit(counter, filledQty, "Buying Alpaca Test Currency");
+            Util.debit(base, filledQty.multiply(filledAvgPrice), "Buying Alpaca Test Currency");
+        }
+        if (alpacaOrder.getSide().equals(OrderSide.SELL)) {
+            Util.credit(base, filledQty.multiply(filledAvgPrice), "Selling Alpaca Test Currency");
+            Util.debit(counter, filledQty, "Selling Alpaca Test Currency");
+        }
+    }
+
+    private static void processFilledTestSecurityOrder(AlpacaOrder alpacaOrder) {
+        Portfolio portfolio = alpacaOrder.getPortfolio();
+        Security security = Util.getSecurityFromPortfolio(alpacaOrder.getSymbol(), portfolio);
+        BigDecimal filledQty = new BigDecimal(alpacaOrder.getFilledQty());
+        BigDecimal filledAvgPrice = new BigDecimal(alpacaOrder.getFilledAvgPrice());
+
+        if (alpacaOrder.getSide().equals(OrderSide.BUY)) {
+            Transactions.adjustSecurityPosition(security, filledQty, filledAvgPrice);
+            Util.debit(security.getCurrency(), filledQty.multiply(filledAvgPrice).negate(), "Buying Alpaca Security");
+        }
+        if (alpacaOrder.getSide().equals(OrderSide.SELL)) {
+            Util.credit(security.getCurrency(), filledQty.multiply(filledAvgPrice), "Selling Alpaca Security");
+            Transactions.adjustSecurityPosition(security, filledQty, filledAvgPrice);
+        }
     }
 }

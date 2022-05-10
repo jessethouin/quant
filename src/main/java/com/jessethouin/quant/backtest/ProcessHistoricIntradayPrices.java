@@ -20,6 +20,7 @@ import java.util.Date;
 
 import static com.jessethouin.quant.backtest.BacktestParameterCombos.BACKTEST_RESULTS_QUEUE;
 import static com.jessethouin.quant.backtest.BacktestParameterCombos.INTRADAY_PRICES;
+import static com.jessethouin.quant.conf.Config.CONFIG;
 
 public class ProcessHistoricIntradayPrices implements Runnable {
     private static final Logger LOG = LogManager.getLogger(ProcessHistoricIntradayPrices.class);
@@ -59,9 +60,14 @@ public class ProcessHistoricIntradayPrices implements Runnable {
 
         Calc c;
         switch (config.getBroker()) {
-            case ALPACA_TEST -> {
+            case ALPACA_SECURITY_TEST -> {
                 Security aapl = Util.getSecurityFromPortfolio("AAPL", portfolio);
                 c = new Calc(aapl, config, price);
+            }
+            case ALPACA_CRYPTO_TEST -> {
+                Currency base = Util.getCurrencyFromPortfolio("USD", portfolio, CurrencyTypes.FIAT);
+                Currency counter = Util.getCurrencyFromPortfolio("BTC", portfolio, CurrencyTypes.CRYPTO);
+                c = new Calc(base, counter, CONFIG, BigDecimal.ZERO);
             }
             case BINANCE_TEST -> {
                 Currency base = Util.getCurrencyFromPortfolio("BTC", portfolio, CurrencyTypes.CRYPTO);
@@ -87,10 +93,15 @@ public class ProcessHistoricIntradayPrices implements Runnable {
         BigDecimal bids;
         BigDecimal fees;
         switch (config.getBroker()) {
-            case ALPACA_TEST -> {
+            case ALPACA_SECURITY_TEST -> {
                 portfolioValue = Util.getPortfolioValue(portfolio, c.getBase(), price);
                 bids = BigDecimal.valueOf(portfolio.getAlpacaOrders().stream().filter(alpacaOrder -> alpacaOrder.getSide().equals(OrderSide.BUY)).count());
-                fees = BigDecimal.ZERO; // Alpaca has no fees
+                fees = BigDecimal.ZERO; // todo: aLpAcA hAs No FeEs. :(
+            }
+            case ALPACA_CRYPTO_TEST -> {
+                portfolioValue = Util.getValueAtPrice(c.getCounter(), price).add(c.getBase().getQuantity());
+                bids = BigDecimal.valueOf(portfolio.getAlpacaOrders().stream().filter(alpacaOrder -> alpacaOrder.getSide().equals(OrderSide.BUY)).count());
+                fees = BigDecimal.ZERO; // todo: aLpAcA hAs No FeEs. :(
             }
             case BINANCE_TEST -> {
                 portfolioValue = Util.getValueAtPrice(c.getBase(), price).add(c.getCounter().getQuantity());

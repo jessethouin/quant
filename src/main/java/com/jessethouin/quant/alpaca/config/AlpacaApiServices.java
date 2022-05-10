@@ -14,6 +14,8 @@ import net.jacobpeterson.alpaca.websocket.streaming.StreamingWebsocketInterface;
 
 import java.util.concurrent.TimeUnit;
 
+import static com.jessethouin.quant.conf.Config.CONFIG;
+
 public class AlpacaApiServices {
     public static final AlpacaApiConfig ALPACA_API_CONFIG = AlpacaApiConfig.INSTANCE;
     public static final AlpacaAPI ALPACA_API;
@@ -39,9 +41,11 @@ public class AlpacaApiServices {
         ALPACA_CRYPTO_STREAMING_API = ALPACA_API.cryptoMarketDataStreaming();
         ALPACA_STOCK_STREAMING_API = ALPACA_API.stockMarketDataStreaming();
 
-        connectToCryptoStream();
-        connectToStockStream();
-        connectToUpdatesStream();
+        if (!CONFIG.isBackTest()) {
+            connectToCryptoStream();
+            connectToStockStream();
+            connectToUpdatesStream();
+        }
     }
 
     private static void connectToCryptoStream() {

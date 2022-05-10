@@ -6,6 +6,7 @@ import com.jessethouin.quant.conf.Instruments;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Singular;
+import net.jacobpeterson.alpaca.model.endpoint.marketdata.crypto.common.enums.Exchange;
 import net.jacobpeterson.alpaca.model.endpoint.marketdata.crypto.realtime.bar.CryptoBarMessage;
 import net.jacobpeterson.alpaca.model.endpoint.marketdata.crypto.realtime.quote.CryptoQuoteMessage;
 import net.jacobpeterson.alpaca.model.endpoint.marketdata.crypto.realtime.trade.CryptoTradeMessage;
@@ -38,24 +39,30 @@ public class AlpacaCryptoMarketSubscription {
             switch (messageType) {
                 case QUOTE -> {
                     CryptoQuoteMessage quoteMessage = (CryptoQuoteMessage) message;
+                    Exchange exchange = quoteMessage.getExchange();
+                    if (!Exchange.COINBASE.equals(exchange)) return; // default-coding CBSE here to make things simple. TODO: implement an exchange property in quant.properties
                     counterSymbol = AlpacaUtil.parseAlpacaCryptoSymbol(quoteMessage.getSymbol());
                     price = quoteMessage.getAskPrice();
                     timestamp = Date.from(quoteMessage.getTimestamp().toInstant());
-                    LOG.info("===> " + messageType + " [" + DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss,SSS Z").format(quoteMessage.getTimestamp()) + "]: " + quoteMessage.getAskPrice());
+                    LOG.debug("===> " + messageType + " [" + DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss,SSS Z").format(quoteMessage.getTimestamp()) + "]: " + quoteMessage.getAskPrice());
                 }
                 case TRADE -> {
                     CryptoTradeMessage tradeMessage = (CryptoTradeMessage) message;
+                    Exchange exchange = tradeMessage.getExchange();
+                    if (!Exchange.COINBASE.equals(exchange)) return; // default-coding CBSE here to make things simple. TODO: implement an exchange property in quant.properties
                     counterSymbol = AlpacaUtil.parseAlpacaCryptoSymbol(tradeMessage.getSymbol());
                     price = tradeMessage.getPrice();
                     timestamp = Date.from(tradeMessage.getTimestamp().toInstant());
-                    LOG.info("===> " + messageType + " [" + DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss,SSS Z").format(tradeMessage.getTimestamp()) + "]: " + tradeMessage.getPrice());
+                    LOG.debug("===> " + messageType + " [" + DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss,SSS Z").format(tradeMessage.getTimestamp()) + "]: " + tradeMessage.getPrice());
                 }
                 case BAR -> {
                     CryptoBarMessage barMessage = (CryptoBarMessage) message;
+                    Exchange exchange = barMessage.getExchange();
+                    if (!Exchange.COINBASE.equals(exchange)) return; // default-coding CBSE here to make things simple. TODO: implement an exchange property in quant.properties
                     counterSymbol = AlpacaUtil.parseAlpacaCryptoSymbol(barMessage.getSymbol());
-                    price = barMessage.getVwap();
+                    price = barMessage.getClose();
                     timestamp = Date.from(barMessage.getTimestamp().toInstant());
-                    LOG.info("===> " + messageType + " [" + DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss,SSS Z").format(barMessage.getTimestamp()) + "]: " + barMessage.getVwap());
+                    LOG.debug("{} ===> {} [{}]: {}", exchange.value(), messageType, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss,SSS Z").format(barMessage.getTimestamp()), price);
                 }
                 case SUBSCRIPTION, SUCCESS, ERROR -> {
                     LOG.info("===> " + messageType + " [" + message.toString() + "]");

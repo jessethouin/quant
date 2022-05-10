@@ -61,7 +61,7 @@ public class QuantApplication {
                     CONFIG.setBackTest(true);
                     backtestStaticParameters.runBacktest();
                 }
-                case "paper" -> alpacaLive.doLive();
+                case "alpaca" -> alpacaLive.doLive();
                 case "binance" -> binanceLive.doLive();
                 case "capture" -> binanceCaptureHistory.doCapture();
                 default -> LOG.error("1st arg must be \"combos\", \"backtest\", \"paper\", or \"binance\".");

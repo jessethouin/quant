@@ -1,5 +1,6 @@
 package com.jessethouin.quant.backtest;
 
+import com.jessethouin.quant.alpaca.AlpacaCaptureHistory;
 import com.jessethouin.quant.backtest.beans.repos.BacktestParameterResultsRepository;
 import com.jessethouin.quant.beans.TradeHistory;
 import com.jessethouin.quant.beans.repos.TradeHistoryRepository;
@@ -28,16 +29,18 @@ public abstract class AbstractBacktest {
     static TradeHistoryRepository tradeHistoryRepository;
     static BacktestParameterResultsRepository backtestParameterResultsRepository;
     static BinanceCaptureHistory binanceCaptureHistory;
+    static AlpacaCaptureHistory alpacaCaptureHistory;
 
-    public AbstractBacktest(TradeHistoryRepository tradeHistoryRepository, BacktestParameterResultsRepository backtestParameterResultsRepository, BinanceCaptureHistory binanceCaptureHistory) {
+    public AbstractBacktest(TradeHistoryRepository tradeHistoryRepository, BacktestParameterResultsRepository backtestParameterResultsRepository, BinanceCaptureHistory binanceCaptureHistory, AlpacaCaptureHistory alpacaCaptureHistory) {
         AbstractBacktest.tradeHistoryRepository = tradeHistoryRepository;
         AbstractBacktest.backtestParameterResultsRepository = backtestParameterResultsRepository;
         AbstractBacktest.binanceCaptureHistory = binanceCaptureHistory;
+        AbstractBacktest.alpacaCaptureHistory = alpacaCaptureHistory;
     }
 
     public void populateIntradayPrices() {
         LOG.info("Loading historic trades from DB, {} to {}.", CONFIG.getBacktestStart(), CONFIG.getBacktestEnd());
-        updateBinanceTradeHistoryTable();
+        updateTradeHistoryTable();
         INTRADAY_PRICES.clear();
         tradeHistoryRepository.getTradeHistoriesByTimestampBetween(CONFIG.getBacktestStart(), CONFIG.getBacktestEnd()).stream().map(TradeHistory::getP).forEach(INTRADAY_PRICES::add);
         LOG.info("Finished loading trades from DB");
@@ -48,14 +51,14 @@ public abstract class AbstractBacktest {
         log.info("\n\tbegin: {}\n\tend:   {}\n\tdiff:  {} ({}%)", Util.formatFiat(startTicker), Util.formatFiat(endTicker), Util.formatFiat(endTicker.subtract(startTicker)), change);
     }
 
-    private void updateBinanceTradeHistoryTable() {
+    private void updateTradeHistoryTable() {
         LocalDateTime start = LocalDateTime.ofInstant(CONFIG.getBacktestStart().toInstant(), ZoneId.systemDefault());
         LocalDateTime end = LocalDateTime.ofInstant(CONFIG.getBacktestEnd().toInstant(), ZoneId.systemDefault());
         long diff = 0L;
 
         switch (CONFIG.getDataFeed()) {
             case TICKER -> diff = SECONDS.between(start, end);
-            case KLINE -> diff = MINUTES.between(start, end);
+            case KLINE, BAR -> diff = MINUTES.between(start, end);
             default -> tradeHistoryRepository.deleteAll();
         }
 
@@ -63,6 +66,9 @@ public abstract class AbstractBacktest {
         if (bthCount + 1 != diff) tradeHistoryRepository.deleteAll();
         else return;
 
-        binanceCaptureHistory.doCapture();
+        switch (CONFIG.getBroker()) {
+            case ALPACA, ALPACA_SECURITY_TEST, ALPACA_CRYPTO_TEST: alpacaCaptureHistory.doCapture();
+            case BINANCE, BINANCE_TEST: binanceCaptureHistory.doCapture();
+        }
     }
 }

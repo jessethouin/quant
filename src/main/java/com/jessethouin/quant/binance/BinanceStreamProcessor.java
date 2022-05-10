@@ -1,17 +1,15 @@
 package com.jessethouin.quant.binance;
 
 import com.jessethouin.quant.beans.Currency;
+import com.jessethouin.quant.beans.repos.OrderHistoryLookupRepository;
+import com.jessethouin.quant.beans.repos.TradeHistoryRepository;
 import com.jessethouin.quant.binance.beans.BinanceLimitOrder;
 import com.jessethouin.quant.binance.beans.repos.BinanceLimitOrderRepository;
 import com.jessethouin.quant.broker.Util;
 import com.jessethouin.quant.common.StreamProcessor;
-import com.jessethouin.quant.beans.OrderHistoryLookup;
-import com.jessethouin.quant.beans.repos.OrderHistoryLookupRepository;
-import com.jessethouin.quant.beans.repos.TradeHistoryRepository;
 import com.jessethouin.quant.conf.Broker;
 import com.jessethouin.quant.conf.CurrencyTypes;
 import info.bitrich.xchangestream.binance.dto.ExecutionReportBinanceUserTransaction;
-import lombok.Getter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.knowm.xchange.currency.CurrencyPair;
@@ -30,12 +28,8 @@ import static com.jessethouin.quant.conf.Config.CONFIG;
 public class BinanceStreamProcessor extends StreamProcessor {
     private static final Logger LOG = LogManager.getLogger(BinanceStreamProcessor.class);
 
-    @Getter
-    static OrderHistoryLookup orderHistoryLookup;
     static BinanceLive binanceLive;
     static BinanceLimitOrderRepository binanceLimitOrderRepository;
-    static TradeHistoryRepository tradeHistoryRepository;
-    static OrderHistoryLookupRepository orderHistoryLookupRepository;
 
     public BinanceStreamProcessor(BinanceLive binanceLive, BinanceLimitOrderRepository binanceLimitOrderRepository, TradeHistoryRepository tradeHistoryRepository, OrderHistoryLookupRepository orderHistoryLookupRepository) {
         super(orderHistoryLookupRepository, tradeHistoryRepository);

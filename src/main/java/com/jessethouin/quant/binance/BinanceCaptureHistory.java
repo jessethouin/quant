@@ -32,7 +32,7 @@ public class BinanceCaptureHistory {
     public void doCapture() {
         CurrencyPair currencyPair = CurrencyPair.BTC_USDT;
         try {
-            List<TradeHistory> bs = new ArrayList<>(); // bs is plural for BinanceTradeHistor-ies - not bullshit. I suppose I could have used bths. But that just looks like baths - which I may take if this software sucks.
+            List<TradeHistory> tradeHistories = new ArrayList<>();
 
             switch(CONFIG.getDataFeed()) {
                 case KLINE -> {
@@ -43,7 +43,7 @@ public class BinanceCaptureHistory {
                         long e = start + Math.min(MINUTES.toMillis(500), i);
                         BINANCE_MARKET_DATA_SERVICE.klines(currencyPair, KlineInterval.m1, 500, start, e).forEach(binanceKline -> {
                             TradeHistory tradeHistory = TradeHistory.builder().timestamp(new Date(binanceKline.getCloseTime())).ma1(BigDecimal.ZERO).ma2(BigDecimal.ZERO).l(BigDecimal.ZERO).h(BigDecimal.ZERO).p(binanceKline.getClosePrice()).build();
-                            bs.add(tradeHistory);
+                            tradeHistories.add(tradeHistory);
                         });
                         start = e + 1;
                     }
@@ -57,7 +57,7 @@ public class BinanceCaptureHistory {
                             TradeHistory tradeHistory = TradeHistory.builder().timestamp(binanceAggTrades.getTimestamp()).ma1(BigDecimal.ZERO).ma2(BigDecimal.ZERO).l(BigDecimal.ZERO).h(BigDecimal.ZERO).p(binanceAggTrades.price).build();
                             tradeId.set(tradeHistory.getTradeId());
                             tradeTime.set(tradeHistory.getTimestamp().getTime());
-                            bs.add(tradeHistory);
+                            tradeHistories.add(tradeHistory);
                         });
                     }
                 }
@@ -75,7 +75,7 @@ public class BinanceCaptureHistory {
                                 return;
                             }
                             final TradeHistory tradeHistory = TradeHistory.builder().timestamp(previousAggTrades.get().getTimestamp()).ma1(BigDecimal.ZERO).ma2(BigDecimal.ZERO).l(BigDecimal.ZERO).h(BigDecimal.ZERO).p(previousAggTrades.get().price).build();
-                            bs.add(tradeHistory);
+                            tradeHistories.add(tradeHistory);
                             aggregateTradeId.set(previousAggTrades.get().aggregateTradeId);
                             tradeTime.set(tradeHistory.getTimestamp().getTime());
                             tickerTime.set(tickerTime.get() + 1000L);
@@ -84,7 +84,7 @@ public class BinanceCaptureHistory {
                 }
             }
 
-            tradeHistoryRepository.saveAll(bs);
+            tradeHistoryRepository.saveAll(tradeHistories);
         } catch (Exception e) {
             LOG.error(e.getMessage());
         }
