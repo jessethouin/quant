@@ -89,7 +89,7 @@ public class BinanceLive {
 
     @Scheduled(fixedRateString = "#{${recalibrateFreq} * 60 * 1000}", initialDelayString = "#{${recalibrateFreq} * 60 * 1000}")
     protected void recalibrate() {
-        if (CONFIG.isRecalibrate() && !CONFIG.isBackTest()) {
+        if (CONFIG.isRecalibrate() && !CONFIG.isBackTest() && CONFIG.getBroker().equals(Broker.BINANCE)) {
             long start = new Date().getTime();
             CONFIG.setBacktestStart(new Date(start - Duration.ofHours(CONFIG.getRecalibrateHours()).toMillis()));
             CONFIG.setBacktestEnd(new Date(start));

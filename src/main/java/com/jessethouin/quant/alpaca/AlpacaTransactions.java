@@ -3,7 +3,6 @@ package com.jessethouin.quant.alpaca;
 import com.jessethouin.quant.alpaca.beans.AlpacaOrder;
 import com.jessethouin.quant.alpaca.beans.repos.AlpacaOrderRepository;
 import com.jessethouin.quant.beans.Currency;
-import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.beans.Security;
 import com.jessethouin.quant.conf.AssetClassTypes;
 import net.jacobpeterson.alpaca.model.endpoint.orders.Order;
@@ -46,22 +45,19 @@ public class AlpacaTransactions {
         if (qty.compareTo(BigDecimal.ZERO) == 0 || qty.equals(BigDecimal.ZERO)) return;
 
         String symbol;
-        Portfolio portfolio;
 
         if (security == null) {
             symbol = counter.getSymbol() + base.getSymbol();
-            portfolio = base.getPortfolio();
         } else {
             symbol = security.getSymbol();
-            portfolio = security.getPortfolio();
         }
 
         try {
             Order order = ALPACA_ORDERS_API.requestLimitOrder(symbol, qty.doubleValue(), orderSide, OrderTimeInForce.DAY, price.doubleValue(), false);
+//            Order order = ALPACA_ORDERS_API.requestOrder(symbol, qty.doubleValue(), null, orderSide, OrderType.MARKET, OrderTimeInForce.DAY, null, null, null, null, null, null, OrderClass.SIMPLE, null, null, null);
             if (order.getId() == null) throw new Exception("Limit Order id was null from server.");
+            LOG.info("New {} order: {}", orderSide, order.toString().replace(",", ",\n\t"));
             AlpacaStreamProcessor.getOrderHistoryLookup().setOrderId(order.getId());
-            AlpacaOrder alpacaOrder = new AlpacaOrder(order, portfolio);
-            LOG.info(orderSide + " order: " + alpacaOrder.toString().replace(",", ",\n\t"));
             return;
         } catch (Exception e) {
             LOG.error(e.getLocalizedMessage());

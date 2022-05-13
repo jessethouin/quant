@@ -73,30 +73,30 @@ public class BinanceTransactions {
         switch (binanceLimitOrder.getType()) {
             case BID -> {
                 switch (binanceLimitOrder.getStatus()) {
-                    case NEW -> Util.debit(counter, bid, "New Binance Buy Limit order");
+                    case NEW -> Util.debit(counter, bid, "New Binance Buy Limit order", String.valueOf(orderId));
                     case FILLED -> {
-                        Util.credit(base, cumulativeAmount, String.format("Filled Binance Buy Limit order %s", orderId));
-                        Util.debit(commissionAsset, fee, String.format("Fee for Filled Binance Buy Limit order %s", orderId));
+                        Util.credit(base, cumulativeAmount, String.format("Filled Binance Buy Limit order %s", orderId), String.valueOf(orderId));
+                        Util.debit(commissionAsset, fee, String.format("Fee for Filled Binance Buy Limit order %s", orderId), String.valueOf(orderId));
                     }
                     case PARTIALLY_FILLED -> {
-                        Util.credit(base, cumulativeAmount, String.format("Partially Filled Binance Buy Limit order %s", orderId));
-                        Util.debit(commissionAsset, fee, String.format("Fee for Partially Filled Binance Buy Limit order %s", orderId));
+                        Util.credit(base, cumulativeAmount, String.format("Partially Filled Binance Buy Limit order %s", orderId), String.valueOf(orderId));
+                        Util.debit(commissionAsset, fee, String.format("Fee for Partially Filled Binance Buy Limit order %s", orderId), String.valueOf(orderId));
                     }
-                    case CANCELED, EXPIRED, REJECTED, REPLACED -> Util.credit(counter, bid, String.format("Cancelled Binance Buy Limit order %s", orderId));
+                    case CANCELED, EXPIRED, REJECTED, REPLACED -> Util.credit(counter, bid, String.format("Cancelled Binance Buy Limit order %s", orderId), String.valueOf(orderId));
                 }
             }
             case ASK -> {
                 switch (binanceLimitOrder.getStatus()) {
-                    case NEW -> Util.debit(base, ask, "New Binance Sell Limit order");
+                    case NEW -> Util.debit(base, ask, "New Binance Sell Limit order", String.valueOf(orderId));
                     case FILLED -> {
-                        Util.credit(counter, proceeds, String.format("Filled Binance Sell Limit order %s", orderId));
-                        Util.debit(commissionAsset, fee, String.format("Fee for Filled Binance Sell Limit order %s", orderId));
+                        Util.credit(counter, proceeds, String.format("Filled Binance Sell Limit order %s", orderId), String.valueOf(orderId));
+                        Util.debit(commissionAsset, fee, String.format("Fee for Filled Binance Sell Limit order %s", orderId), String.valueOf(orderId));
                     }
                     case PARTIALLY_FILLED -> {
-                        Util.credit(counter, proceeds, String.format("Partially Filled Binance Sell Limit order %s", orderId));
-                        Util.debit(commissionAsset, fee, String.format("Fee for Partially Filled Binance Sell Limit order %s", orderId));
+                        Util.credit(counter, proceeds, String.format("Partially Filled Binance Sell Limit order %s", orderId), String.valueOf(orderId));
+                        Util.debit(commissionAsset, fee, String.format("Fee for Partially Filled Binance Sell Limit order %s", orderId), String.valueOf(orderId));
                     }
-                    case CANCELED, EXPIRED, REJECTED, REPLACED -> Util.credit(base, ask, String.format("Cancelled Binance Sell Limit order %s", orderId));
+                    case CANCELED, EXPIRED, REJECTED, REPLACED -> Util.credit(base, ask, String.format("Cancelled Binance Sell Limit order %s", orderId), String.valueOf(orderId));
                 }
             }
             default -> LOG.warn("binanceLimitOrder type unknown: {}", binanceLimitOrder.getType());

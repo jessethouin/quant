@@ -27,7 +27,7 @@ class UtilTest {
 
     @Test
     void getBreakEven() {
-        BigDecimal breakEven = BinanceUtil.getBreakEven(BigDecimal.valueOf(0.000584));
+        BigDecimal breakEven = BinanceUtil.getBreakEven(BigDecimal.valueOf(0.000584), "BNB", "BTC", "USDT");
         LOG.info("Break even: {}", breakEven);
         Assertions.assertTrue(breakEven.compareTo(BigDecimal.ZERO) > 0);
     }

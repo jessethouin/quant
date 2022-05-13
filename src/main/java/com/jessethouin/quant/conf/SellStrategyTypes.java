@@ -34,14 +34,6 @@ public enum SellStrategyTypes {
         public boolean sell(Calc c) {
             return c.getMa1().compareTo(c.getMa2()) < 0;
         }
-    },
-    SELL6 {
-        @Override
-        public boolean sell(Calc c) {
-            return !c.isMa1rising() &&
-                (c.getMaTrendDiff().compareTo(c.getMaFallingTrendTolerance()) < 0 || c.getMaTrend() < c.getMaFallingCountTolerance()) &&
-                !c.isBuy();
-        }
     };
 
     public abstract boolean sell(Calc calc);

@@ -16,7 +16,7 @@ import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderType;
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
-import java.util.Random;
+import java.util.UUID;
 
 /**
  * This class is only used in backtesting.
@@ -85,8 +85,8 @@ public class AlpacaTestTransactions {
         * String highWaterMark
         * */
         return new Order(
-                "fake_order_id_" + (new Random().nextInt(1000)),
-                "fake_client_order_id_" + (new Random().nextInt(1000)),
+                UUID.randomUUID().toString(),
+                UUID.randomUUID().toString(),
                 ZonedDateTime.now(),
                 ZonedDateTime.now(),
                 ZonedDateTime.now(),
@@ -144,12 +144,12 @@ public class AlpacaTestTransactions {
         BigDecimal filledAvgPrice = new BigDecimal(alpacaOrder.getFilledAvgPrice());
 
         if (alpacaOrder.getSide().equals(OrderSide.BUY)) {
-            Util.credit(counter, filledQty, "Buying Alpaca Test Currency");
-            Util.debit(base, filledQty.multiply(filledAvgPrice), "Buying Alpaca Test Currency");
+            Util.credit(counter, filledQty, "Buying Alpaca Test Currency", alpacaOrder.getId());
+            Util.debit(base, filledQty.multiply(filledAvgPrice), "Buying Alpaca Test Currency", alpacaOrder.getId());
         }
         if (alpacaOrder.getSide().equals(OrderSide.SELL)) {
-            Util.credit(base, filledQty.multiply(filledAvgPrice), "Selling Alpaca Test Currency");
-            Util.debit(counter, filledQty, "Selling Alpaca Test Currency");
+            Util.credit(base, filledQty.multiply(filledAvgPrice), "Selling Alpaca Test Currency", alpacaOrder.getId());
+            Util.debit(counter, filledQty, "Selling Alpaca Test Currency", alpacaOrder.getId());
         }
     }
 
@@ -161,10 +161,10 @@ public class AlpacaTestTransactions {
 
         if (alpacaOrder.getSide().equals(OrderSide.BUY)) {
             Transactions.adjustSecurityPosition(security, filledQty, filledAvgPrice);
-            Util.debit(security.getCurrency(), filledQty.multiply(filledAvgPrice).negate(), "Buying Alpaca Security");
+            Util.debit(security.getCurrency(), filledQty.multiply(filledAvgPrice).negate(), "Buying Alpaca Security", alpacaOrder.getId());
         }
         if (alpacaOrder.getSide().equals(OrderSide.SELL)) {
-            Util.credit(security.getCurrency(), filledQty.multiply(filledAvgPrice), "Selling Alpaca Security");
+            Util.credit(security.getCurrency(), filledQty.multiply(filledAvgPrice), "Selling Alpaca Security", alpacaOrder.getId());
             Transactions.adjustSecurityPosition(security, filledQty, filledAvgPrice);
         }
     }

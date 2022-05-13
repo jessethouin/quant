@@ -11,10 +11,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
 @Getter
 @Setter
@@ -34,16 +30,6 @@ public class Calc {
     private BigDecimal spread = BigDecimal.ZERO;
     private boolean buy = false;
     private BigDecimal qty;
-    private boolean ma1rising;
-    private int maTrend;
-    private List<BigDecimal> maTrendList = new ArrayList<>();
-    private int maRisingCountTolerance = 5;
-    private int maFallingCountTolerance = -5;
-    private BigDecimal maRisingTrendTolerance = BigDecimal.valueOf(1.000001);
-    private BigDecimal maFallingTrendTolerance = BigDecimal.valueOf(0.999997);
-    private BigDecimal maTrendRate;
-    private BigDecimal maTrendDiff;
-    private List<BigDecimal> maTrendRateList = new ArrayList<>();
 
     public Calc(Security security, Config config, BigDecimal price) {
         this(security, security.getCurrency(), security.getCurrency(), config, price, price, price);
@@ -75,25 +61,6 @@ public class Calc {
             setMa1(ma1);
         }
         setQty(Util.getPurchaseBudget(price, config.getAllowance(), getBase(), getSecurity()));
-        if (ma1.compareTo(getMa1()) >= 0) {
-            setMa1rising(true);
-            if (maTrend < 0) {
-                maTrend = 0;
-                maTrendList.clear();
-            }
-            maTrend++;
-        } else {
-            setMa1rising(false);
-            if (maTrend > 0) {
-                maTrend = 0;
-                maTrendList.clear();
-            }
-            maTrend--;
-        }
-        maTrendDiff = ma1.divide(getMa1(), 16, RoundingMode.HALF_UP);
-        maTrendList.add(maTrendDiff);
-        maTrendRate = maTrendList.stream().reduce(BigDecimal.ZERO, BigDecimal::add).divide(new BigDecimal(maTrendList.size()), RoundingMode.HALF_UP);
-        maTrendRateList.add(maTrendRate);
         setMa1(ma1);
         setMa2(ma2);
     }
@@ -119,14 +86,10 @@ public class Calc {
         boolean sell = config.getSellStrategy().sell(this);
 
         if (buy || config.isTriggerBuy()) {
-            LOG.debug("BID maTrend {} maTrendRate {}", maTrend, maTrendRate);
-            LOG.debug("    maTrendList {}", Arrays.toString(maTrendList.toArray()));
             config.setTriggerBuy(false);
             Transactions.placeBuyOrder(config.getBroker(), getSecurity(), getBase(), getCounter(), getQty(), getPrice());
             setBuy(false);
         } else if (sell || config.isTriggerSell()) {
-            LOG.debug("ASK maTrend {} maTrendRate {}", maTrend, maTrendRate);
-            LOG.debug("    maTrendList {}", Arrays.toString(maTrendList.toArray()));
             config.setTriggerSell(false);
             boolean success = Transactions.placeSellOrder(config.getBroker(), getSecurity(), getBase(), getCounter(), getPrice());
             if (success) {
