@@ -13,7 +13,6 @@ import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderType;
 
 import javax.persistence.*;
 import java.time.ZonedDateTime;
-import java.util.Objects;
 
 @Entity
 @Table(name = "ALPACA_ORDER")
@@ -211,49 +210,6 @@ public class AlpacaOrder {
         } else {
             sb.append(']');
         }
-
         return sb.toString();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        AlpacaOrder that = (AlpacaOrder) o;
-        return orderId.equals(that.orderId) &&
-                Objects.equals(portfolio, that.portfolio) &&
-                Objects.equals(id, that.id) &&
-                Objects.equals(clientOrderId, that.clientOrderId) &&
-                Objects.equals(createdAt, that.createdAt) &&
-                Objects.equals(updatedAt, that.updatedAt) &&
-                Objects.equals(submittedAt, that.submittedAt) &&
-                Objects.equals(filledAt, that.filledAt) &&
-                Objects.equals(expiredAt, that.expiredAt) &&
-                Objects.equals(canceledAt, that.canceledAt) &&
-                Objects.equals(failedAt, that.failedAt) &&
-                Objects.equals(replacedAt, that.replacedAt) &&
-                Objects.equals(replacedBy, that.replacedBy) &&
-                Objects.equals(replaces, that.replaces) &&
-                Objects.equals(assetId, that.assetId) &&
-                Objects.equals(symbol, that.symbol) &&
-                Objects.equals(assetClass, that.assetClass) &&
-                Objects.equals(qty, that.qty) &&
-                Objects.equals(filledQty, that.filledQty) &&
-                Objects.equals(type, that.type) &&
-                Objects.equals(side, that.side) &&
-                Objects.equals(timeInForce, that.timeInForce) &&
-                Objects.equals(limitPrice, that.limitPrice) &&
-                Objects.equals(stopPrice, that.stopPrice) &&
-                Objects.equals(filledAvgPrice, that.filledAvgPrice) &&
-                Objects.equals(status, that.status) &&
-                Objects.equals(extendedHours, that.extendedHours) &&
-                Objects.equals(trailPrice, that.trailPrice) &&
-                Objects.equals(trailPercent, that.trailPercent) &&
-                Objects.equals(highWaterMark, that.highWaterMark);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(orderId, portfolio, id, clientOrderId, createdAt, updatedAt, submittedAt, filledAt, expiredAt, canceledAt, failedAt, replacedAt, replacedBy, replaces, assetId, symbol, assetClass, qty, filledQty, type, side, timeInForce, limitPrice, stopPrice, filledAvgPrice, status, extendedHours, trailPrice, trailPercent, highWaterMark);
     }
 }

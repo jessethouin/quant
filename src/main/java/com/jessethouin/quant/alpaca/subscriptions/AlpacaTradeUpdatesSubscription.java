@@ -21,7 +21,7 @@ public class AlpacaTradeUpdatesSubscription {
             if (messageType == TRADE_UPDATES) {
                 TradeUpdateMessage tradeUpdateMessage = (TradeUpdateMessage) message;
                 Order order = tradeUpdateMessage.getData().getOrder();
-                LOG.info(order.toString());
+                LOG.info("Incoming order {} status {}", order.getId(), order.getStatus());
                 AlpacaStreamProcessor.processRemoteOrder(order);
             } else {
                 LOG.info(message.toString());

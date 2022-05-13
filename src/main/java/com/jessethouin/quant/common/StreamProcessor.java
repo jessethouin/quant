@@ -14,6 +14,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 
 import static com.jessethouin.quant.conf.Config.CONFIG;
@@ -23,6 +25,7 @@ import static java.util.Objects.requireNonNullElse;
 @Transactional
 public class StreamProcessor {
     private static final Logger LOG = LogManager.getLogger(StreamProcessor.class);
+    private static LocalDateTime logTimer = LocalDateTime.now();
 
     @Getter
     static OrderHistoryLookup orderHistoryLookup;
@@ -66,17 +69,20 @@ public class StreamProcessor {
         orderHistoryLookup.setValue(value);
         orderHistoryLookupRepository.save(orderHistoryLookup);
 
-        LOG.info("{}/{} - {} : ma1 {} : ma2 {} : l {} : h {} : p {} : v {}",
-                symbol,
-                fundamental.getBaseCurrency().getSymbol(),
-                fundamental.getCount(),
-                fundamental.getShortMAValue(),
-                fundamental.getLongMAValue(),
-                fundamental.getCalc().getLow(),
-                fundamental.getCalc().getHigh(),
-                fundamental.getPrice(),
-                value);
-
+        LocalDateTime newLogTimer = LocalDateTime.now();
+        if (ChronoUnit.SECONDS.between(logTimer, newLogTimer) > 1) {
+            LOG.info("{}/{} - {} : ma1 {} : ma2 {} : l {} : h {} : p {} : v {}",
+                    symbol,
+                    fundamental.getBaseCurrency().getSymbol(),
+                    fundamental.getCount(),
+                    fundamental.getShortMAValue(),
+                    fundamental.getLongMAValue(),
+                    fundamental.getCalc().getLow(),
+                    fundamental.getCalc().getHigh(),
+                    fundamental.getPrice(),
+                    value);
+            logTimer = newLogTimer;
+        }
         fundamental.setPreviousShortMAValue(fundamental.getShortMAValue());
         fundamental.setPreviousLongMAValue(fundamental.getLongMAValue());
         fundamental.setCount(fundamental.getCount() + 1);

@@ -40,7 +40,28 @@ public class QuantApplication {
     public static void main(String[] args) {
         SpringApplication.run(QuantApplication.class, args);
 
-        if (CONFIG.isBackTest()) LOG.info("""
+        if (args.length > 0) {
+            switch (args[0]) {
+                case "combos" -> {
+                    CONFIG.setBackTest(true);
+                    logBacktestWarning();
+                    backtestParameterCombos.findBestCombos(Arrays.copyOfRange(args, 1, args.length));
+                }
+                case "backtest" -> {
+                    CONFIG.setBackTest(true);
+                    logBacktestWarning();
+                    backtestStaticParameters.runBacktest();
+                }
+                case "alpaca" -> alpacaLive.doLive();
+                case "binance" -> binanceLive.doLive();
+                case "capture" -> binanceCaptureHistory.doCapture();
+                default -> LOG.error("1st arg must be \"combos\", \"backtest\", \"paper\", or \"binance\".");
+            }
+        }
+    }
+
+    private static void logBacktestWarning() {
+        LOG.info("""
                 
                 ==============================================================================================
                 =                                                                                            =
@@ -50,22 +71,5 @@ public class QuantApplication {
                 =                                                                                            =
                 ==============================================================================================
                 """);
-
-        if (args.length > 0) {
-            switch (args[0]) {
-                case "combos" -> {
-                    CONFIG.setBackTest(true);
-                    backtestParameterCombos.findBestCombos(Arrays.copyOfRange(args, 1, args.length));
-                }
-                case "backtest" -> {
-                    CONFIG.setBackTest(true);
-                    backtestStaticParameters.runBacktest();
-                }
-                case "alpaca" -> alpacaLive.doLive();
-                case "binance" -> binanceLive.doLive();
-                case "capture" -> binanceCaptureHistory.doCapture();
-                default -> LOG.error("1st arg must be \"combos\", \"backtest\", \"paper\", or \"binance\".");
-            }
-        }
     }
 }

@@ -35,14 +35,6 @@ public enum BuyStrategyTypes {
             return c.getMa1().compareTo(c.getMa2()) > 0 &&
                 c.isBuy();
         }
-    },
-    BUY5 {
-        @Override
-        public boolean buy(Calc c) {
-            return c.isMa1rising() &&
-                (c.getMaTrendDiff().compareTo(c.getMaRisingTrendTolerance()) > 0 || c.getMaTrend() > c.getMaRisingCountTolerance()) &&
-                c.isBuy();
-        }
     };
 
     public abstract boolean buy(Calc calc);

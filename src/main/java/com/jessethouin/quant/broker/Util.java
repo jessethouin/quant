@@ -58,7 +58,7 @@ public class Util {
     public static BigDecimal getMA(BigDecimal previousMA, int lookback, BigDecimal price) {
         if (previousMA == null || previousMA.compareTo(BigDecimal.ZERO) == 0 || previousMA.compareTo(BigDecimal.valueOf(0)) == 0)
             previousMA = price;
-        return MA.ma(price, previousMA, lookback, MATypes.TEMA);
+        return MA.ma(price, previousMA, lookback, MATypes.DEMA);
     }
 
     /**
@@ -145,7 +145,7 @@ public class Util {
             currency.setQuantity(BigDecimal.ZERO);
             currency.setCurrencyType(CurrencyTypes.FIAT);
             if (c.equals("USD")) { // default-coded (you're welcome, Pra) for now, until international exchanges are implemented in Alpaca. In other words, ALL securities traded are in USD.
-                Util.credit(currency, CONFIG.getInitialCash(), "Initializing portfolio with default config values");
+                Util.credit(currency, CONFIG.getInitialCash(), "Initializing portfolio with default config values", null);
                 List<String> tickers = CONFIG.getSecurities();
                 tickers.forEach(t -> {
                     Security security = new Security();
@@ -170,7 +170,7 @@ public class Util {
         });
 
         Currency usdt = getCurrencyFromPortfolio("USDT", portfolio, CurrencyTypes.CRYPTO);
-        Util.credit(usdt, CONFIG.getInitialCash(), "Initializing portfolio with default config values");
+        Util.credit(usdt, CONFIG.getInitialCash(), "Initializing portfolio with default config values", null);
 
         return portfolio;
     }
@@ -181,16 +181,16 @@ public class Util {
         return numberFormat.format(o);
     }
 
-    public static synchronized void debit(Currency currency, BigDecimal qty, String memo) {
+    public static synchronized void debit(Currency currency, BigDecimal qty, String memo, String orderId) {
         // todo: implement overdraft protection/exception
-        CurrencyLedger currencyLedger = CurrencyLedger.builder().currency(currency).debit(qty).timestamp(new Date()).memo(memo).build();
+        CurrencyLedger currencyLedger = CurrencyLedger.builder().currency(currency).debit(qty).timestamp(new Date()).memo(memo).orderId(orderId).build();
         currency.getCurrencyLedgers().add(currencyLedger);
         currency.setQuantity(currency.getQuantity().subtract(requireNonNullElse(qty, BigDecimal.ZERO)));
     }
 
-    public static synchronized void credit(Currency currency, BigDecimal qty, String memo) {
+    public static synchronized void credit(Currency currency, BigDecimal qty, String memo, String orderId) {
         // todo: implement overdraft protection/exception
-        CurrencyLedger currencyLedger = CurrencyLedger.builder().currency(currency).credit(qty).timestamp(new Date()).memo(memo).build();
+        CurrencyLedger currencyLedger = CurrencyLedger.builder().currency(currency).credit(qty).timestamp(new Date()).memo(memo).orderId(orderId).build();
         currency.getCurrencyLedgers().add(currencyLedger);
         currency.setQuantity(currency.getQuantity().add(requireNonNullElse(qty, BigDecimal.ZERO)));
     }

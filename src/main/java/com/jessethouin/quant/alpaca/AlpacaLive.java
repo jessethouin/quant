@@ -9,6 +9,7 @@ import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.beans.repos.PortfolioRepository;
 import com.jessethouin.quant.broker.Fundamental;
 import com.jessethouin.quant.broker.Util;
+import com.jessethouin.quant.conf.Broker;
 import com.jessethouin.quant.conf.CurrencyTypes;
 import com.jessethouin.quant.conf.DataFeed;
 import com.jessethouin.quant.conf.Instruments;
@@ -17,6 +18,7 @@ import net.jacobpeterson.alpaca.model.endpoint.positions.Position;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.lang.NonNull;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionStatus;
@@ -100,5 +102,15 @@ public class AlpacaLive {
         });
         // fundamental are not managed by Spring/JPA, but they have elements from the merged portfolio, which is why we have to update them manually
         fundamentalList.forEach(fundamental -> fundamental.update(portfolio));
+    }
+
+    @Scheduled(fixedRateString = "#{${recalibrateFreq} * 60 * 1000}", initialDelayString = "#{${recalibrateFreq} * 60 * 1000}")
+    protected void recalibrate() {
+        if (CONFIG.isRecalibrate() && !CONFIG.isBackTest() && CONFIG.getBroker().equals(Broker.ALPACA)) {
+            long start = new Date().getTime();
+            CONFIG.setBacktestStart(new Date(start - Duration.ofHours(CONFIG.getRecalibrateHours()).toMillis()));
+            CONFIG.setBacktestEnd(new Date(start));
+            Util.recalibrate(CONFIG, true);
+        }
     }
 }

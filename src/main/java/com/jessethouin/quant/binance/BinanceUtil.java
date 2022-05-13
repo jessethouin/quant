@@ -27,20 +27,20 @@ import static com.jessethouin.quant.conf.Config.CONFIG;
 public class BinanceUtil {
     private static final Logger LOG = LogManager.getLogger(BinanceUtil.class);
 
-    public static BigDecimal getBreakEven(BigDecimal qtyBTC) {
+    public static BigDecimal getBreakEven(BigDecimal counterQty, String base, String counter, String tether) {
         BigDecimal rate = BigDecimal.valueOf(0.0750 / 100);
 
-        BigDecimal BNB_BTC = getTickerPrice("BNB", "BTC"); // needs to be dynamic
-        BigDecimal BNB_USDT = getTickerPrice("BNB", "USDT"); // needs to be dynamic
-        BigDecimal BTC_USDT = getTickerPrice("BTC", "USDT"); // needs to be dynamic, based off of USDC
+        BigDecimal base_counter = getTickerPrice(base, counter);
+        BigDecimal base_tether = getTickerPrice(base, tether);
+        BigDecimal counter_tether = getTickerPrice(counter, tether);
 
-        BigDecimal feesInBNB = ((rate.multiply(qtyBTC)).divide(BNB_BTC, 8, RoundingMode.HALF_UP));
-        BigDecimal breakEven = ((BTC_USDT.multiply(rate)).multiply(BigDecimal.valueOf(2))).add(BTC_USDT);
+        BigDecimal feesInBase = ((rate.multiply(counterQty)).divide(base_counter, 8, RoundingMode.HALF_UP));
+        BigDecimal breakEven = ((counter_tether.multiply(rate)).multiply(BigDecimal.valueOf(2))).add(counter_tether);
 
-        LOG.debug("Bought {} BTC at {} USDT, costing {}", qtyBTC, BTC_USDT, qtyBTC.multiply(BTC_USDT));
-        LOG.debug("Fees in BNB: {} BNB", feesInBNB);
-        LOG.debug("Fees in USDT: ${}", feesInBNB.multiply(BNB_USDT));
-        LOG.debug("Break even in USDT: {}", breakEven);
+        LOG.debug("Bought {} {} at {} {}}, costing {}", counterQty, counter, counter_tether, tether, counterQty.multiply(counter_tether));
+        LOG.debug("Fees in {}: {} {}", base, feesInBase, base);
+        LOG.debug("Fees in {}: ${}", tether, feesInBase.multiply(base_tether));
+        LOG.debug("Break even in {}: {}", tether, breakEven);
         return breakEven;
     }
 
@@ -56,7 +56,7 @@ public class BinanceUtil {
         Symbol[] symbols = BINANCE_EXCHANGE_INFO.getSymbols();
         List<Symbol> symbolList = Arrays.stream(symbols).filter(symbol -> symbol.getBaseAsset().equals(currencyPair.base.getSymbol()) && symbol.getQuoteAsset().equals(currencyPair.counter.getSymbol())).collect(Collectors.toList());
         symbolList.forEach(symbol -> {
-            List<Filter> filters = Arrays.stream(symbol.getFilters()).filter(filter -> filter.getFilterType().equals("MIN_NOTIONAL")).collect(Collectors.toList());
+            List<Filter> filters = Arrays.stream(symbol.getFilters()).filter(filter -> filter.getFilterType().equals("MIN_NOTIONAL")).toList();
             filters.forEach(filter -> minTrade[0] = new BigDecimal(filter.getMinNotional()));
         });
         return minTrade[0];
@@ -133,10 +133,10 @@ public class BinanceUtil {
                 portfolio.getCurrencies().add(currency);
                 LOG.info("{}: Reconciling local ledger ({}) with remote wallet ({}).", currency.getSymbol(), currency.getQuantity(), balance.getAvailable());
                 if (diff > 0) {
-                    Util.debit(currency, currency.getQuantity().subtract(balance.getAvailable()).abs(), "Reconciling with Binance wallet");
+                    Util.debit(currency, currency.getQuantity().subtract(balance.getAvailable()).abs(), "Reconciling with Binance wallet", null);
                 }
                 if (diff < 0) {
-                    Util.credit(currency, currency.getQuantity().add(balance.getAvailable()).abs(), "Reconciling with Binance wallet");
+                    Util.credit(currency, currency.getQuantity().add(balance.getAvailable()).abs(), "Reconciling with Binance wallet", null);
                 }
             }));
         } catch (IOException e) {
