@@ -6,7 +6,7 @@ import com.jessethouin.quant.beans.repos.OrderHistoryLookupRepository;
 import com.jessethouin.quant.beans.repos.TradeHistoryRepository;
 import com.jessethouin.quant.broker.Fundamental;
 import com.jessethouin.quant.broker.Util;
-import com.jessethouin.quant.conf.Instruments;
+import com.jessethouin.quant.conf.Instrument;
 import lombok.Getter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -57,7 +57,7 @@ public class StreamProcessor {
 
         BigDecimal value;
         String symbol;
-        if (fundamental.getInstrument().equals(Instruments.CRYPTO)) {
+        if (fundamental.getInstrument().equals(Instrument.CRYPTO)) {
             symbol = fundamental.getCounterCurrency().getSymbol();
             value = Util.getValueAtPrice(fundamental.getCounterCurrency(), fundamental.getPrice()).add(fundamental.getBaseCurrency().getQuantity());
         } else {

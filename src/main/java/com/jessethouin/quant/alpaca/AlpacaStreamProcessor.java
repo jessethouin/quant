@@ -10,7 +10,7 @@ import com.jessethouin.quant.beans.repos.TradeHistoryRepository;
 import com.jessethouin.quant.broker.Transactions;
 import com.jessethouin.quant.broker.Util;
 import com.jessethouin.quant.common.StreamProcessor;
-import com.jessethouin.quant.conf.CurrencyTypes;
+import com.jessethouin.quant.conf.CurrencyType;
 import lombok.Getter;
 import net.jacobpeterson.alpaca.model.endpoint.orders.Order;
 import org.apache.commons.lang3.ObjectUtils;
@@ -48,8 +48,8 @@ public class AlpacaStreamProcessor extends StreamProcessor {
         switch (alpacaOrder.getAssetClass()) {
             case CRYPTO -> {
                 String symbol = AlpacaUtil.parseAlpacaCryptoSymbol(alpacaOrder.getSymbol());
-                Currency counter = Util.getCurrencyFromPortfolio(symbol, portfolio, CurrencyTypes.CRYPTO);
-                Currency base = Util.getCurrencyFromPortfolio("USD", portfolio, CurrencyTypes.FIAT);
+                Currency counter = Util.getCurrencyFromPortfolio(symbol, portfolio, CurrencyType.CRYPTO);
+                Currency base = Util.getCurrencyFromPortfolio("USD", portfolio, CurrencyType.FIAT);
                 processRemoteCryptoOrder(alpacaOrder, counter, base, limitPrice, bidAskQty, filledQty, filledAvgPrice);
             }
             case US_EQUITY -> {

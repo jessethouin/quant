@@ -3,7 +3,7 @@ package com.jessethouin.quant.binance;
 import com.jessethouin.quant.beans.Currency;
 import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.broker.Util;
-import com.jessethouin.quant.conf.CurrencyTypes;
+import com.jessethouin.quant.conf.CurrencyType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.knowm.xchange.binance.dto.meta.exchangeinfo.Filter;
@@ -128,7 +128,7 @@ public class BinanceUtil {
                 if (diff == 0) {
                     return;
                 }
-                currency.setCurrencyType(CurrencyTypes.CRYPTO);
+                currency.setCurrencyType(CurrencyType.CRYPTO);
                 currency.setPortfolio(portfolio);
                 portfolio.getCurrencies().add(currency);
                 LOG.info("{}: Reconciling local ledger ({}) with remote wallet ({}).", currency.getSymbol(), currency.getQuantity(), balance.getAvailable());

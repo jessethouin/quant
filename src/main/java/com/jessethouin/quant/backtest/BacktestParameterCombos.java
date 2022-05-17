@@ -5,8 +5,8 @@ import com.jessethouin.quant.backtest.beans.BacktestParameterResults;
 import com.jessethouin.quant.backtest.beans.repos.BacktestParameterResultsRepository;
 import com.jessethouin.quant.beans.repos.TradeHistoryRepository;
 import com.jessethouin.quant.binance.BinanceCaptureHistory;
-import com.jessethouin.quant.conf.BuyStrategyTypes;
-import com.jessethouin.quant.conf.SellStrategyTypes;
+import com.jessethouin.quant.conf.BuyStrategyType;
+import com.jessethouin.quant.conf.SellStrategyType;
 import org.apache.commons.lang3.time.StopWatch;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -127,8 +127,8 @@ public class BacktestParameterCombos extends AbstractBacktest {
 
     private static void getBuySellCombos(int minMALookback, int maxMALookback, BigDecimal riskMax, BigDecimal riskIncrement, BigDecimal allowance) {
         if (CONFIG.isBacktestStrategy()) {
-            Arrays.stream(BuyStrategyTypes.values()).forEach(
-                    buyStrategyType -> Arrays.stream(SellStrategyTypes.values()).forEach(
+            Arrays.stream(BuyStrategyType.values()).forEach(
+                    buyStrategyType -> Arrays.stream(SellStrategyType.values()).forEach(
                             sellStrategyType -> getMACombos(buyStrategyType, sellStrategyType, minMALookback, maxMALookback, riskMax, riskIncrement, allowance)
                     )
             );
@@ -137,7 +137,7 @@ public class BacktestParameterCombos extends AbstractBacktest {
         }
     }
 
-    private static void getMACombos(BuyStrategyTypes buyStrategyType, SellStrategyTypes sellStrategyType, int minMALookback, int maxMALookback, BigDecimal riskMax, BigDecimal riskIncrement, BigDecimal allowance) {
+    private static void getMACombos(BuyStrategyType buyStrategyType, SellStrategyType sellStrategyType, int minMALookback, int maxMALookback, BigDecimal riskMax, BigDecimal riskIncrement, BigDecimal allowance) {
         int shortLookback;
         int longLookback = minMALookback;
         while (longLookback <= maxMALookback) {
@@ -151,7 +151,7 @@ public class BacktestParameterCombos extends AbstractBacktest {
         }
     }
 
-    private static void getRiskCombos(BuyStrategyTypes buyStrategyType, SellStrategyTypes sellStrategyType, BigDecimal riskMax, BigDecimal riskIncrement, int shortLookback, int longLookback, BigDecimal allowance) {
+    private static void getRiskCombos(BuyStrategyType buyStrategyType, SellStrategyType sellStrategyType, BigDecimal riskMax, BigDecimal riskIncrement, int shortLookback, int longLookback, BigDecimal allowance) {
         BigDecimal highRisk = CONFIG.isBacktestHighRisk() ? BigDecimal.ZERO : CONFIG.getHighRisk();
         do {
             BigDecimal lowRisk = CONFIG.isBacktestLowRisk() ? BigDecimal.ZERO : CONFIG.getLowRisk();

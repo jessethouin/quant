@@ -31,8 +31,8 @@ public class Config {
     private BigDecimal fee;
     private int shortLookback;
     private int longLookback;
-    private BuyStrategyTypes buyStrategy;
-    private SellStrategyTypes sellStrategy;
+    private BuyStrategyType buyStrategy;
+    private SellStrategyType sellStrategy;
     private boolean backTest;
     private Date backtestStart;
     private Date backtestEnd;
@@ -71,8 +71,8 @@ public class Config {
             setLowRisk(new BigDecimal(prop.getProperty("lowRisk")));
             setShortLookback(Integer.parseInt(prop.getProperty("shortLookback")));
             setLongLookback(Integer.parseInt(prop.getProperty("longLookback")));
-            setBuyStrategy(BuyStrategyTypes.valueOf(prop.getProperty("buyStrategy")));
-            setSellStrategy(SellStrategyTypes.valueOf(prop.getProperty("sellStrategy")));
+            setBuyStrategy(BuyStrategyType.valueOf(prop.getProperty("buyStrategy")));
+            setSellStrategy(SellStrategyType.valueOf(prop.getProperty("sellStrategy")));
             setBacktestStart(Date.from(LocalDateTime.parse(prop.getProperty("backtestStart")).toInstant(ZoneOffset.UTC)));
             setBacktestEnd(Date.from(LocalDateTime.parse(prop.getProperty("backtestEnd")).toInstant(ZoneOffset.UTC)));
             setBacktestLowRisk(Boolean.parseBoolean(prop.getProperty("backtestLowRisk")));

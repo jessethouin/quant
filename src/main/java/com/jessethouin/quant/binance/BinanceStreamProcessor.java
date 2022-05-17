@@ -8,7 +8,7 @@ import com.jessethouin.quant.binance.beans.repos.BinanceLimitOrderRepository;
 import com.jessethouin.quant.broker.Util;
 import com.jessethouin.quant.common.StreamProcessor;
 import com.jessethouin.quant.conf.Broker;
-import com.jessethouin.quant.conf.CurrencyTypes;
+import com.jessethouin.quant.conf.CurrencyType;
 import info.bitrich.xchangestream.binance.dto.ExecutionReportBinanceUserTransaction;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -49,7 +49,7 @@ public class BinanceStreamProcessor extends StreamProcessor {
 
     public static synchronized void processRemoteOrder(Order order) {
         if (CONFIG.getBroker() == Broker.BINANCE_TEST) {
-            final Currency bnb = Util.getCurrencyFromPortfolio("BNB", binanceLive.getPortfolio(), CurrencyTypes.CRYPTO);
+            final Currency bnb = Util.getCurrencyFromPortfolio("BNB", binanceLive.getPortfolio(), CurrencyType.CRYPTO);
             final CurrencyPair currencyPair = order.getInstrument() instanceof CurrencyPair ? ((CurrencyPair) order.getInstrument()) : null;
             if (currencyPair != null) {
                 final BigDecimal bnbPrice = BinanceUtil.getTickerPrice(bnb.getSymbol(), currencyPair.base.getSymbol());

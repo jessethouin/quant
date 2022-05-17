@@ -1,6 +1,6 @@
 package com.jessethouin.quant.conf;
 
-public enum MATypes {
+public enum MAType {
     EMA,
     DEMA,
     TEMA

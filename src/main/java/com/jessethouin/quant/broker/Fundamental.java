@@ -4,7 +4,7 @@ import com.jessethouin.quant.beans.Currency;
 import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.beans.Security;
 import com.jessethouin.quant.calculators.Calc;
-import com.jessethouin.quant.conf.Instruments;
+import com.jessethouin.quant.conf.Instrument;
 import lombok.Getter;
 import lombok.Setter;
 import org.knowm.xchange.currency.CurrencyPair;
@@ -17,7 +17,7 @@ import static com.jessethouin.quant.conf.Config.CONFIG;
 @Getter
 @Setter
 public class Fundamental {
-    Instruments instrument;
+    Instrument instrument;
     CurrencyPair currencyPair;
     Calc calc;
     Security security;
@@ -33,7 +33,7 @@ public class Fundamental {
     Date timestamp;
     int count = 0;
 
-    public Fundamental(Instruments instrument, CurrencyPair currencyPair, Portfolio portfolio) {
+    public Fundamental(Instrument instrument, CurrencyPair currencyPair, Portfolio portfolio) {
         this.instrument = instrument;
         this.currencyPair = currencyPair;
         this.baseCurrency = Util.getCurrencyFromPortfolio(currencyPair.base.getSymbol(), portfolio);
@@ -41,14 +41,14 @@ public class Fundamental {
         calc = new Calc(baseCurrency, counterCurrency, CONFIG, BigDecimal.ZERO);
     }
 
-    public Fundamental(Instruments instrument, Currency base, Currency counter) {
+    public Fundamental(Instrument instrument, Currency base, Currency counter) {
         this.instrument = instrument;
         this.baseCurrency = base;
         this.counterCurrency = counter;
         calc = new Calc(base, counter, CONFIG, BigDecimal.ZERO);
     }
 
-    public Fundamental(Instruments instrument, Security security) {
+    public Fundamental(Instrument instrument, Security security) {
         this.instrument = instrument;
         this.security = security;
         this.baseCurrency = security.getCurrency();
@@ -56,9 +56,9 @@ public class Fundamental {
     }
 
     public void update(Portfolio portfolio) {
-        if (instrument.equals(Instruments.STOCK)) setSecurity(Util.getSecurityFromPortfolio(getSecurity().getSymbol(), portfolio));
+        if (instrument.equals(Instrument.STOCK)) setSecurity(Util.getSecurityFromPortfolio(getSecurity().getSymbol(), portfolio));
         setBaseCurrency(Util.getCurrencyFromPortfolio(getBaseCurrency().getSymbol(), portfolio, getBaseCurrency().getCurrencyType()));
-        if (instrument.equals(Instruments.CRYPTO) || instrument.equals(Instruments.FIAT)) setCounterCurrency(Util.getCurrencyFromPortfolio(getCounterCurrency().getSymbol(), portfolio, getCounterCurrency().getCurrencyType()));
+        if (instrument.equals(Instrument.CRYPTO) || instrument.equals(Instrument.FIAT)) setCounterCurrency(Util.getCurrencyFromPortfolio(getCounterCurrency().getSymbol(), portfolio, getCounterCurrency().getCurrencyType()));
         getCalc().setSecurity(getSecurity());
         getCalc().setBase(getBaseCurrency());
         getCalc().setCounter(getCounterCurrency());

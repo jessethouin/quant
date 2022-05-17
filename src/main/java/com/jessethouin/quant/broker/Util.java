@@ -5,8 +5,8 @@ import com.jessethouin.quant.backtest.beans.BacktestParameterResults;
 import com.jessethouin.quant.beans.*;
 import com.jessethouin.quant.calculators.MA;
 import com.jessethouin.quant.conf.Config;
-import com.jessethouin.quant.conf.CurrencyTypes;
-import com.jessethouin.quant.conf.MATypes;
+import com.jessethouin.quant.conf.CurrencyType;
+import com.jessethouin.quant.conf.MAType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Component;
@@ -58,7 +58,7 @@ public class Util {
     public static BigDecimal getMA(BigDecimal previousMA, int lookback, BigDecimal price) {
         if (previousMA == null || previousMA.compareTo(BigDecimal.ZERO) == 0 || previousMA.compareTo(BigDecimal.valueOf(0)) == 0)
             previousMA = price;
-        return MA.ma(price, previousMA, lookback, MATypes.DEMA);
+        return MA.ma(price, previousMA, lookback, MAType.DEMA);
     }
 
     /**
@@ -78,7 +78,7 @@ public class Util {
             Security security = new Security();
             security.setSymbol(symbol);
             security.setPortfolio(portfolio);
-            security.setCurrency(getCurrencyFromPortfolio("USD", portfolio, CurrencyTypes.FIAT)); // todo: find a dynamic way to get currency of a security.
+            security.setCurrency(getCurrencyFromPortfolio("USD", portfolio, CurrencyType.FIAT)); // todo: find a dynamic way to get currency of a security.
             SecurityPosition securityPosition = security.getSecurityPosition();
             securityPosition.setSecurity(security);
             securityPosition.setOpened(new Date());
@@ -100,15 +100,15 @@ public class Util {
     public static Currency getCurrencyFromPortfolio(String symbol, Portfolio portfolio) {
         switch (CONFIG.getBroker()) {
             case COINBASE, CEXIO, BINANCE, BINANCE_TEST -> {
-                return getCurrencyFromPortfolio(symbol, portfolio, CurrencyTypes.CRYPTO);
+                return getCurrencyFromPortfolio(symbol, portfolio, CurrencyType.CRYPTO);
             }
             default -> {
-                return getCurrencyFromPortfolio(symbol, portfolio, CurrencyTypes.FIAT);
+                return getCurrencyFromPortfolio(symbol, portfolio, CurrencyType.FIAT);
             }
         }
     }
 
-    public static Currency getCurrencyFromPortfolio(String symbol, Portfolio portfolio, CurrencyTypes currencyType) {
+    public static Currency getCurrencyFromPortfolio(String symbol, Portfolio portfolio, CurrencyType currencyType) {
         Optional<Currency> c = portfolio.getCurrencies().stream().filter(currency -> currency.getSymbol().equals(symbol)).findFirst();
 
         if (c.isPresent()) {
@@ -129,7 +129,7 @@ public class Util {
         Currency currency = new Currency();
         currency.setSymbol("USD");
         currency.setQuantity(BigDecimal.ZERO);
-        currency.setCurrencyType(CurrencyTypes.FIAT);
+        currency.setCurrencyType(CurrencyType.FIAT);
         currency.setPortfolio(portfolio);
         portfolio.getCurrencies().add(currency);
         return portfolio;
@@ -143,7 +143,7 @@ public class Util {
             Currency currency = new Currency();
             currency.setSymbol(c);
             currency.setQuantity(BigDecimal.ZERO);
-            currency.setCurrencyType(CurrencyTypes.FIAT);
+            currency.setCurrencyType(CurrencyType.FIAT);
             if (c.equals("USD")) { // default-coded (you're welcome, Pra) for now, until international exchanges are implemented in Alpaca. In other words, ALL securities traded are in USD.
                 Util.credit(currency, CONFIG.getInitialCash(), "Initializing portfolio with default config values", null);
                 List<String> tickers = CONFIG.getSecurities();
@@ -164,12 +164,12 @@ public class Util {
             Currency currency = new Currency();
             currency.setSymbol(c);
             currency.setQuantity(BigDecimal.ZERO);
-            currency.setCurrencyType(CurrencyTypes.CRYPTO);
+            currency.setCurrencyType(CurrencyType.CRYPTO);
             currency.setPortfolio(portfolio);
             portfolio.getCurrencies().add(currency);
         });
 
-        Currency usdt = getCurrencyFromPortfolio("USDT", portfolio, CurrencyTypes.CRYPTO);
+        Currency usdt = getCurrencyFromPortfolio("USDT", portfolio, CurrencyType.CRYPTO);
         Util.credit(usdt, CONFIG.getInitialCash(), "Initializing portfolio with default config values", null);
 
         return portfolio;

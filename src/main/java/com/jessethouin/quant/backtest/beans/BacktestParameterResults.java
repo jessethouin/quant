@@ -1,7 +1,7 @@
 package com.jessethouin.quant.backtest.beans;
 
-import com.jessethouin.quant.conf.BuyStrategyTypes;
-import com.jessethouin.quant.conf.SellStrategyTypes;
+import com.jessethouin.quant.conf.BuyStrategyType;
+import com.jessethouin.quant.conf.SellStrategyType;
 import com.jessethouin.quant.db.BigDecimalConverter;
 import lombok.*;
 
@@ -24,8 +24,8 @@ public class BacktestParameterResults {
     private Date timestamp;
     private Date start;
     private Date end;
-    BuyStrategyTypes buyStrategyType;
-    SellStrategyTypes sellStrategyType;
+    BuyStrategyType buyStrategyType;
+    SellStrategyType sellStrategyType;
     int shortLookback;
     int longLookback;
     @Convert(converter = BigDecimalConverter.class)

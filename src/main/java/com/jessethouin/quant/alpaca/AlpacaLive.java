@@ -10,9 +10,9 @@ import com.jessethouin.quant.beans.repos.PortfolioRepository;
 import com.jessethouin.quant.broker.Fundamental;
 import com.jessethouin.quant.broker.Util;
 import com.jessethouin.quant.conf.Broker;
-import com.jessethouin.quant.conf.CurrencyTypes;
+import com.jessethouin.quant.conf.CurrencyType;
 import com.jessethouin.quant.conf.DataFeed;
-import com.jessethouin.quant.conf.Instruments;
+import com.jessethouin.quant.conf.Instrument;
 import lombok.Getter;
 import net.jacobpeterson.alpaca.model.endpoint.positions.Position;
 import org.apache.logging.log4j.LogManager;
@@ -70,7 +70,7 @@ public class AlpacaLive {
         AlpacaUtil.reconcile(portfolio);
         AlpacaUtil.showAlpacaAccountInfo();
 
-        CONFIG.getCryptoCurrencies().forEach(s -> Util.getCurrencyFromPortfolio(s, portfolio, CurrencyTypes.CRYPTO));
+        CONFIG.getCryptoCurrencies().forEach(s -> Util.getCurrencyFromPortfolio(s, portfolio, CurrencyType.CRYPTO));
         CONFIG.getSecurities().forEach(s -> Util.getSecurityFromPortfolio(s, portfolio));
 
         LOG.info("Portfolio Cash:");
@@ -82,9 +82,9 @@ public class AlpacaLive {
             }
         });
 
-        Currency usd = Util.getCurrencyFromPortfolio("USD", portfolio, CurrencyTypes.FIAT);
-        portfolio.getCurrencies().stream().filter(currency -> currency.getCurrencyType().equals(CurrencyTypes.CRYPTO)).forEach(currency -> fundamentalList.add(new Fundamental(Instruments.CRYPTO, usd, currency)));
-        portfolio.getSecurities().forEach(security -> fundamentalList.add(new Fundamental(Instruments.STOCK, security)));
+        Currency usd = Util.getCurrencyFromPortfolio("USD", portfolio, CurrencyType.FIAT);
+        portfolio.getCurrencies().stream().filter(currency -> currency.getCurrencyType().equals(CurrencyType.CRYPTO)).forEach(currency -> fundamentalList.add(new Fundamental(Instrument.CRYPTO, usd, currency)));
+        portfolio.getSecurities().forEach(security -> fundamentalList.add(new Fundamental(Instrument.STOCK, security)));
 
         AlpacaTradeUpdatesSubscription.builder().build().subscribe();
         AlpacaCryptoMarketSubscription.builder().fundamentals(fundamentalList).bars(CONFIG.getDataFeed().equals(DataFeed.BAR)).quotes(CONFIG.getDataFeed().equals(DataFeed.QUOTE)).trades(CONFIG.getDataFeed().equals(DataFeed.TRADE)).build().subscribe();

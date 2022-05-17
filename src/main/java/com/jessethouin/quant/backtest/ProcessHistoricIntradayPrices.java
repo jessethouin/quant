@@ -6,10 +6,10 @@ import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.beans.Security;
 import com.jessethouin.quant.broker.Util;
 import com.jessethouin.quant.calculators.Calc;
-import com.jessethouin.quant.conf.BuyStrategyTypes;
+import com.jessethouin.quant.conf.BuyStrategyType;
 import com.jessethouin.quant.conf.Config;
-import com.jessethouin.quant.conf.CurrencyTypes;
-import com.jessethouin.quant.conf.SellStrategyTypes;
+import com.jessethouin.quant.conf.CurrencyType;
+import com.jessethouin.quant.conf.SellStrategyType;
 import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderSide;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -24,15 +24,15 @@ import static com.jessethouin.quant.conf.Config.CONFIG;
 
 public class ProcessHistoricIntradayPrices implements Runnable {
     private static final Logger LOG = LogManager.getLogger(ProcessHistoricIntradayPrices.class);
-    final BuyStrategyTypes buyStrategyType;
-    final SellStrategyTypes sellStrategyType;
+    final BuyStrategyType buyStrategyType;
+    final SellStrategyType sellStrategyType;
     final int shortLookback;
     final int longLookback;
     final BigDecimal highRisk;
     final BigDecimal lowRisk;
     final BigDecimal allowance;
 
-    public ProcessHistoricIntradayPrices(BuyStrategyTypes buyStrategyType, SellStrategyTypes sellStrategyType, int shortLookback, int longLookback, BigDecimal highRisk, BigDecimal lowRisk, BigDecimal allowance) {
+    public ProcessHistoricIntradayPrices(BuyStrategyType buyStrategyType, SellStrategyType sellStrategyType, int shortLookback, int longLookback, BigDecimal highRisk, BigDecimal lowRisk, BigDecimal allowance) {
         this.buyStrategyType = buyStrategyType;
         this.sellStrategyType = sellStrategyType;
         this.shortLookback = shortLookback;
@@ -65,13 +65,13 @@ public class ProcessHistoricIntradayPrices implements Runnable {
                 c = new Calc(aapl, config, price);
             }
             case ALPACA_CRYPTO_TEST -> {
-                Currency base = Util.getCurrencyFromPortfolio("USD", portfolio, CurrencyTypes.FIAT);
-                Currency counter = Util.getCurrencyFromPortfolio("BTC", portfolio, CurrencyTypes.CRYPTO);
+                Currency base = Util.getCurrencyFromPortfolio("USD", portfolio, CurrencyType.FIAT);
+                Currency counter = Util.getCurrencyFromPortfolio("BTC", portfolio, CurrencyType.CRYPTO);
                 c = new Calc(base, counter, CONFIG, BigDecimal.ZERO);
             }
             case BINANCE_TEST -> {
-                Currency base = Util.getCurrencyFromPortfolio("BTC", portfolio, CurrencyTypes.CRYPTO);
-                Currency counter = Util.getCurrencyFromPortfolio("USDT", portfolio, CurrencyTypes.CRYPTO);
+                Currency base = Util.getCurrencyFromPortfolio("BTC", portfolio, CurrencyType.CRYPTO);
+                Currency counter = Util.getCurrencyFromPortfolio("USDT", portfolio, CurrencyType.CRYPTO);
                 c = new Calc(base, counter, config, BigDecimal.ZERO);
             }
             default -> throw new IllegalStateException("Unexpected value: " + config.getBroker());

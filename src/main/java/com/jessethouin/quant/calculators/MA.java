@@ -1,11 +1,11 @@
 package com.jessethouin.quant.calculators;
 
-import com.jessethouin.quant.conf.MATypes;
+import com.jessethouin.quant.conf.MAType;
 
 import java.math.BigDecimal;
 
 public class MA {
-    public static BigDecimal ma(BigDecimal price, BigDecimal previousMA, int lookback, MATypes type) {
+    public static BigDecimal ma(BigDecimal price, BigDecimal previousMA, int lookback, MAType type) {
         BigDecimal ma = BigDecimal.ZERO;
         switch (type) {
             case EMA -> ma = EMA.ema(price, previousMA, lookback);

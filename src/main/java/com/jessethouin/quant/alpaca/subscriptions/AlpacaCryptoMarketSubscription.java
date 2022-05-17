@@ -2,7 +2,7 @@ package com.jessethouin.quant.alpaca.subscriptions;
 
 import com.jessethouin.quant.alpaca.AlpacaUtil;
 import com.jessethouin.quant.broker.Fundamental;
-import com.jessethouin.quant.conf.Instruments;
+import com.jessethouin.quant.conf.Instrument;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Singular;
@@ -78,7 +78,7 @@ public class AlpacaCryptoMarketSubscription {
         };
 
         ALPACA_CRYPTO_STREAMING_API.setListener(marketDataListener);
-        fundamentals.stream().filter(fundamental -> fundamental.getInstrument().equals(Instruments.CRYPTO)).forEach(fundamental -> {
+        fundamentals.stream().filter(fundamental -> fundamental.getInstrument().equals(Instrument.CRYPTO)).forEach(fundamental -> {
             List<String> currencies = List.of(fundamental.getCounterCurrency().getSymbol() + fundamental.getBaseCurrency().getSymbol());
             ALPACA_CRYPTO_STREAMING_API.subscribe(trades ? currencies : null, quotes ? currencies : null, bars ? currencies : null);
         });

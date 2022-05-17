@@ -3,7 +3,7 @@ package com.jessethouin.quant.conf;
 import com.jessethouin.quant.calculators.Calc;
 import java.math.BigDecimal;
 
-public enum BuyStrategyTypes {
+public enum BuyStrategyType {
     BUY1 {
         @Override
         public boolean buy(Calc c) {
