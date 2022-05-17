@@ -6,7 +6,7 @@ import com.jessethouin.quant.binance.subscriptions.*;
 import com.jessethouin.quant.broker.Fundamental;
 import com.jessethouin.quant.broker.Util;
 import com.jessethouin.quant.conf.Broker;
-import com.jessethouin.quant.conf.Instruments;
+import com.jessethouin.quant.conf.Instrument;
 import io.reactivex.disposables.CompositeDisposable;
 import lombok.Getter;
 import org.knowm.xchange.currency.CurrencyPair;
@@ -82,7 +82,7 @@ public class BinanceLive {
     }
 
     private Fundamental getFundamentals(CurrencyPair currencyPair) {
-        Fundamental fundamental = new Fundamental(Instruments.CRYPTO, currencyPair, portfolio);
+        Fundamental fundamental = new Fundamental(Instrument.CRYPTO, currencyPair, portfolio);
         fundamentalList.add(fundamental);
         return fundamental;
     }

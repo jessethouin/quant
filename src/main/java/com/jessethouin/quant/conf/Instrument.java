@@ -1,5 +1,5 @@
 package com.jessethouin.quant.conf;
 
-public enum Instruments {
+public enum Instrument {
     STOCK, CRYPTO, FIAT;
 }

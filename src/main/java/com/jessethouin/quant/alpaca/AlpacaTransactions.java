@@ -4,7 +4,7 @@ import com.jessethouin.quant.alpaca.beans.AlpacaOrder;
 import com.jessethouin.quant.alpaca.beans.repos.AlpacaOrderRepository;
 import com.jessethouin.quant.beans.Currency;
 import com.jessethouin.quant.beans.Security;
-import com.jessethouin.quant.conf.AssetClassTypes;
+import com.jessethouin.quant.conf.AssetClassType;
 import net.jacobpeterson.alpaca.model.endpoint.orders.Order;
 import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderSide;
 import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderTimeInForce;
@@ -80,7 +80,7 @@ public class AlpacaTransactions {
         alpacaOrder.setReplaces(order.getReplaces());
         alpacaOrder.setAssetId(order.getAssetId());
         alpacaOrder.setSymbol(order.getSymbol());
-        alpacaOrder.setAssetClass(AssetClassTypes.get(order.getAssetClass()));
+        alpacaOrder.setAssetClass(AssetClassType.get(order.getAssetClass()));
         alpacaOrder.setQty(order.getQuantity());
         alpacaOrder.setFilledQty(order.getFilledQuantity());
         alpacaOrder.setType(order.getType());

@@ -1,7 +1,7 @@
 package com.jessethouin.quant.alpaca.beans;
 
 import com.jessethouin.quant.beans.Portfolio;
-import com.jessethouin.quant.conf.AssetClassTypes;
+import com.jessethouin.quant.conf.AssetClassType;
 import com.jessethouin.quant.db.Exclude;
 import lombok.Getter;
 import lombok.Setter;
@@ -40,7 +40,7 @@ public class AlpacaOrder {
     private String replaces;
     private String assetId;
     private String symbol;
-    private AssetClassTypes assetClass;
+    private AssetClassType assetClass;
     private String qty;
     private String filledQty;
     private OrderType type;
@@ -74,7 +74,7 @@ public class AlpacaOrder {
         this.replaces = order.getReplaces();
         this.assetId = order.getAssetId();
         this.symbol = order.getSymbol();
-        this.assetClass = AssetClassTypes.get(order.getAssetClass());
+        this.assetClass = AssetClassType.get(order.getAssetClass());
         this.qty = order.getQuantity();
         this.filledQty = order.getFilledQuantity();
         this.type = order.getType();

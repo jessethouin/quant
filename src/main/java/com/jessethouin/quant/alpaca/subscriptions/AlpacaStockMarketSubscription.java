@@ -1,7 +1,7 @@
 package com.jessethouin.quant.alpaca.subscriptions;
 
 import com.jessethouin.quant.broker.Fundamental;
-import com.jessethouin.quant.conf.Instruments;
+import com.jessethouin.quant.conf.Instrument;
 import lombok.Builder;
 import lombok.Singular;
 import net.jacobpeterson.alpaca.model.endpoint.marketdata.stock.realtime.bar.StockBarMessage;
@@ -61,7 +61,7 @@ public class AlpacaStockMarketSubscription {
                 }
                 default -> throw new IllegalArgumentException("Unknown messageType in AlpacaStockMarketSubscription.subscribe()");
             }
-            fundamentals.stream().filter(f -> f.getInstrument().equals(Instruments.STOCK) && f.getSecurity().getSymbol().equals(symbol)).findFirst().ifPresent(fundamental -> {
+            fundamentals.stream().filter(f -> f.getInstrument().equals(Instrument.STOCK) && f.getSecurity().getSymbol().equals(symbol)).findFirst().ifPresent(fundamental -> {
                 fundamental.setPrice(BigDecimal.valueOf(price));
                 fundamental.setTimestamp(timestamp);
                 processMarketData(fundamental);
@@ -69,7 +69,7 @@ public class AlpacaStockMarketSubscription {
         };
 
         ALPACA_STOCK_STREAMING_API.setListener(marketDataListener);
-        fundamentals.stream().filter(fundamental -> fundamental.getInstrument().equals(Instruments.STOCK)).forEach(fundamental -> {
+        fundamentals.stream().filter(fundamental -> fundamental.getInstrument().equals(Instrument.STOCK)).forEach(fundamental -> {
             List<String> stocks = List.of(fundamental.getSecurity().getSymbol());
             ALPACA_STOCK_STREAMING_API.subscribe(trades ? stocks : null, quotes ? stocks : null, bars ? stocks : null);
         });

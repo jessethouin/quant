@@ -2,7 +2,7 @@ package com.jessethouin.quant.conf;
 
 import com.jessethouin.quant.calculators.Calc;
 
-public enum SellStrategyTypes {
+public enum SellStrategyType {
     SELL1 {
         @Override
         public boolean sell(Calc c) {

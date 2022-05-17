@@ -11,7 +11,7 @@ import com.jessethouin.quant.binance.beans.BinanceLimitOrder;
 import com.jessethouin.quant.broker.Transactions;
 import com.jessethouin.quant.broker.Util;
 import com.jessethouin.quant.calculators.Calc;
-import com.jessethouin.quant.conf.CurrencyTypes;
+import com.jessethouin.quant.conf.CurrencyType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Component;
@@ -54,13 +54,13 @@ public class BacktestStaticParameters extends AbstractBacktest {
                 c = new Calc(aapl, CONFIG, price);
             }
             case ALPACA_CRYPTO_TEST -> {
-                Currency base = Util.getCurrencyFromPortfolio("USD", portfolio, CurrencyTypes.FIAT);
-                Currency counter = Util.getCurrencyFromPortfolio("BTC", portfolio, CurrencyTypes.CRYPTO);
+                Currency base = Util.getCurrencyFromPortfolio("USD", portfolio, CurrencyType.FIAT);
+                Currency counter = Util.getCurrencyFromPortfolio("BTC", portfolio, CurrencyType.CRYPTO);
                 c = new Calc(base, counter, CONFIG, BigDecimal.ZERO);
             }
             case BINANCE_TEST -> {
-                Currency base = Util.getCurrencyFromPortfolio("BTC", portfolio, CurrencyTypes.CRYPTO);
-                Currency counter = Util.getCurrencyFromPortfolio("USDT", portfolio, CurrencyTypes.CRYPTO);
+                Currency base = Util.getCurrencyFromPortfolio("BTC", portfolio, CurrencyType.CRYPTO);
+                Currency counter = Util.getCurrencyFromPortfolio("USDT", portfolio, CurrencyType.CRYPTO);
                 c = new Calc(base, counter, CONFIG, BigDecimal.ZERO);
             }
             default -> throw new IllegalStateException("Unexpected value: " + CONFIG.getBroker());

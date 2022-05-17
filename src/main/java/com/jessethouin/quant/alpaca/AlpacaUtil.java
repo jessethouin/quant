@@ -2,8 +2,8 @@ package com.jessethouin.quant.alpaca;
 
 import com.jessethouin.quant.beans.*;
 import com.jessethouin.quant.broker.Util;
-import com.jessethouin.quant.conf.AssetClassTypes;
-import com.jessethouin.quant.conf.CurrencyTypes;
+import com.jessethouin.quant.conf.AssetClassType;
+import com.jessethouin.quant.conf.CurrencyType;
 import net.jacobpeterson.alpaca.model.endpoint.account.Account;
 import net.jacobpeterson.alpaca.model.endpoint.common.enums.SortDirection;
 import net.jacobpeterson.alpaca.model.endpoint.orders.Order;
@@ -29,7 +29,7 @@ public class AlpacaUtil {
         try {
             reconcilePositions(portfolio);
             reconcileOrders(portfolio);
-            reconcileCurrency(portfolio, ALPACA_ACCOUNT_API.get().getCurrency(), new BigDecimal(ALPACA_ACCOUNT_API.get().getCash()), CurrencyTypes.FIAT);
+            reconcileCurrency(portfolio, ALPACA_ACCOUNT_API.get().getCurrency(), new BigDecimal(ALPACA_ACCOUNT_API.get().getCash()), CurrencyType.FIAT);
         } catch (AlpacaClientException e) {
             LOG.error(e.getLocalizedMessage());
         }
@@ -63,18 +63,18 @@ public class AlpacaUtil {
             String remoteSymbol = remotePosition.getSymbol();
             BigDecimal remoteQuantity = new BigDecimal(remotePosition.getQuantity());
 
-            AssetClassTypes assetClassType = AssetClassTypes.get(remotePosition.getAssetClass());
+            AssetClassType assetClassType = AssetClassType.get(remotePosition.getAssetClass());
 
-            if (assetClassType.equals(AssetClassTypes.CRYPTO)) {
+            if (assetClassType.equals(AssetClassType.CRYPTO)) {
                 remoteSymbol = parseAlpacaCryptoSymbol(remoteSymbol);
-                reconcileCurrency(portfolio, remoteSymbol, remoteQuantity, CurrencyTypes.CRYPTO);
-            } else if (assetClassType.equals(AssetClassTypes.US_EQUITY)) {
+                reconcileCurrency(portfolio, remoteSymbol, remoteQuantity, CurrencyType.CRYPTO);
+            } else if (assetClassType.equals(AssetClassType.US_EQUITY)) {
                 reconcileSecurity(portfolio, remotePosition);
             }
         });
     }
 
-    private static void reconcileCurrency(Portfolio portfolio, String remoteSymbol, BigDecimal remoteQuantity, CurrencyTypes currencyType) {
+    private static void reconcileCurrency(Portfolio portfolio, String remoteSymbol, BigDecimal remoteQuantity, CurrencyType currencyType) {
         Currency currency = Util.getCurrencyFromPortfolio(remoteSymbol, portfolio, currencyType);
 
         LOG.info("{}: Reconciling local currency ledger with remote ledger ({}).", currency.getSymbol(), remoteQuantity);

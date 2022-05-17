@@ -1,6 +1,6 @@
 package com.jessethouin.quant.beans;
 
-import com.jessethouin.quant.conf.CurrencyTypes;
+import com.jessethouin.quant.conf.CurrencyType;
 import com.jessethouin.quant.db.BigDecimalConverter;
 import com.jessethouin.quant.db.Exclude;
 import lombok.*;
@@ -19,7 +19,7 @@ public class Currency {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long currencyId;
     private String symbol;
-    private CurrencyTypes currencyType;
+    private CurrencyType currencyType;
     @Convert(converter = BigDecimalConverter.class)
     private BigDecimal quantity;
     @Convert(converter = BigDecimalConverter.class)

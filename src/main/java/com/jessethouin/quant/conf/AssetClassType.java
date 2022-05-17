@@ -6,27 +6,27 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-public enum AssetClassTypes {
+public enum AssetClassType {
     CRYPTO("crypto"),
     US_EQUITY("us_equity");
 
     @Getter
     private final String assetClass;
-    private static final Map<String, AssetClassTypes> ENUM_MAP;
+    private static final Map<String, AssetClassType> ENUM_MAP;
 
-    AssetClassTypes(String assetClass) {
+    AssetClassType(String assetClass) {
         this.assetClass = assetClass;
     }
 
     static {
-        Map<String, AssetClassTypes> map = new ConcurrentHashMap<>();
-        for (AssetClassTypes instance : AssetClassTypes.values()) {
+        Map<String, AssetClassType> map = new ConcurrentHashMap<>();
+        for (AssetClassType instance : AssetClassType.values()) {
             map.put(instance.getAssetClass().toLowerCase(),instance);
         }
         ENUM_MAP = Collections.unmodifiableMap(map);
     }
 
-    public static AssetClassTypes get(String name) {
+    public static AssetClassType get(String name) {
         return ENUM_MAP.get(name.toLowerCase());
     }
 }

@@ -1,6 +1,6 @@
 package com.jessethouin.quant.conf;
 
-public enum CurrencyTypes {
+public enum CurrencyType {
     FIAT,
     CRYPTO
 }

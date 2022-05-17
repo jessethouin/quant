@@ -6,7 +6,7 @@ import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.beans.Security;
 import com.jessethouin.quant.broker.Transactions;
 import com.jessethouin.quant.broker.Util;
-import com.jessethouin.quant.conf.AssetClassTypes;
+import com.jessethouin.quant.conf.AssetClassType;
 import net.jacobpeterson.alpaca.model.endpoint.orders.Order;
 import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderSide;
 import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderStatus;
@@ -32,7 +32,7 @@ public class AlpacaTestTransactions {
 
     private static void placeTestCurrencyOrder(Currency base, Currency counter, BigDecimal qty, BigDecimal price, OrderSide orderSide) {
         if (qty.equals(BigDecimal.ZERO)) return;
-        Order order = getSampleOrder(counter.getSymbol() + base.getSymbol(), qty, price, orderSide, AssetClassTypes.CRYPTO);
+        Order order = getSampleOrder(counter.getSymbol() + base.getSymbol(), qty, price, orderSide, AssetClassType.CRYPTO);
         processTestOrder(qty, price, new AlpacaOrder(order, base.getPortfolio()));
     }
 
@@ -46,11 +46,11 @@ public class AlpacaTestTransactions {
 
     private static void placeTestSecurityOrder(Security security, BigDecimal qty, BigDecimal price, OrderSide orderSide) {
         if (qty.equals(BigDecimal.ZERO)) return;
-        Order order = getSampleOrder(security.getSymbol(), qty, price, orderSide, AssetClassTypes.US_EQUITY);
+        Order order = getSampleOrder(security.getSymbol(), qty, price, orderSide, AssetClassType.US_EQUITY);
         processTestOrder(qty, price, new AlpacaOrder(order, security.getPortfolio()));
     }
 
-    private static Order getSampleOrder(String symbol, BigDecimal qty, BigDecimal price, OrderSide orderSide, AssetClassTypes assetClass) {
+    private static Order getSampleOrder(String symbol, BigDecimal qty, BigDecimal price, OrderSide orderSide, AssetClassType assetClass) {
         /*
         * String id,
         * String clientOrderId,
