@@ -6,10 +6,11 @@ import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.beans.Security;
 import com.jessethouin.quant.broker.Util;
 import com.jessethouin.quant.calculators.Calc;
-import com.jessethouin.quant.conf.BuyStrategyTypes;
+import com.jessethouin.quant.conf.BuyStrategyType;
 import com.jessethouin.quant.conf.Config;
-import com.jessethouin.quant.conf.SellStrategyTypes;
-import net.jacobpeterson.alpaca.enums.OrderSide;
+import com.jessethouin.quant.conf.CurrencyType;
+import com.jessethouin.quant.conf.SellStrategyType;
+import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderSide;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.knowm.xchange.dto.Order;
@@ -19,22 +20,19 @@ import java.util.Date;
 
 import static com.jessethouin.quant.backtest.BacktestParameterCombos.BACKTEST_RESULTS_QUEUE;
 import static com.jessethouin.quant.backtest.BacktestParameterCombos.INTRADAY_PRICES;
+import static com.jessethouin.quant.conf.Config.CONFIG;
 
 public class ProcessHistoricIntradayPrices implements Runnable {
     private static final Logger LOG = LogManager.getLogger(ProcessHistoricIntradayPrices.class);
-    final BuyStrategyTypes buyStrategyType;
-    final SellStrategyTypes sellStrategyType;
+    final BuyStrategyType buyStrategyType;
+    final SellStrategyType sellStrategyType;
     final int shortLookback;
     final int longLookback;
     final BigDecimal highRisk;
     final BigDecimal lowRisk;
     final BigDecimal allowance;
-/*
-    final Date backtestStart;
-    final Date backtestEnd;
-*/
 
-    public ProcessHistoricIntradayPrices(BuyStrategyTypes buyStrategyType, SellStrategyTypes sellStrategyType, int shortLookback, int longLookback, BigDecimal highRisk, BigDecimal lowRisk, BigDecimal allowance) {
+    public ProcessHistoricIntradayPrices(BuyStrategyType buyStrategyType, SellStrategyType sellStrategyType, int shortLookback, int longLookback, BigDecimal highRisk, BigDecimal lowRisk, BigDecimal allowance) {
         this.buyStrategyType = buyStrategyType;
         this.sellStrategyType = sellStrategyType;
         this.shortLookback = shortLookback;
@@ -62,13 +60,18 @@ public class ProcessHistoricIntradayPrices implements Runnable {
 
         Calc c;
         switch (config.getBroker()) {
-            case ALPACA_TEST -> {
-                Security aapl = Util.getSecurity(portfolio, "AAPL");
+            case ALPACA_SECURITY_TEST -> {
+                Security aapl = Util.getSecurityFromPortfolio("AAPL", portfolio);
                 c = new Calc(aapl, config, price);
             }
+            case ALPACA_CRYPTO_TEST -> {
+                Currency base = Util.getCurrencyFromPortfolio("USD", portfolio, CurrencyType.FIAT);
+                Currency counter = Util.getCurrencyFromPortfolio("BTC", portfolio, CurrencyType.CRYPTO);
+                c = new Calc(base, counter, CONFIG, BigDecimal.ZERO);
+            }
             case BINANCE_TEST -> {
-                Currency base = Util.getCurrency(portfolio, "BTC");
-                Currency counter = Util.getCurrency(portfolio, "USDT");
+                Currency base = Util.getCurrencyFromPortfolio("BTC", portfolio, CurrencyType.CRYPTO);
+                Currency counter = Util.getCurrencyFromPortfolio("USDT", portfolio, CurrencyType.CRYPTO);
                 c = new Calc(base, counter, config, BigDecimal.ZERO);
             }
             default -> throw new IllegalStateException("Unexpected value: " + config.getBroker());
@@ -82,24 +85,33 @@ public class ProcessHistoricIntradayPrices implements Runnable {
                 c.updateCalc(price, shortMAValue, longMAValue);
                 c.decide();
             } catch (Exception e) {
-                LOG.error(e.getMessage());
+                LOG.error("Error while looping INTRADAY_PRICES {}", e.getMessage());
             }
         }
 
         BigDecimal portfolioValue;
         BigDecimal bids;
+        BigDecimal fees;
         switch (config.getBroker()) {
-            case ALPACA_TEST -> {
+            case ALPACA_SECURITY_TEST -> {
                 portfolioValue = Util.getPortfolioValue(portfolio, c.getBase(), price);
-                bids = BigDecimal.valueOf(portfolio.getAlpacaOrders().stream().filter(alpacaOrder -> alpacaOrder.getType().equals(OrderSide.BUY.getAPIName())).count());
+                bids = BigDecimal.valueOf(portfolio.getAlpacaOrders().stream().filter(alpacaOrder -> alpacaOrder.getSide().equals(OrderSide.BUY)).count());
+                fees = BigDecimal.ZERO; // todo: aLpAcA hAs No FeEs. :(
+            }
+            case ALPACA_CRYPTO_TEST -> {
+                portfolioValue = Util.getValueAtPrice(c.getCounter(), price).add(c.getBase().getQuantity());
+                bids = BigDecimal.valueOf(portfolio.getAlpacaOrders().stream().filter(alpacaOrder -> alpacaOrder.getSide().equals(OrderSide.BUY)).count());
+                fees = BigDecimal.ZERO; // todo: aLpAcA hAs No FeEs. :(
             }
             case BINANCE_TEST -> {
                 portfolioValue = Util.getValueAtPrice(c.getBase(), price).add(c.getCounter().getQuantity());
                 bids = BigDecimal.valueOf(portfolio.getBinanceLimitOrders().stream().filter(binanceLimitOrder -> binanceLimitOrder.getType().equals(Order.OrderType.BID)).count());
+                fees = portfolio.getBinanceLimitOrders().stream().map(binanceLimitOrder -> binanceLimitOrder.getCommissionAmount().multiply(binanceLimitOrder.getLimitPrice())).reduce(BigDecimal.ZERO, BigDecimal::add);
             }
             default -> {
                 portfolioValue = BigDecimal.ZERO;
                 bids = BigDecimal.ZERO;
+                fees = BigDecimal.ZERO;
             }
         }
 
@@ -114,12 +126,10 @@ public class ProcessHistoricIntradayPrices implements Runnable {
                 .shortLookback(shortLookback)
                 .longLookback(longLookback)
                 .bids(bids)
+                .fees(fees)
                 .value(portfolioValue)
                 .build();
 
         BACKTEST_RESULTS_QUEUE.offer(backtestParameterResults);
-
-//        String msg = MessageFormat.format("{5}/{6} : {7} : {0,number,00} : {1,number,00} : {2,number,0.00} : {3,number,0.00} : {4,number,00000.000}", shortLookback, longLookback, lowRisk, highRisk, portfolioValue, buyStrategyType, sellStrategyType, allowance);
-//        LOG.info(msg);
     }
 }

@@ -1,7 +1,9 @@
 package com.jessethouin.quant.binance.beans;
 
+import com.jessethouin.quant.beans.Currency;
 import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.db.BigDecimalConverter;
+import com.jessethouin.quant.db.Exclude;
 import lombok.Getter;
 import lombok.Setter;
 import org.knowm.xchange.dto.Order;
@@ -10,22 +12,22 @@ import org.knowm.xchange.dto.trade.LimitOrder;
 import javax.persistence.*;
 import java.math.BigDecimal;
 import java.util.Date;
-import java.util.Objects;
 
 /*
-This is esentially an exact copy of org.knowm.xchange.dto.trade.LimitOrder,
-but those stick-in-the-muds made their members private, so I couldn't just
+This is essentially an exact copy of org.knowm.xchange.dto.trade.LimitOrder,
+but those sticks-in-the-mud made their members private, so I couldn't just
 extend the damned thing.
 */
 @Entity
 @Table(name = "BINANCE_LIMIT_ORDER")
 @Getter
 @Setter
-public class BinanceLimitOrder implements Comparable<BinanceLimitOrder> {
+public class BinanceLimitOrder {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long orderId;
-    @ManyToOne(fetch = FetchType.EAGER)
+    private Long orderId;
+    @Exclude
+    @ManyToOne
     @JoinColumn(name = "portfolio_id")
     private Portfolio portfolio;
     private Order.OrderType type;
@@ -45,6 +47,11 @@ public class BinanceLimitOrder implements Comparable<BinanceLimitOrder> {
     private String leverage;
     @Convert(converter = BigDecimalConverter.class)
     private BigDecimal limitPrice;
+    @ManyToOne
+    @JoinColumn(name = "commission_currency_id")
+    private Currency commissionAsset;
+    @Convert(converter = BigDecimalConverter.class)
+    private BigDecimal commissionAmount;
 
     public BinanceLimitOrder() {
     }
@@ -62,7 +69,6 @@ public class BinanceLimitOrder implements Comparable<BinanceLimitOrder> {
         this.fee = limitOrder.getFee();
         this.status = limitOrder.getStatus();
         this.userReference = limitOrder.getUserReference();
-        this.cumulativeAmount = limitOrder.getCumulativeCounterAmount();
         this.leverage = limitOrder.getLeverage();
     }
 
@@ -70,7 +76,7 @@ public class BinanceLimitOrder implements Comparable<BinanceLimitOrder> {
     public String toString() {
         return "BinanceLimitOrder "
                 + "[limitPrice="
-                + printLimitPrice()
+                + print(limitPrice)
                 + ", type="
                 + type
                 + ", originalAmount="
@@ -91,53 +97,14 @@ public class BinanceLimitOrder implements Comparable<BinanceLimitOrder> {
                 + status
                 + ", userReference="
                 + userReference
+                + ", commissionAsset="
+                + (commissionAsset == null ? null : commissionAsset.getSymbol())
+                + ", commissionAmount="
+                + print(commissionAmount)
                 + "]";
-    }
-
-    private String printLimitPrice() {
-        return limitPrice == null ? null : limitPrice.toPlainString();
     }
 
     private static String print(BigDecimal value) {
         return value == null ? null : value.toPlainString();
-    }
-
-    @Override
-    public int compareTo(BinanceLimitOrder limitOrder) {
-        final int ret;
-        if (this.getType() == limitOrder.getType()) {
-            // Same side
-            ret = this.getLimitPrice().compareTo(limitOrder.getLimitPrice()) * (getType() == Order.OrderType.BID ? -1 : 1);
-        } else {
-            // Keep bid side be less than ask side
-            ret = this.getType() == Order.OrderType.BID ? -1 : 1;
-        }
-        return ret;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        BinanceLimitOrder that = (BinanceLimitOrder) o;
-        return orderId == that.orderId &&
-                Objects.equals(portfolio, that.portfolio) &&
-                type == that.type &&
-                Objects.equals(originalAmount, that.originalAmount) &&
-                Objects.equals(instrument, that.instrument) &&
-                Objects.equals(id, that.id) &&
-                Objects.equals(userReference, that.userReference) &&
-                Objects.equals(timestamp, that.timestamp) &&
-                status == that.status &&
-                Objects.equals(cumulativeAmount, that.cumulativeAmount) &&
-                Objects.equals(averagePrice, that.averagePrice) &&
-                Objects.equals(fee, that.fee) &&
-                Objects.equals(leverage, that.leverage) &&
-                Objects.equals(limitPrice, that.limitPrice);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(orderId, portfolio, type, originalAmount, instrument, id, userReference, timestamp, status, cumulativeAmount, averagePrice, fee, leverage, limitPrice);
     }
 }

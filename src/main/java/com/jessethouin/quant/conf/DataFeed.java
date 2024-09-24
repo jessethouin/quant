@@ -4,5 +4,7 @@ public enum DataFeed {
     TICKER,
     TRADE,
     ORDER_BOOK,
-    KLINE
+    KLINE,
+    BAR,
+    QUOTE
 }

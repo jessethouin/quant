@@ -31,7 +31,10 @@
             <AppenderRef ref="ROLLING_FILE" level="info"/>
         </Logger>
         <Logger name="com.jessethouin.quant.broker.Transactions" level="trace">
-            <AppenderRef ref="ROLLING_FILE" level="info"/>
+            <AppenderRef ref="ROLLING_FILE" level="debug"/>
+        </Logger>
+        <Logger name="com.jessethouin.quant.binance.BinanceTransactions" level="trace">
+            <AppenderRef ref="ROLLING_FILE" level="debug"/>
         </Logger>
         <Logger name="org.hibernate.SQL" level="info" additivity="false">
             <AppenderRef ref="STDOUT"/>
@@ -40,7 +43,7 @@
             <AppenderRef ref="STDOUT"/>
         </Logger>
         <Root level="trace">
-            <AppenderRef ref="STDOUT" level="debug"/>
+            <AppenderRef ref="STDOUT" level="info"/>
             <AppenderRef ref="FILE" level="debug"/>
         </Root>
     </Loggers>

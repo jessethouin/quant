@@ -1,23 +1,19 @@
 package com.jessethouin.quant.broker;
 
+import com.jessethouin.quant.alpaca.AlpacaTestTransactions;
 import com.jessethouin.quant.alpaca.AlpacaTransactions;
-import com.jessethouin.quant.alpaca.beans.AlpacaOrder;
 import com.jessethouin.quant.beans.Currency;
 import com.jessethouin.quant.beans.Security;
 import com.jessethouin.quant.beans.SecurityPosition;
-import com.jessethouin.quant.binance.BinanceLive;
+import com.jessethouin.quant.binance.BinanceTestTransactions;
 import com.jessethouin.quant.binance.BinanceTransactions;
-import com.jessethouin.quant.binance.beans.BinanceLimitOrder;
 import com.jessethouin.quant.conf.Broker;
-import com.jessethouin.quant.conf.Config;
-import com.jessethouin.quant.db.Database;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.knowm.xchange.currency.CurrencyPair;
-import org.knowm.xchange.dto.Order;
 
 import java.math.BigDecimal;
-import java.time.ZonedDateTime;
+import java.math.RoundingMode;
 import java.util.Date;
 
 public class Transactions {
@@ -45,18 +41,21 @@ public class Transactions {
         LOG.trace("Create buy order for " + qty + " " + base.getSymbol() + " at " + price);
 
         switch (broker) {
-            case COINBASE -> LOG.info("Place COINBASE buy order here");
-            case CEXIO -> LOG.info("Place CEXIO buy order here");
+            case ALPACA -> {
+                LOG.debug("Placing Alpaca BUY LIMIT order for {} of {} at {}", qty.toPlainString(), counter.getSymbol(), price);
+                AlpacaTransactions.buyCurrency(base, counter, qty, price);
+            }
+            case ALPACA_CRYPTO_TEST -> {
+                LOG.debug("Placing Alpaca BUY LIMIT order for {} of {} at {}", qty.toPlainString(), counter.getSymbol(), price);
+                AlpacaTestTransactions.placeTestCurrencyBuyOrder(base, counter, qty, price);
+            }
             case BINANCE -> {
-                LOG.info("Placing Binance BUY LIMIT order for {} of {} at {}", qty, base.getSymbol(), price);
-                BinanceTransactions.buyCurrency(base.getPortfolio(), new CurrencyPair(base.getSymbol(), counter.getSymbol()), qty, price);
+                LOG.debug("Placing Binance BUY LIMIT order for {} of {} at {}", qty.toPlainString(), base.getSymbol(), price);
+                BinanceTransactions.buyCurrency(new CurrencyPair(base.getSymbol(), counter.getSymbol()), qty, price);
             }
             case BINANCE_TEST -> {
-                LOG.trace("Placing Binance TEST BUY LIMIT order for {} of {} at {}", qty, base.getSymbol(), price);
-                BinanceLimitOrder binanceLimitOrder = BinanceTransactions.buyTestCurrency(base.getPortfolio(), new CurrencyPair(base.getSymbol(), counter.getSymbol()), qty, price);
-                if (binanceLimitOrder == null) return;
-
-                processTestTransaction(qty, binanceLimitOrder);
+                LOG.debug("Placing Binance TEST BUY LIMIT order for {} of {} at {}", qty.toPlainString(), base.getSymbol(), price);
+                BinanceTestTransactions.buyTestCurrency(base.getPortfolio(), new CurrencyPair(base.getSymbol(), counter.getSymbol()), qty, price);
             }
             default -> throw new IllegalStateException("Unexpected broker: " + broker);
         }
@@ -66,101 +65,69 @@ public class Transactions {
         if (base.getQuantity().compareTo(BigDecimal.ZERO) == 0) return false;
 
         switch (broker) {
-            case COINBASE -> LOG.info("Place COINBASE sell order here");
-            case CEXIO -> LOG.info("Place CEXIO sell order here");
+            case ALPACA -> {
+                LOG.debug("Placing Alpaca SELL LIMIT order for {} of {} at {}", counter.getQuantity().toPlainString(), counter.getSymbol() + base.getSymbol(), price);
+                AlpacaTransactions.sellCurrency(base, counter, counter.getQuantity(), price);
+            }
+            case ALPACA_CRYPTO_TEST -> {
+                LOG.debug("Placing Alpaca SELL LIMIT order for {} of {} at {}", counter.getQuantity().toPlainString(), counter.getSymbol() + base.getSymbol(), price);
+                AlpacaTestTransactions.placeTestCurrencySellOrder(base, counter, counter.getQuantity(), price);
+            }
             case BINANCE -> {
-                LOG.trace("Placing Binance SELL LIMIT Order for {} of {} at {}", base.getQuantity(), base.getSymbol(), price);
-                BinanceTransactions.sellCurrency(base.getPortfolio(), new CurrencyPair(base.getSymbol(), counter.getSymbol()), base.getQuantity(), price);
+                LOG.debug("Placing Binance SELL LIMIT Order for {} of {} at {}", base.getQuantity().toPlainString(), base.getSymbol(), price);
+                BinanceTransactions.sellCurrency(new CurrencyPair(base.getSymbol(), counter.getSymbol()), base.getQuantity(), price);
             }
             case BINANCE_TEST -> {
-                LOG.trace("Placing Binance TEST SELL LIMIT Order for {} of {} at {}", base.getQuantity(), base.getSymbol(), price);
-                BinanceLimitOrder binanceLimitOrder = BinanceTransactions.sellTestCurrency(base.getPortfolio(), new CurrencyPair(base.getSymbol(), counter.getSymbol()), base.getQuantity(), price);
-                if (binanceLimitOrder == null) return false;
-
-                processTestTransaction(base.getQuantity(), binanceLimitOrder);
+                LOG.debug("Placing Binance TEST SELL LIMIT Order for {} of {} at {}", base.getQuantity().toPlainString(), base.getSymbol(), price);
+                BinanceTestTransactions.sellTestCurrency(base.getPortfolio(), new CurrencyPair(base.getSymbol(), counter.getSymbol()), base.getQuantity(), price);
             }
             default -> throw new IllegalStateException("Unexpected broker: " + broker);
         }
         return true;
-    }
-
-    private static void processTestTransaction(BigDecimal qty, BinanceLimitOrder binanceLimitOrder) {
-        if (!Config.INSTANCE.isBackTest()) {
-            Database.persistBinanceLimitOrder(binanceLimitOrder);
-            BinanceLive.INSTANCE.getOrderHistoryLookup().setOrderId(binanceLimitOrder.getOrderId());
-        }
-        BinanceTransactions.processBinanceLimitOrder(binanceLimitOrder);
-
-        // This code would normally be handled by the Order websocket feed
-        binanceLimitOrder.setStatus(Order.OrderStatus.FILLED);
-        binanceLimitOrder.setAveragePrice(BigDecimal.ONE);
-        binanceLimitOrder.setCumulativeAmount(qty);
-        BinanceTransactions.processBinanceLimitOrder(binanceLimitOrder);
     }
 
     private static void placeSecurityBuyOrder(Broker broker, Security security, BigDecimal qty, BigDecimal price) {
         LOG.trace("Create buy order for " + qty + " " + security.getSymbol() + " at " + price);
 
         switch (broker) {
-            case ALPACA -> AlpacaTransactions.placeSecurityBuyOrder(security, qty, price);
-            case ALPACA_TEST -> {
-                AlpacaOrder alpacaOrder = AlpacaTransactions.placeTestSecurityBuyOrder(security, qty, price);
-
-                // This code would normally be handled by the Order websocket feed
-                if (alpacaOrder == null) return;
-                alpacaOrder.setStatus(Order.OrderStatus.FILLED.toString());
-                alpacaOrder.setFilledAt(ZonedDateTime.now());
-                alpacaOrder.setFilledQty(qty.toPlainString());
-                alpacaOrder.setFilledAvgPrice(price.toPlainString());
-                AlpacaTransactions.processFilledOrder(alpacaOrder);
-            }
+            case ALPACA -> AlpacaTransactions.buySecurity(security, qty, price);
+            case ALPACA_SECURITY_TEST -> AlpacaTestTransactions.placeTestSecurityBuyOrder(security, qty, price);
             default -> throw new IllegalStateException("Unexpected broker: " + broker);
         }
     }
 
-    private static boolean placeSecuritySellOrder(Broker broker, Security security, BigDecimal price, boolean sellAll) {
-        BigDecimal[] qty = {BigDecimal.ZERO};
-
-        security.getSecurityPositions().forEach(position -> {
-            if (position.getPrice().compareTo(price) < 0 || sellAll) {
-                LOG.trace("Create sell order for " + position.getQuantity() + " " + security.getSymbol() + " at " + price);
-                qty[0] = qty[0].add(position.getQuantity());
-            }
-        });
-
-        BigDecimal sellQty = qty[0];
+    private static boolean placeSecuritySellOrder(Broker broker, Security security, BigDecimal price) {
+        BigDecimal sellQty = security.getSecurityPosition().getQuantity();
         if (sellQty.equals(BigDecimal.ZERO)) return false;
 
         switch (broker) {
-            case ALPACA -> AlpacaTransactions.placeSecuritySellOrder(security, sellQty, price);
-            case ALPACA_TEST -> {
-                AlpacaOrder alpacaOrder = AlpacaTransactions.placeTestSecuritySellOrder(security, sellQty, price);
-
-                // This code would normally be handled by the Order websocket feed
-                if (alpacaOrder == null) return false;
-                alpacaOrder.setStatus(Order.OrderStatus.FILLED.toString());
-                alpacaOrder.setFilledAt(ZonedDateTime.now());
-                alpacaOrder.setFilledQty(sellQty.toPlainString());
-                alpacaOrder.setFilledAvgPrice(price.toPlainString());
-                AlpacaTransactions.processFilledOrder(alpacaOrder);
-            }
+            case ALPACA -> AlpacaTransactions.sellSecurity(security, sellQty, price);
+            case ALPACA_SECURITY_TEST -> AlpacaTestTransactions.placeTestSecuritySellOrder(security, sellQty, price);
             default -> throw new IllegalStateException("Unexpected broker: " + broker);
         }
         return true;
     }
 
-    private static boolean placeSecuritySellOrder(Broker broker, Security security, BigDecimal price) {
-        return placeSecuritySellOrder(broker, security, price, false);
-    }
-
-    public static void addSecurityPosition(Security security, BigDecimal qty, BigDecimal price) {
+    public static void adjustSecurityPosition(Security security, BigDecimal qty, BigDecimal price) {
         if (qty.compareTo(BigDecimal.ZERO) == 0) return;
 
-        SecurityPosition securityPosition = new SecurityPosition();
-        securityPosition.setQuantity(qty);
-        securityPosition.setPrice(price);
-        securityPosition.setSecurity(security);
-        securityPosition.setOpened(new Date());
-        security.getSecurityPositions().add(securityPosition);
+        SecurityPosition securityPosition = security.getSecurityPosition();
+        if (securityPosition == null) {
+            if (qty.compareTo(BigDecimal.ZERO) > 0) {
+                securityPosition = new SecurityPosition();
+                securityPosition.setQuantity(qty);
+                securityPosition.setPrice(price);
+                securityPosition.setSecurity(security);
+                securityPosition.setOpened(new Date());
+                security.setSecurityPosition(securityPosition);
+            }
+        } else {
+            BigDecimal currentQty = securityPosition.getQuantity();
+            BigDecimal currentPrice = securityPosition.getPrice();
+            // ((current price * current quantity) + (new price * new quantity)) / (current quantity + new quantity)
+            BigDecimal newPrice = ((currentPrice.multiply(currentQty)).add(price.multiply(qty))).divide(currentQty.add(qty), RoundingMode.HALF_UP);
+            securityPosition.setQuantity(securityPosition.getQuantity().add(qty));
+            securityPosition.setPrice(newPrice);
+        }
     }
 }

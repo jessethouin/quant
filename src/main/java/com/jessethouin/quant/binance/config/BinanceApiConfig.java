@@ -18,11 +18,14 @@ public class BinanceApiConfig {
     String userName;
     String apiKey;
     String secretKey;
+    String restApi;
+    String wsApi;
+    String streamApi;
 
     private BinanceApiConfig() {
         try {
             Properties prop = new Properties();
-            String propFileName = "binance.properties";
+            String propFileName = "binance-prod.properties";
             inputStream = getClass().getClassLoader().getResourceAsStream(propFileName);
             if (inputStream != null) {
                 prop.load(inputStream);
@@ -32,6 +35,9 @@ public class BinanceApiConfig {
             setUserName(prop.getProperty("userName"));
             setApiKey(prop.getProperty("apiKey"));
             setSecretKey(prop.getProperty("secretKey"));
+            setRestApi(prop.getProperty("restApi"));
+            setWsApi(prop.getProperty("wsApi"));
+            setStreamApi(prop.getProperty("streamApi"));
         } catch (IOException e) {
             LOG.error("Unable to read properties file: " + e.getLocalizedMessage());
         }
