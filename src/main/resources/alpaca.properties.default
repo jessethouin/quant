@@ -1,0 +1,12 @@
+#Defaults:
+# endpoint_api_type is 'live' or 'paper'
+endpoint_api_type = paper
+data_api_type=iex
+
+#live
+#key_id =
+#secret_key =
+
+#paper
+key_id =
+secret_key =

@@ -31,10 +31,9 @@ public class Config {
     private BigDecimal fee;
     private int shortLookback;
     private int longLookback;
-    private BuyStrategyTypes buyStrategy;
-    private SellStrategyTypes sellStrategy;
+    private BuyStrategyType buyStrategy;
+    private SellStrategyType sellStrategy;
     private boolean backTest;
-    private int backtestQty;
     private Date backtestStart;
     private Date backtestEnd;
     private boolean backtestLowRisk;
@@ -49,8 +48,10 @@ public class Config {
     private List<String> cryptoCurrencies;
     private Broker broker;
     private DataFeed dataFeed;
+    private boolean triggerBuy;
+    private boolean triggerSell;
 
-    public static final Config INSTANCE = new Config();
+    public static final Config CONFIG = new Config();
 
     private Config() {
         try {
@@ -70,10 +71,8 @@ public class Config {
             setLowRisk(new BigDecimal(prop.getProperty("lowRisk")));
             setShortLookback(Integer.parseInt(prop.getProperty("shortLookback")));
             setLongLookback(Integer.parseInt(prop.getProperty("longLookback")));
-            setBuyStrategy(BuyStrategyTypes.valueOf(prop.getProperty("buyStrategy")));
-            setSellStrategy(SellStrategyTypes.valueOf(prop.getProperty("sellStrategy")));
-            setBackTest(Boolean.parseBoolean(prop.getProperty("backTest")));
-            setBacktestQty(Integer.parseInt(prop.getProperty("backtestQty")));
+            setBuyStrategy(BuyStrategyType.valueOf(prop.getProperty("buyStrategy")));
+            setSellStrategy(SellStrategyType.valueOf(prop.getProperty("sellStrategy")));
             setBacktestStart(Date.from(LocalDateTime.parse(prop.getProperty("backtestStart")).toInstant(ZoneOffset.UTC)));
             setBacktestEnd(Date.from(LocalDateTime.parse(prop.getProperty("backtestEnd")).toInstant(ZoneOffset.UTC)));
             setBacktestLowRisk(Boolean.parseBoolean(prop.getProperty("backtestLowRisk")));
@@ -83,11 +82,29 @@ public class Config {
             setRecalibrate(Boolean.parseBoolean(prop.getProperty("recalibrate")));
             setRecalibrateFreq(Integer.parseInt(prop.getProperty("recalibrateFreq")));
             setRecalibrateHours(Integer.parseInt(prop.getProperty("recalibrateHours")));
-            setSecurities(Stream.of(prop.getProperty("securities").split(",", -1)).collect(Collectors.toList()));
-            setFiatCurrencies(Stream.of(prop.getProperty("fiatCurrencies").split(",", -1)).collect(Collectors.toList()));
-            setCryptoCurrencies(Stream.of(prop.getProperty("cryptoCurrencies").split(",", -1)).collect(Collectors.toList()));
+
+            String securitiesProperty = prop.getProperty("securities");
+            if (securitiesProperty.length() > 0 )
+                setSecurities(Stream.of(securitiesProperty.split(",", -1)).collect(Collectors.toList()));
+            else
+                setSecurities(List.of());
+
+            String fiatCurrenciesProperty = prop.getProperty("fiatCurrencies");
+            if (fiatCurrenciesProperty.length() > 0)
+                setFiatCurrencies(Stream.of(fiatCurrenciesProperty.split(",", -1)).collect(Collectors.toList()));
+            else
+                setFiatCurrencies(List.of());
+
+            String cryptoCurrenciesProperty = prop.getProperty("cryptoCurrencies");
+            if (cryptoCurrenciesProperty.length() > 0)
+                setCryptoCurrencies(Stream.of(cryptoCurrenciesProperty.split(",", -1)).collect(Collectors.toList()));
+            else
+                setCryptoCurrencies(List.of());
+
             setBroker(Broker.valueOf(prop.getProperty("broker")));
             setDataFeed(DataFeed.valueOf(prop.getProperty("dataFeed")));
+            setTriggerBuy(false);
+            setTriggerSell(false);
         } catch (IOException e) {
             LOG.error("Unable to read properties file: " + e.getLocalizedMessage());
         }

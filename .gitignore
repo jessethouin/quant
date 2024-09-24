@@ -3,6 +3,6 @@
 /out/
 /.idea/
 /logs/
-alpaca.properties
-alphavantage.properties
-binance.properties
+/src/main/resources/alpaca.properties
+/src/main/resources/binance-dev.properties
+/src/main/resources/binance-prod.properties

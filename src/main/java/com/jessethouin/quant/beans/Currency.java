@@ -1,7 +1,8 @@
 package com.jessethouin.quant.beans;
 
-import com.jessethouin.quant.conf.CurrencyTypes;
+import com.jessethouin.quant.conf.CurrencyType;
 import com.jessethouin.quant.db.BigDecimalConverter;
+import com.jessethouin.quant.db.Exclude;
 import lombok.*;
 
 import javax.persistence.*;
@@ -13,23 +14,20 @@ import java.util.Set;
 @Table(name = "CURRENCY", uniqueConstraints = @UniqueConstraint(columnNames = {"symbol", "portfolio_id"}))
 @Getter
 @Setter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class Currency {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long currencyId;
+    private Long currencyId;
     private String symbol;
-    private CurrencyTypes currencyType;
+    private CurrencyType currencyType;
     @Convert(converter = BigDecimalConverter.class)
     private BigDecimal quantity;
     @Convert(converter = BigDecimalConverter.class)
-    private BigDecimal avgCostBais;
-    @ManyToOne(fetch = FetchType.EAGER)
+    private BigDecimal avgCostBasis;
+    @Exclude
+    @ManyToOne
     @JoinColumn(name = "portfolio_id")
     private Portfolio portfolio;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "currency", fetch = FetchType.EAGER, orphanRemoval = true)
-    @Builder.Default
     private Set<CurrencyLedger> currencyLedgers = new HashSet<>();
 }

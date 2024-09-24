@@ -1,22 +1,30 @@
 package com.jessethouin.quant.backtest;
 
+import com.jessethouin.quant.alpaca.AlpacaCaptureHistory;
 import com.jessethouin.quant.backtest.beans.BacktestParameterResults;
-import com.jessethouin.quant.conf.BuyStrategyTypes;
-import com.jessethouin.quant.conf.SellStrategyTypes;
-import com.jessethouin.quant.db.Database;
+import com.jessethouin.quant.backtest.beans.repos.BacktestParameterResultsRepository;
+import com.jessethouin.quant.beans.repos.TradeHistoryRepository;
+import com.jessethouin.quant.binance.BinanceCaptureHistory;
+import com.jessethouin.quant.conf.BuyStrategyType;
+import com.jessethouin.quant.conf.SellStrategyType;
 import org.apache.commons.lang3.time.StopWatch;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.hibernate.Session;
+import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.MessageFormat;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.List;
 import java.util.concurrent.*;
 
+import static com.jessethouin.quant.conf.Config.CONFIG;
+
+@Component
 public class BacktestParameterCombos extends AbstractBacktest {
     private static final Logger LOG = LogManager.getLogger(BacktestParameterCombos.class);
 
@@ -28,13 +36,17 @@ public class BacktestParameterCombos extends AbstractBacktest {
     static int count = 0;
     static boolean save = true;
 
-    public static BacktestParameterResults findBestCombo() {
+    public BacktestParameterCombos(TradeHistoryRepository tradeHistoryRepository, BacktestParameterResultsRepository backtestParameterResultsRepository, BinanceCaptureHistory binanceCaptureHistory, AlpacaCaptureHistory alpacaCaptureHistory) {
+        super(tradeHistoryRepository, backtestParameterResultsRepository, binanceCaptureHistory, alpacaCaptureHistory);
+    }
+
+    public BacktestParameterResults findBestCombo() {
         save = false;
-        findBestCombos(new String[]{"1000", "2000", "1.00", "0.25"});
+        findBestCombos(new String[]{"5", "500", "1.00", "0.10"});
         return bestv;
     }
 
-    public static void findBestCombos(String[] args) {
+    public void findBestCombos(String[] args) {
         StopWatch watch = new StopWatch();
         watch.start();
 
@@ -99,6 +111,8 @@ public class BacktestParameterCombos extends AbstractBacktest {
         watch.stop();
         Duration elapsedTime = Duration.ofMillis(watch.getTime(TimeUnit.MILLISECONDS));
         LOG.info("Time Elapsed: {}", String.format("%02d:%02d:%02d", elapsedTime.toHours(), elapsedTime.toMinutesPart(), elapsedTime.toSecondsPart()));
+
+        if (save) System.exit(0);
     }
 
     private static void getAllowanceCombos(int minMALookback, int maxMALookback, BigDecimal riskMax, BigDecimal riskIncrement) {
@@ -113,28 +127,22 @@ public class BacktestParameterCombos extends AbstractBacktest {
 
     private static void getBuySellCombos(int minMALookback, int maxMALookback, BigDecimal riskMax, BigDecimal riskIncrement, BigDecimal allowance) {
         if (CONFIG.isBacktestStrategy()) {
-            Arrays.stream(BuyStrategyTypes.values()).forEach(buyStrategyType -> Arrays.stream(SellStrategyTypes.values()).forEach(sellStrategyType -> {
-                try {
-                    getMACombos(buyStrategyType, sellStrategyType, minMALookback, maxMALookback, riskMax, riskIncrement, allowance);
-                } catch (InterruptedException e) {
-                    LOG.error(e.getMessage());
-                }
-            }));
+            Arrays.stream(BuyStrategyType.values()).forEach(
+                    buyStrategyType -> Arrays.stream(SellStrategyType.values()).forEach(
+                            sellStrategyType -> getMACombos(buyStrategyType, sellStrategyType, minMALookback, maxMALookback, riskMax, riskIncrement, allowance)
+                    )
+            );
         } else {
-            try {
-                getMACombos(CONFIG.getBuyStrategy(), CONFIG.getSellStrategy(), minMALookback, maxMALookback, riskMax, riskIncrement, allowance);
-            } catch (InterruptedException e) {
-                LOG.error(e.getMessage());
-            }
+            getMACombos(CONFIG.getBuyStrategy(), CONFIG.getSellStrategy(), minMALookback, maxMALookback, riskMax, riskIncrement, allowance);
         }
     }
 
-    private static void getMACombos(BuyStrategyTypes buyStrategyType, SellStrategyTypes sellStrategyType, int minMALookback, int maxMALookback, BigDecimal riskMax, BigDecimal riskIncrement, BigDecimal allowance) throws InterruptedException {
+    private static void getMACombos(BuyStrategyType buyStrategyType, SellStrategyType sellStrategyType, int minMALookback, int maxMALookback, BigDecimal riskMax, BigDecimal riskIncrement, BigDecimal allowance) {
         int shortLookback;
         int longLookback = minMALookback;
         while (longLookback <= maxMALookback) {
 //            shortLookback = minMALookback;
-            shortLookback = longLookback - 3; //having a difference of more than x has not proven to be profitable
+            shortLookback = Math.max(minMALookback, longLookback - 2); //having a difference of more than x has not proven to be profitable
             while (shortLookback < longLookback) { // there's no need to test equal short and long tail MAs because they will never separate or converge. That's why this is < and not <=.
                 getRiskCombos(buyStrategyType, sellStrategyType, riskMax, riskIncrement, shortLookback, longLookback, allowance);
                 shortLookback++;
@@ -143,7 +151,7 @@ public class BacktestParameterCombos extends AbstractBacktest {
         }
     }
 
-    private static void getRiskCombos(BuyStrategyTypes buyStrategyType, SellStrategyTypes sellStrategyType, BigDecimal riskMax, BigDecimal riskIncrement, int shortLookback, int longLookback, BigDecimal allowance) {
+    private static void getRiskCombos(BuyStrategyType buyStrategyType, SellStrategyType sellStrategyType, BigDecimal riskMax, BigDecimal riskIncrement, int shortLookback, int longLookback, BigDecimal allowance) {
         BigDecimal highRisk = CONFIG.isBacktestHighRisk() ? BigDecimal.ZERO : CONFIG.getHighRisk();
         do {
             BigDecimal lowRisk = CONFIG.isBacktestLowRisk() ? BigDecimal.ZERO : CONFIG.getLowRisk();
@@ -177,21 +185,15 @@ public class BacktestParameterCombos extends AbstractBacktest {
         if (!save)
             return;
         LOG.trace("Writing results to the database. Please wait.");
+        List<BacktestParameterResults> rs = new ArrayList<>();
         BacktestParameterResults r;
-        Session session = Database.getSession();
-        session.beginTransaction();
-        int i = 0;
         while (BACKTEST_RESULTS_QUEUE.peek() != null) {
             r = BACKTEST_RESULTS_QUEUE.poll();
             r.setStart(CONFIG.getBacktestStart());
             r.setEnd(CONFIG.getBacktestEnd());
-            session.persist(r);
-            if (i++ % 500 == 0) {
-                session.getTransaction().commit();
-                session.beginTransaction();
-            }
+            rs.add(r);
         }
-        session.getTransaction().commit();
+        backtestParameterResultsRepository.saveAll(rs);
     }
 
     private static String getRemainingTimeUnits(BigDecimal t, BigDecimal r, BigDecimal c) {

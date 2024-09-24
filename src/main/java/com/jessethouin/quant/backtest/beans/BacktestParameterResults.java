@@ -1,7 +1,7 @@
 package com.jessethouin.quant.backtest.beans;
 
-import com.jessethouin.quant.conf.BuyStrategyTypes;
-import com.jessethouin.quant.conf.SellStrategyTypes;
+import com.jessethouin.quant.conf.BuyStrategyType;
+import com.jessethouin.quant.conf.SellStrategyType;
 import com.jessethouin.quant.db.BigDecimalConverter;
 import lombok.*;
 
@@ -20,12 +20,12 @@ import java.util.Date;
 public class BacktestParameterResults {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long backtestId;
+    private Long backtestId;
     private Date timestamp;
     private Date start;
     private Date end;
-    BuyStrategyTypes buyStrategyType;
-    SellStrategyTypes sellStrategyType;
+    BuyStrategyType buyStrategyType;
+    SellStrategyType sellStrategyType;
     int shortLookback;
     int longLookback;
     @Convert(converter = BigDecimalConverter.class)
@@ -38,6 +38,8 @@ public class BacktestParameterResults {
     BigDecimal highRisk;
     @Convert(converter = BigDecimalConverter.class)
     BigDecimal bids;
+    @Convert(converter = BigDecimalConverter.class)
+    BigDecimal fees;
     @Convert(converter = BigDecimalConverter.class)
     BigDecimal value;
 }

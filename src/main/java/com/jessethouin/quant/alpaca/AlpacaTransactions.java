@@ -1,175 +1,99 @@
 package com.jessethouin.quant.alpaca;
 
 import com.jessethouin.quant.alpaca.beans.AlpacaOrder;
-import com.jessethouin.quant.beans.Portfolio;
+import com.jessethouin.quant.alpaca.beans.repos.AlpacaOrderRepository;
+import com.jessethouin.quant.beans.Currency;
 import com.jessethouin.quant.beans.Security;
-import com.jessethouin.quant.beans.SecurityPosition;
-import com.jessethouin.quant.broker.Transactions;
-import com.jessethouin.quant.broker.Util;
-import net.jacobpeterson.alpaca.AlpacaAPI;
-import net.jacobpeterson.alpaca.enums.OrderSide;
-import net.jacobpeterson.alpaca.enums.OrderStatus;
-import net.jacobpeterson.alpaca.enums.OrderTimeInForce;
-import net.jacobpeterson.alpaca.enums.OrderType;
-import net.jacobpeterson.alpaca.rest.exception.AlpacaAPIRequestException;
-import net.jacobpeterson.domain.alpaca.order.Order;
+import com.jessethouin.quant.conf.AssetClassType;
+import net.jacobpeterson.alpaca.model.endpoint.orders.Order;
+import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderSide;
+import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderTimeInForce;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
-import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Random;
 
+import static com.jessethouin.quant.alpaca.config.AlpacaApiServices.ALPACA_ORDERS_API;
+
+@Component
 public class AlpacaTransactions {
     private static final Logger LOG = LogManager.getLogger(AlpacaTransactions.class);
+    public static AlpacaOrderRepository alpacaOrderRepository;
 
-    public static void placeSecurityBuyOrder(Security security, BigDecimal qty, BigDecimal price) {
-        if (qty.equals(BigDecimal.ZERO)) return;
-        AlpacaAPI alpacaAPI = AlpacaLive.getInstance().getAlpacaAPI();
+    public AlpacaTransactions(AlpacaOrderRepository alpacaOrderRepository) {
+        AlpacaTransactions.alpacaOrderRepository = alpacaOrderRepository;
+    }
+
+    public static void buyCurrency(Currency base, Currency counter, BigDecimal qty, BigDecimal price) {
+        transact(null, base, counter, qty, price, OrderSide.BUY);
+    }
+
+    public static void sellCurrency(Currency base, Currency counter, BigDecimal qty, BigDecimal price) {
+        transact(null, base, counter, qty, price, OrderSide.SELL);
+    }
+
+    public static void buySecurity(Security security, BigDecimal qty, BigDecimal price) {
+        transact(security, null, null, qty, price, OrderSide.BUY);
+    }
+
+    public static void sellSecurity(Security security, BigDecimal qty, BigDecimal price) {
+        transact(security, null, null, qty, price, OrderSide.SELL);
+    }
+
+    private static void transact(Security security, Currency base, Currency counter, BigDecimal qty, BigDecimal price, OrderSide orderSide) {
+        if (qty.compareTo(BigDecimal.ZERO) == 0 || qty.equals(BigDecimal.ZERO)) return;
+
+        String symbol;
+
+        if (security == null) {
+            symbol = counter.getSymbol() + base.getSymbol();
+        } else {
+            symbol = security.getSymbol();
+        }
+
         try {
-            Order order = alpacaAPI.requestNewLimitOrder(security.getSymbol(), qty.intValue(), OrderSide.BUY, OrderTimeInForce.DAY, price.doubleValue(), false);
-            AlpacaOrder alpacaOrder = new AlpacaOrder(order, security.getPortfolio());
-//            Database.persistAlpacaOrder(alpacaOrder);
-            LOG.info("Buy order: " + alpacaOrder.toString().replace(",", ",\n\t"));
+            Order order = ALPACA_ORDERS_API.requestLimitOrder(symbol, qty.doubleValue(), orderSide, OrderTimeInForce.DAY, price.doubleValue(), false);
+//            Order order = ALPACA_ORDERS_API.requestOrder(symbol, qty.doubleValue(), null, orderSide, OrderType.MARKET, OrderTimeInForce.DAY, null, null, null, null, null, null, OrderClass.SIMPLE, null, null, null);
+            if (order.getId() == null) throw new Exception("Limit Order id was null from server.");
+            LOG.info("New {} order: {}", orderSide, order.toString().replace(",", ",\n\t"));
+            AlpacaStreamProcessor.getOrderHistoryLookup().setOrderId(order.getId());
             return;
-        } catch (AlpacaAPIRequestException e) {
+        } catch (Exception e) {
             LOG.error(e.getLocalizedMessage());
         }
-        LOG.error("Buy order failed: " + security.getSymbol() + ", " + qty + ", " + price);
+        LOG.error(orderSide + " order failed: " + symbol + ", " + qty + ", " + price);
     }
 
-    public static AlpacaOrder placeTestSecurityBuyOrder(Security security, BigDecimal qty, BigDecimal price) {
-        if (qty.equals(BigDecimal.ZERO)) return null;
-        Order order = new Order(
-                "fake_order_id_" + (new Random().nextInt(1000)),
-                "fake_client_order_id_" + (new Random().nextInt(1000)),
-                ZonedDateTime.now(),
-                ZonedDateTime.now(),
-                ZonedDateTime.now(),
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                String.valueOf(security.getSecurityId()),
-                security.getSymbol(),
-                null,
-                qty.toString(),
-                "0",
-                OrderType.LIMIT.getAPIName(),
-                OrderSide.BUY.getAPIName(),
-                OrderTimeInForce.DAY.getAPIName(),
-                price.toString(),
-                null,
-                null,
-                OrderStatus.OPEN.getAPIName(),
-                false,
-                new ArrayList<>(),
-                null,
-                null,
-                null
-        );
-        AlpacaOrder alpacaOrder = new AlpacaOrder(order, security.getPortfolio());
-//        Database.persistAlpacaOrder(alpacaOrder);
-        return alpacaOrder;
-    }
-
-    public static void placeSecuritySellOrder(Security security, BigDecimal qty, BigDecimal price) {
-        if (qty.equals(BigDecimal.ZERO)) return;
-
-        AlpacaAPI alpacaAPI = AlpacaLive.getInstance().getAlpacaAPI();
-        try {
-            Order order = alpacaAPI.requestNewLimitOrder(security.getSymbol(), qty.intValue(), OrderSide.SELL, OrderTimeInForce.DAY, price.doubleValue(), false);
-            AlpacaOrder alpacaOrder = new AlpacaOrder(order, security.getPortfolio());
-//            Database.persistAlpacaOrder(alpacaOrder);
-            LOG.info("Sell order: " + order.toString().replace(",", ",\n\t"));
-            return;
-        } catch (AlpacaAPIRequestException e) {
-            LOG.error(e.getLocalizedMessage());
-        }
-        LOG.info("Sell order failed: " + security.getSymbol() + ", " + qty + ", " + price);
-    }
-
-    public static AlpacaOrder placeTestSecuritySellOrder(Security security, BigDecimal qty, BigDecimal price) {
-        if (qty.equals(BigDecimal.ZERO)) return null;
-        Order order = new Order(
-                "fake_order_id_" + (new Random().nextInt(1000)),
-                "fake_client_order_id_" + (new Random().nextInt(1000)),
-                ZonedDateTime.now(),
-                ZonedDateTime.now(),
-                ZonedDateTime.now(),
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                String.valueOf(security.getSecurityId()),
-                security.getSymbol(),
-                null,
-                qty.toString(),
-                "0",
-                OrderType.LIMIT.getAPIName(),
-                OrderSide.SELL.getAPIName(),
-                OrderTimeInForce.DAY.getAPIName(),
-                price.toString(),
-                null,
-                null,
-                OrderStatus.OPEN.getAPIName(),
-                false,
-                new ArrayList<>(),
-                null,
-                null,
-                null
-        );
-
-        return new AlpacaOrder(order, security.getPortfolio());
-    }
-
-    public static void processFilledOrder(AlpacaOrder alpacaOrder) {
-        Portfolio portfolio = alpacaOrder.getPortfolio();
-        Security security = Util.getSecurityFromPortfolio(alpacaOrder.getSymbol(), portfolio);
-        BigDecimal filledQty = new BigDecimal(alpacaOrder.getFilledQty());
-        BigDecimal filledAvgPrice = new BigDecimal(alpacaOrder.getFilledAvgPrice());
-
-        if (alpacaOrder.getSide().equals(OrderSide.BUY.getAPIName())) {
-            Transactions.addSecurityPosition(security, filledQty, filledAvgPrice);
-            Util.debit(security.getCurrency(), filledQty.multiply(filledAvgPrice).negate());
-        }
-        if (alpacaOrder.getSide().equals(OrderSide.SELL.getAPIName())) {
-            Util.credit(security.getCurrency(), filledQty.multiply(filledAvgPrice));
-
-            List<SecurityPosition> remove = new ArrayList<>();
-
-            security.getSecurityPositions().forEach(position -> {
-                if (position.getPrice().compareTo(filledAvgPrice) < 0) {
-                    remove.add(position);
-                }
-            });
-
-            BigDecimal[] qty = {filledQty};
-            remove.sort(Comparator.comparing(SecurityPosition::getPrice).reversed());
-
-            remove.forEach(securityPosition -> {
-                BigDecimal securityPositionQuantity = securityPosition.getQuantity();
-
-                if (securityPositionQuantity.compareTo(qty[0]) <= 0) {
-                    security.getSecurityPositions().remove(securityPosition);
-                    qty[0] = qty[0].subtract(securityPositionQuantity);
-                } else {
-                    securityPosition.setQuantity(securityPositionQuantity.subtract(qty[0]));
-                    qty[0] = BigDecimal.ZERO;
-                }
-
-            });
-        }
-
-//        Database.persistPortfolio(portfolio);
+    public static void updateAlpacaOrder(AlpacaOrder alpacaOrder, Order order) {
+        alpacaOrder.setId(order.getId());
+        alpacaOrder.setClientOrderId(order.getClientOrderId());
+        alpacaOrder.setCreatedAt(order.getCreatedAt());
+        alpacaOrder.setUpdatedAt(order.getUpdatedAt());
+        alpacaOrder.setSubmittedAt(order.getSubmittedAt());
+        alpacaOrder.setFilledAt(order.getFilledAt());
+        alpacaOrder.setExpiredAt(order.getExpiredAt());
+        alpacaOrder.setCanceledAt(order.getCanceledAt());
+        alpacaOrder.setFailedAt(order.getFailedAt());
+        alpacaOrder.setReplacedAt(order.getReplacedAt());
+        alpacaOrder.setReplacedBy(order.getReplacedBy());
+        alpacaOrder.setReplaces(order.getReplaces());
+        alpacaOrder.setAssetId(order.getAssetId());
+        alpacaOrder.setSymbol(order.getSymbol());
+        alpacaOrder.setAssetClass(AssetClassType.get(order.getAssetClass()));
+        alpacaOrder.setQty(order.getQuantity());
+        alpacaOrder.setFilledQty(order.getFilledQuantity());
+        alpacaOrder.setType(order.getType());
+        alpacaOrder.setSide(order.getSide());
+        alpacaOrder.setTimeInForce(order.getTimeInForce());
+        alpacaOrder.setLimitPrice(order.getLimitPrice());
+        alpacaOrder.setStopPrice(order.getStopPrice());
+        alpacaOrder.setFilledAvgPrice(order.getAverageFillPrice());
+        alpacaOrder.setStatus(order.getStatus());
+        alpacaOrder.setExtendedHours(order.getExtendedHours());
+        alpacaOrder.setTrailPrice(order.getTrailPrice());
+        alpacaOrder.setTrailPercent(order.getTrailPercent());
+        alpacaOrder.setHighWaterMark(order.getHighWaterMark());
+        alpacaOrderRepository.save(alpacaOrder);
     }
 }

@@ -1,6 +1,7 @@
 package com.jessethouin.quant.beans;
 
 import com.jessethouin.quant.db.BigDecimalConverter;
+import com.jessethouin.quant.db.Exclude;
 import lombok.*;
 
 import javax.persistence.*;
@@ -17,13 +18,14 @@ import java.util.Date;
 public class SecurityPosition {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long positionId;
+    private Long positionId;
     private Date opened;
     @Convert(converter = BigDecimalConverter.class)
     private BigDecimal quantity;
     @Convert(converter = BigDecimalConverter.class)
     private BigDecimal price;
-    @ManyToOne(fetch = FetchType.EAGER)
+    @Exclude
+    @OneToOne
     @JoinColumn(name = "security_id")
     private Security security;
 }

@@ -1,49 +1,92 @@
 package com.jessethouin.quant.binance;
 
-import com.jessethouin.quant.binance.beans.BinanceTradeHistory;
-import com.jessethouin.quant.conf.Config;
-import com.jessethouin.quant.db.Database;
+import com.jessethouin.quant.beans.repos.TradeHistoryRepository;
+import com.jessethouin.quant.beans.TradeHistory;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.hibernate.Session;
+import org.knowm.xchange.binance.dto.marketdata.BinanceAggTrades;
 import org.knowm.xchange.binance.dto.marketdata.KlineInterval;
-import org.knowm.xchange.binance.service.BinanceMarketDataService;
 import org.knowm.xchange.currency.CurrencyPair;
+import org.springframework.stereotype.Component;
 
-import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
+import static com.jessethouin.quant.binance.config.BinanceExchangeServices.BINANCE_MARKET_DATA_SERVICE;
+import static com.jessethouin.quant.conf.Config.CONFIG;
 import static java.util.concurrent.TimeUnit.MINUTES;
 
+@Component
 public class BinanceCaptureHistory {
     private static final Logger LOG = LogManager.getLogger(BinanceCaptureHistory.class);
-    private static final Config CONFIG = Config.INSTANCE;
+    static TradeHistoryRepository tradeHistoryRepository;
 
-    public static void main(String[] args) {
-        doCapture(new Date().getTime());
+    public BinanceCaptureHistory(TradeHistoryRepository tradeHistoryRepository) {
+        BinanceCaptureHistory.tradeHistoryRepository = tradeHistoryRepository;
     }
 
-    public static void doCapture(long now) {
+    public void doCapture() {
         CurrencyPair currencyPair = CurrencyPair.BTC_USDT;
-
         try {
-            BinanceMarketDataService marketDataService = (BinanceMarketDataService) BinanceLive.INSTANCE.getBinanceExchange().getMarketDataService();
+            List<TradeHistory> tradeHistories = new ArrayList<>();
 
-            Session session = Database.getSession();
-            session.beginTransaction();
-
-            for (int i = CONFIG.getBacktestQty(); i > -1; i -= 500) {
-                marketDataService.klines(currencyPair, KlineInterval.m1, 500, now - MINUTES.toMillis(i), now - MINUTES.toMillis(Math.max(i - 500, 0))).forEach(binanceKline -> {
-                    BinanceTradeHistory binanceTradeHistory = BinanceTradeHistory.builder().timestamp(new Date(binanceKline.getCloseTime())).ma1(BigDecimal.ZERO).ma2(BigDecimal.ZERO).l(BigDecimal.ZERO).h(BigDecimal.ZERO).p(binanceKline.getClosePrice()).build();
-                    session.persist(binanceTradeHistory);
-                });
-                LOG.info(i);
+            switch(CONFIG.getDataFeed()) {
+                case KLINE -> {
+                    long start = CONFIG.getBacktestStart().getTime();
+                    long end = CONFIG.getBacktestEnd().getTime();
+                    long qty = end - start; //milliseonds between start and end dates/times
+                    for (long i = qty; i > -1; i -= MINUTES.toMillis(500)) {
+                        long e = start + Math.min(MINUTES.toMillis(500), i);
+                        BINANCE_MARKET_DATA_SERVICE.klines(currencyPair, KlineInterval.m1, 500, start, e).forEach(binanceKline -> {
+                            TradeHistory tradeHistory = TradeHistory.builder().timestamp(new Date(binanceKline.getCloseTime())).ma1(BigDecimal.ZERO).ma2(BigDecimal.ZERO).l(BigDecimal.ZERO).h(BigDecimal.ZERO).p(binanceKline.getClosePrice()).build();
+                            tradeHistories.add(tradeHistory);
+                        });
+                        start = e + 1;
+                    }
+                }
+                case TRADE -> {
+                    final BinanceAggTrades aggTrade = BINANCE_MARKET_DATA_SERVICE.aggTrades(currencyPair, null, CONFIG.getBacktestStart().getTime(), CONFIG.getBacktestEnd().getTime(), 1).get(0);
+                    AtomicLong tradeId = new AtomicLong(aggTrade.aggregateTradeId);
+                    AtomicLong tradeTime = new AtomicLong(aggTrade.timestamp);
+                    while (tradeTime.get() < CONFIG.getBacktestEnd().getTime()) {
+                        BINANCE_MARKET_DATA_SERVICE.aggTrades(currencyPair, tradeId.get(), null, null, 1000).forEach(binanceAggTrades -> {
+                            TradeHistory tradeHistory = TradeHistory.builder().timestamp(binanceAggTrades.getTimestamp()).ma1(BigDecimal.ZERO).ma2(BigDecimal.ZERO).l(BigDecimal.ZERO).h(BigDecimal.ZERO).p(binanceAggTrades.price).build();
+                            tradeId.set(tradeHistory.getTradeId());
+                            tradeTime.set(tradeHistory.getTimestamp().getTime());
+                            tradeHistories.add(tradeHistory);
+                        });
+                    }
+                }
+                case TICKER -> {
+                    final List<BinanceAggTrades> aggTrades = BINANCE_MARKET_DATA_SERVICE.aggTrades(currencyPair, null, CONFIG.getBacktestStart().getTime(), CONFIG.getBacktestStart().getTime() + 500, 1000);
+                    final BinanceAggTrades aggTrade = aggTrades.get(0);
+                    final AtomicLong aggregateTradeId = new AtomicLong(aggTrade.aggregateTradeId);
+                    final AtomicLong tradeTime = new AtomicLong(aggTrade.timestamp);
+                    final AtomicLong tickerTime = new AtomicLong(aggTrade.timestamp + (1000L - (aggTrade.timestamp % 1000L)));
+                    final AtomicReference<BinanceAggTrades> previousAggTrades = new AtomicReference<>();
+                    while (tickerTime.get() < CONFIG.getBacktestEnd().getTime()) {
+                        BINANCE_MARKET_DATA_SERVICE.aggTrades(currencyPair, aggregateTradeId.get(), null, null, 1000).forEach(binanceAggTrades -> {
+                            if (binanceAggTrades.timestamp < tickerTime.get()) {
+                                previousAggTrades.set(binanceAggTrades);
+                                return;
+                            }
+                            final TradeHistory tradeHistory = TradeHistory.builder().timestamp(previousAggTrades.get().getTimestamp()).ma1(BigDecimal.ZERO).ma2(BigDecimal.ZERO).l(BigDecimal.ZERO).h(BigDecimal.ZERO).p(previousAggTrades.get().price).build();
+                            tradeHistories.add(tradeHistory);
+                            aggregateTradeId.set(previousAggTrades.get().aggregateTradeId);
+                            tradeTime.set(tradeHistory.getTimestamp().getTime());
+                            tickerTime.set(tickerTime.get() + 1000L);
+                        });
+                    }
+                }
             }
 
-            session.getTransaction().commit();
-        } catch (IOException e) {
-            e.printStackTrace();
+            tradeHistoryRepository.saveAll(tradeHistories);
+        } catch (Exception e) {
+            LOG.error(e.getMessage());
         }
     }
 }
