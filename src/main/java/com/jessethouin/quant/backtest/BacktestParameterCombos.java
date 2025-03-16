@@ -106,7 +106,7 @@ public class BacktestParameterCombos extends AbstractBacktest {
         LOG.info(MessageFormat.format("\n\nThe best combination of parameters is\n\t{0}\nwith a value of ${1}\n", bestv, bestv.getValue()));
 
         persistComboResults();
-        logMarketChange(INTRADAY_PRICES.get(INTRADAY_PRICES.size() - 1), INTRADAY_PRICES.get(0), LOG);
+        logMarketChange(INTRADAY_PRICES.getLast(), INTRADAY_PRICES.getFirst(), LOG);
 
         watch.stop();
         Duration elapsedTime = Duration.ofMillis(watch.getTime(TimeUnit.MILLISECONDS));

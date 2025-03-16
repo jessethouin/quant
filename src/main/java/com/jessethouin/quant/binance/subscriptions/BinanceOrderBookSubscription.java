@@ -1,7 +1,7 @@
 package com.jessethouin.quant.binance.subscriptions;
 
 import com.jessethouin.quant.broker.Fundamental;
-import io.reactivex.disposables.Disposable;
+import io.reactivex.rxjava3.disposables.Disposable;
 import lombok.Builder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

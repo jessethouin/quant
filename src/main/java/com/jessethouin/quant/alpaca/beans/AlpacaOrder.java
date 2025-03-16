@@ -1,18 +1,14 @@
 package com.jessethouin.quant.alpaca.beans;
 
 import com.jessethouin.quant.beans.Portfolio;
-import com.jessethouin.quant.conf.AssetClassType;
 import com.jessethouin.quant.db.Exclude;
 import lombok.Getter;
 import lombok.Setter;
-import net.jacobpeterson.alpaca.model.endpoint.orders.Order;
-import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderSide;
-import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderStatus;
-import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderTimeInForce;
-import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderType;
+import net.jacobpeterson.alpaca.openapi.trader.model.*;
 
-import javax.persistence.*;
-import java.time.ZonedDateTime;
+import jakarta.persistence.*;
+import java.time.OffsetDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "ALPACA_ORDER")
@@ -28,24 +24,24 @@ public class AlpacaOrder {
     private Portfolio portfolio;
     private String id;
     private String clientOrderId;
-    private ZonedDateTime createdAt;
-    private ZonedDateTime updatedAt;
-    private ZonedDateTime submittedAt;
-    private ZonedDateTime filledAt;
-    private ZonedDateTime expiredAt;
-    private ZonedDateTime canceledAt;
-    private ZonedDateTime failedAt;
-    private ZonedDateTime replacedAt;
-    private String replacedBy;
-    private String replaces;
-    private String assetId;
+    private OffsetDateTime createdAt;
+    private OffsetDateTime updatedAt;
+    private OffsetDateTime submittedAt;
+    private OffsetDateTime filledAt;
+    private OffsetDateTime expiredAt;
+    private OffsetDateTime canceledAt;
+    private OffsetDateTime failedAt;
+    private OffsetDateTime replacedAt;
+    private UUID replacedBy;
+    private UUID replaces;
+    private UUID assetId;
     private String symbol;
-    private AssetClassType assetClass;
+    private AssetClass assetClass;
     private String qty;
     private String filledQty;
     private OrderType type;
     private OrderSide side;
-    private OrderTimeInForce timeInForce;
+    private TimeInForce timeInForce;
     private String limitPrice;
     private String stopPrice;
     private String filledAvgPrice;
@@ -74,20 +70,20 @@ public class AlpacaOrder {
         this.replaces = order.getReplaces();
         this.assetId = order.getAssetId();
         this.symbol = order.getSymbol();
-        this.assetClass = AssetClassType.get(order.getAssetClass());
-        this.qty = order.getQuantity();
-        this.filledQty = order.getFilledQuantity();
+        this.assetClass = order.getAssetClass();
+        this.qty = order.getQty();
+        this.filledQty = order.getFilledQty();
         this.type = order.getType();
         this.side = order.getSide();
         this.timeInForce = order.getTimeInForce();
         this.limitPrice = order.getLimitPrice();
         this.stopPrice = order.getStopPrice();
-        this.filledAvgPrice = order.getAverageFillPrice();
+        this.filledAvgPrice = order.getFilledAvgPrice();
         this.status = order.getStatus();
         this.extendedHours = order.getExtendedHours();
         this.trailPrice = order.getTrailPrice();
         this.trailPercent = order.getTrailPercent();
-        this.highWaterMark = order.getHighWaterMark();
+        this.highWaterMark = order.getHwm();
     }
 
     public String toString() {

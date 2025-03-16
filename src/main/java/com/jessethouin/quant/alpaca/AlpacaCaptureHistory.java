@@ -2,12 +2,7 @@ package com.jessethouin.quant.alpaca;
 
 import com.jessethouin.quant.beans.TradeHistory;
 import com.jessethouin.quant.beans.repos.TradeHistoryRepository;
-import net.jacobpeterson.alpaca.model.endpoint.marketdata.common.historical.bar.enums.BarTimePeriod;
-import net.jacobpeterson.alpaca.model.endpoint.marketdata.crypto.common.enums.Exchange;
-import net.jacobpeterson.alpaca.model.endpoint.marketdata.crypto.historical.quote.CryptoQuote;
-import net.jacobpeterson.alpaca.model.endpoint.marketdata.crypto.historical.quote.CryptoQuotesResponse;
-import net.jacobpeterson.alpaca.model.endpoint.marketdata.crypto.historical.trade.CryptoTrade;
-import net.jacobpeterson.alpaca.model.endpoint.marketdata.crypto.historical.trade.CryptoTradesResponse;
+import net.jacobpeterson.alpaca.openapi.marketdata.model.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Component;
@@ -15,14 +10,13 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.ZoneId;
-import java.time.ZonedDateTime;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
 import static com.jessethouin.quant.alpaca.config.AlpacaApiServices.ALPACA_CRYPTO_API;
 import static com.jessethouin.quant.conf.Config.CONFIG;
-import static java.util.concurrent.TimeUnit.MINUTES;
 
 @Component
 public class AlpacaCaptureHistory {
@@ -41,59 +35,44 @@ public class AlpacaCaptureHistory {
                 case BAR -> {
                     long start = CONFIG.getBacktestStart().getTime();
                     long end = CONFIG.getBacktestEnd().getTime();
-                    long qty = end - start; //milliseconds between start and end dates/times
-                    for (long i = qty; i > -1; i -= MINUTES.toMillis(500)) {
-                        long e = start + Math.min(MINUTES.toMillis(500), i);
-                        ALPACA_CRYPTO_API.getBars("BTCUSD", List.of(Exchange.COINBASE), ZonedDateTime.ofInstant(Instant.ofEpochMilli(start), ZoneId.systemDefault()), 500, null, 1, BarTimePeriod.MINUTE).getBars().forEach(cryptoBar -> {
-                            TradeHistory tradeHistory = TradeHistory.builder().timestamp(Date.from(cryptoBar.getTimestamp().toInstant())).ma1(BigDecimal.ZERO).ma2(BigDecimal.ZERO).l(BigDecimal.ZERO).h(BigDecimal.ZERO).p(BigDecimal.valueOf(cryptoBar.getClose())).build();
-                            tradeHistories.add(tradeHistory);
-                        });
-                        start = e + 1;
-                    }
+                    String nextPageToken = null;
+                    do {
+                        CryptoBarsResp cryptoBarsResp = ALPACA_CRYPTO_API.cryptoBars(CryptoLoc.US, "BTC/USD", "1Min", OffsetDateTime.ofInstant(Instant.ofEpochMilli(start), ZoneId.systemDefault()), OffsetDateTime.ofInstant(Instant.ofEpochMilli(end), ZoneId.systemDefault()), null, nextPageToken, Sort.ASC);
+                        nextPageToken = cryptoBarsResp.getNextPageToken();
+                        cryptoBarsResp.getBars()
+                                .forEach((_, cryptoBarList) -> cryptoBarList.forEach(cryptoBar -> {
+                                    TradeHistory tradeHistory = TradeHistory.builder().timestamp(Date.from(cryptoBar.getT().toInstant())).ma1(BigDecimal.ZERO).ma2(BigDecimal.ZERO).l(BigDecimal.ZERO).h(BigDecimal.ZERO).p(BigDecimal.valueOf(cryptoBar.getC())).build();
+                                    tradeHistories.add(tradeHistory);
+                                }));
+                    } while (nextPageToken != null);
                 }
                 case QUOTE -> {
                     long start = CONFIG.getBacktestStart().getTime();
                     long end = CONFIG.getBacktestEnd().getTime();
-                    CryptoQuotesResponse cryptoQuotesResponse = ALPACA_CRYPTO_API.getQuotes("BTCUSD", List.of(Exchange.COINBASE), ZonedDateTime.ofInstant(Instant.ofEpochMilli(start), ZoneId.systemDefault()), ZonedDateTime.ofInstant(Instant.ofEpochMilli(end), ZoneId.systemDefault()), 10000, null);
-                    String nextPageToken = cryptoQuotesResponse.getNextPageToken();
-                    ArrayList<CryptoQuote> quotes = cryptoQuotesResponse.getQuotes();
-
-                    while (nextPageToken != null) {
-                        quotes.forEach(cryptoQuote -> {
-                            TradeHistory tradeHistory = TradeHistory.builder().timestamp(Date.from(cryptoQuote.getTimestamp().toInstant())).ma1(BigDecimal.ZERO).ma2(BigDecimal.ZERO).l(BigDecimal.ZERO).h(BigDecimal.ZERO).p(BigDecimal.valueOf(cryptoQuote.getAskPrice())).build();
-                            tradeHistories.add(tradeHistory);
-                        });
-                        cryptoQuotesResponse = ALPACA_CRYPTO_API.getQuotes("BTCUSD", List.of(Exchange.COINBASE), ZonedDateTime.ofInstant(Instant.ofEpochMilli(start), ZoneId.systemDefault()), ZonedDateTime.ofInstant(Instant.ofEpochMilli(end), ZoneId.systemDefault()), 10000, nextPageToken);
+                    String nextPageToken = null;
+                    do {
+                        CryptoQuotesResp cryptoQuotesResponse = ALPACA_CRYPTO_API.cryptoQuotes(CryptoLoc.US, "BTC/USD", OffsetDateTime.ofInstant(Instant.ofEpochMilli(start), ZoneId.systemDefault()), OffsetDateTime.ofInstant(Instant.ofEpochMilli(end), ZoneId.systemDefault()), 10000L, nextPageToken, Sort.ASC);
                         nextPageToken = cryptoQuotesResponse.getNextPageToken();
-                        quotes = cryptoQuotesResponse.getQuotes();
-                    }
-
-                    quotes.forEach(cryptoQuote -> {
-                        TradeHistory tradeHistory = TradeHistory.builder().timestamp(Date.from(cryptoQuote.getTimestamp().toInstant())).ma1(BigDecimal.ZERO).ma2(BigDecimal.ZERO).l(BigDecimal.ZERO).h(BigDecimal.ZERO).p(BigDecimal.valueOf(cryptoQuote.getAskPrice())).build();
-                        tradeHistories.add(tradeHistory);
-                    });
+                        cryptoQuotesResponse.getQuotes()
+                                .forEach((_, cryptoQuoteList) -> cryptoQuoteList.forEach(cryptoQuote -> {
+                                    TradeHistory tradeHistory = TradeHistory.builder().timestamp(Date.from(cryptoQuote.getT().toInstant())).ma1(BigDecimal.ZERO).ma2(BigDecimal.ZERO).l(BigDecimal.ZERO).h(BigDecimal.ZERO).p(BigDecimal.valueOf(cryptoQuote.getAp())).build();
+                                    tradeHistories.add(tradeHistory);
+                                }));
+                    } while (nextPageToken != null);
                 }
                 case TRADE -> {
                     long start = CONFIG.getBacktestStart().getTime();
                     long end = CONFIG.getBacktestEnd().getTime();
-                    CryptoTradesResponse cryptoTradesResponse = ALPACA_CRYPTO_API.getTrades("BTCUSD", List.of(Exchange.COINBASE), ZonedDateTime.ofInstant(Instant.ofEpochMilli(start), ZoneId.systemDefault()), ZonedDateTime.ofInstant(Instant.ofEpochMilli(end), ZoneId.systemDefault()), 10000, null);
-                    String nextPageToken = cryptoTradesResponse.getNextPageToken();
-                    ArrayList<CryptoTrade> trades = cryptoTradesResponse.getTrades();
-
-                    while (nextPageToken != null) {
-                        trades.forEach(cryptoTrade -> {
-                            TradeHistory tradeHistory = TradeHistory.builder().timestamp(Date.from(cryptoTrade.getTimestamp().toInstant())).ma1(BigDecimal.ZERO).ma2(BigDecimal.ZERO).l(BigDecimal.ZERO).h(BigDecimal.ZERO).p(BigDecimal.valueOf(cryptoTrade.getPrice())).build();
-                            tradeHistories.add(tradeHistory);
-                        });
-                        cryptoTradesResponse = ALPACA_CRYPTO_API.getTrades("BTCUSD", List.of(Exchange.COINBASE), ZonedDateTime.ofInstant(Instant.ofEpochMilli(start), ZoneId.systemDefault()), ZonedDateTime.ofInstant(Instant.ofEpochMilli(end), ZoneId.systemDefault()), 10000, nextPageToken);
+                    String nextPageToken = null;
+                    do {
+                        CryptoTradesResp cryptoTradesResponse = ALPACA_CRYPTO_API.cryptoTrades(CryptoLoc.US, "BTC/USD", OffsetDateTime.ofInstant(Instant.ofEpochMilli(start), ZoneId.systemDefault()), OffsetDateTime.ofInstant(Instant.ofEpochMilli(end), ZoneId.systemDefault()), 10000L, nextPageToken, Sort.ASC);
                         nextPageToken = cryptoTradesResponse.getNextPageToken();
-                        trades = cryptoTradesResponse.getTrades();
-                    }
-
-                    trades.forEach(cryptoTrade -> {
-                        TradeHistory tradeHistory = TradeHistory.builder().timestamp(Date.from(cryptoTrade.getTimestamp().toInstant())).ma1(BigDecimal.ZERO).ma2(BigDecimal.ZERO).l(BigDecimal.ZERO).h(BigDecimal.ZERO).p(BigDecimal.valueOf(cryptoTrade.getPrice())).build();
-                        tradeHistories.add(tradeHistory);
-                    });
+                        cryptoTradesResponse.getTrades()
+                                .forEach((_, cryptoTradeList) -> cryptoTradeList.forEach(cryptoTrade -> {
+                                    TradeHistory tradeHistory = TradeHistory.builder().timestamp(Date.from(cryptoTrade.getT().toInstant())).ma1(BigDecimal.ZERO).ma2(BigDecimal.ZERO).l(BigDecimal.ZERO).h(BigDecimal.ZERO).p(BigDecimal.valueOf(cryptoTrade.getP())).build();
+                                    tradeHistories.add(tradeHistory);
+                                }));
+                    } while (nextPageToken != null);
                 }
             }
             tradeHistoryRepository.saveAll(tradeHistories);
@@ -101,5 +80,4 @@ public class AlpacaCaptureHistory {
             LOG.error(e.getMessage());
         }
     }
-
 }

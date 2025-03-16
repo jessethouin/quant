@@ -7,7 +7,7 @@ import com.jessethouin.quant.broker.Fundamental;
 import com.jessethouin.quant.broker.Util;
 import com.jessethouin.quant.conf.Broker;
 import com.jessethouin.quant.conf.Instrument;
-import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.rxjava3.disposables.CompositeDisposable;
 import lombok.Getter;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.springframework.lang.NonNull;
@@ -21,7 +21,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import reactor.core.Disposable.Composite;
 import reactor.core.Disposables;
 
-import javax.persistence.EntityManager;
+import jakarta.persistence.EntityManager;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Date;

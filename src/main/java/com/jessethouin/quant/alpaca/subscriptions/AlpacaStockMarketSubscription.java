@@ -4,10 +4,11 @@ import com.jessethouin.quant.broker.Fundamental;
 import com.jessethouin.quant.conf.Instrument;
 import lombok.Builder;
 import lombok.Singular;
-import net.jacobpeterson.alpaca.model.endpoint.marketdata.stock.realtime.bar.StockBarMessage;
-import net.jacobpeterson.alpaca.model.endpoint.marketdata.stock.realtime.quote.StockQuoteMessage;
-import net.jacobpeterson.alpaca.model.endpoint.marketdata.stock.realtime.trade.StockTradeMessage;
-import net.jacobpeterson.alpaca.websocket.marketdata.MarketDataListener;
+import net.jacobpeterson.alpaca.model.websocket.marketdata.streams.stock.model.bar.StockBarMessage;
+import net.jacobpeterson.alpaca.model.websocket.marketdata.streams.stock.model.quote.StockQuoteMessage;
+import net.jacobpeterson.alpaca.model.websocket.marketdata.streams.stock.model.trade.StockTradeMessage;
+import net.jacobpeterson.alpaca.websocket.marketdata.streams.stock.StockMarketDataListener;
+import net.jacobpeterson.alpaca.websocket.marketdata.streams.stock.StockMarketDataListenerAdapter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -15,6 +16,7 @@ import java.math.BigDecimal;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 
 import static com.jessethouin.quant.alpaca.config.AlpacaApiServices.ALPACA_STOCK_STREAMING_API;
 import static com.jessethouin.quant.common.StreamProcessor.processMarketData;
@@ -29,49 +31,53 @@ public class AlpacaStockMarketSubscription {
     boolean bars;
 
     public void subscribe() {
-        MarketDataListener marketDataListener = (messageType, message) -> {
+        StockMarketDataListener stockMarketDataListener = new StockMarketDataListenerAdapter() {
             String symbol;
             Double price;
             Date timestamp;
-            switch (messageType) {
-                case QUOTE -> {
-                    StockQuoteMessage quoteMessage = (StockQuoteMessage) message;
-                    symbol = quoteMessage.getSymbol();
-                    price = quoteMessage.getAskPrice();
-                    timestamp = Date.from(quoteMessage.getTimestamp().toInstant());
-                    LOG.info("===> " + messageType + " [" + DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss,SSS Z").format(quoteMessage.getTimestamp()) + "]: " + quoteMessage.getAskPrice());
-                }
-                case TRADE -> {
-                    StockTradeMessage tradeMessage = (StockTradeMessage) message;
-                    symbol = tradeMessage.getSymbol();
-                    price = tradeMessage.getPrice();
-                    timestamp = Date.from(tradeMessage.getTimestamp().toInstant());
-                    LOG.info("===> " + messageType + " [" + DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss,SSS Z").format(tradeMessage.getTimestamp()) + "]: " + tradeMessage.getPrice());
-                }
-                case BAR -> {
-                    StockBarMessage barMessage = (StockBarMessage) message;
-                    symbol = barMessage.getSymbol();
-                    price = barMessage.getVwap();
-                    timestamp = Date.from(barMessage.getTimestamp().toInstant());
-                    LOG.info("===> " + messageType + " [" + DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss,SSS Z").format(barMessage.getTimestamp()) + "]: " + barMessage.getVwap());
-                }
-                case SUBSCRIPTION, SUCCESS, ERROR -> {
-                    LOG.info("===> " + messageType + " [" + message.toString() + "]");
-                    return;
-                }
-                default -> throw new IllegalArgumentException("Unknown messageType in AlpacaStockMarketSubscription.subscribe()");
+
+            @Override
+            public void onQuote(StockQuoteMessage quoteMessage) {
+                symbol = quoteMessage.getSymbol();
+                price = quoteMessage.getAskPrice();
+                timestamp = Date.from(quoteMessage.getTimestamp().toInstant());
+                LOG.debug("===> {} [{}]: {}", quoteMessage.getMessageType(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss,SSS Z").format(quoteMessage.getTimestamp()), price);
+                processStockMarketData();
             }
-            fundamentals.stream().filter(f -> f.getInstrument().equals(Instrument.STOCK) && f.getSecurity().getSymbol().equals(symbol)).findFirst().ifPresent(fundamental -> {
-                fundamental.setPrice(BigDecimal.valueOf(price));
-                fundamental.setTimestamp(timestamp);
-                processMarketData(fundamental);
-            });
+
+            @Override
+            public void onTrade(StockTradeMessage tradeMessage) {
+                symbol = tradeMessage.getSymbol();
+                price = tradeMessage.getPrice();
+                timestamp = Date.from(tradeMessage.getTimestamp().toInstant());
+                LOG.debug("===> {} [{}]: {}", tradeMessage.getMessageType(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss,SSS Z").format(tradeMessage.getTimestamp()), price);
+                processStockMarketData();
+            }
+
+            @Override
+            public void onMinuteBar(StockBarMessage barMessage) {
+                symbol = barMessage.getSymbol();
+                price = barMessage.getVwap();
+                timestamp = Date.from(barMessage.getTimestamp().toInstant());
+                LOG.debug("===> {} [{}]: {}", barMessage.getMessageType(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss,SSS Z").format(barMessage.getTimestamp()), price);
+                processStockMarketData();
+            }
+
+            private void processStockMarketData() {
+                fundamentals.stream().filter(f -> f.getInstrument().equals(Instrument.STOCK) && f.getSecurity().getSymbol().equals(symbol)).findFirst().ifPresent(fundamental -> {
+                    fundamental.setPrice(BigDecimal.valueOf(price));
+                    fundamental.setTimestamp(timestamp);
+                    processMarketData(fundamental);
+                });
+            }
         };
 
-        ALPACA_STOCK_STREAMING_API.setListener(marketDataListener);
+        ALPACA_STOCK_STREAMING_API.setListener(stockMarketDataListener);
         fundamentals.stream().filter(fundamental -> fundamental.getInstrument().equals(Instrument.STOCK)).forEach(fundamental -> {
-            List<String> stocks = List.of(fundamental.getSecurity().getSymbol());
-            ALPACA_STOCK_STREAMING_API.subscribe(trades ? stocks : null, quotes ? stocks : null, bars ? stocks : null);
+            Set<String> stocks = Set.of(fundamental.getSecurity().getSymbol());
+            if (trades) ALPACA_STOCK_STREAMING_API.setTradeSubscriptions(stocks);
+            if (quotes) ALPACA_STOCK_STREAMING_API.setQuoteSubscriptions(stocks);
+            if (bars) ALPACA_STOCK_STREAMING_API.setMinuteBarSubscriptions(stocks);
         });
     }
 }

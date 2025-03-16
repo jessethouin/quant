@@ -1,7 +1,7 @@
 package com.jessethouin.quant.alpaca.subscriptions;
 
 import com.jessethouin.quant.alpaca.AlpacaStreamProcessor;
-import net.jacobpeterson.alpaca.model.endpoint.orders.Order;
+import net.jacobpeterson.alpaca.openapi.trader.model.Order;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Component;
@@ -26,6 +26,6 @@ public class AlpacaTestTradeUpdatesSubscription {
                 .get()
                 .retrieve()
                 .bodyToFlux(Order.class)
-                .subscribe(AlpacaStreamProcessor::processRemoteOrder, throwable -> LOG.error("Error in test order subscription"));
+                .subscribe(AlpacaStreamProcessor::processRemoteOrder, _ -> LOG.error("Error in test order subscription"));
     }
 }

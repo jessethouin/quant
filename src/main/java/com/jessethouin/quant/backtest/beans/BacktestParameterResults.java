@@ -5,7 +5,7 @@ import com.jessethouin.quant.conf.SellStrategyType;
 import com.jessethouin.quant.db.BigDecimalConverter;
 import lombok.*;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.util.Date;
 

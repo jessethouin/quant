@@ -14,7 +14,7 @@ import com.jessethouin.quant.conf.CurrencyType;
 import com.jessethouin.quant.conf.DataFeed;
 import com.jessethouin.quant.conf.Instrument;
 import lombok.Getter;
-import net.jacobpeterson.alpaca.model.endpoint.positions.Position;
+import net.jacobpeterson.alpaca.openapi.trader.model.Position;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.lang.NonNull;
@@ -28,7 +28,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import reactor.core.Disposable;
 import reactor.core.Disposables;
 
-import javax.persistence.EntityManager;
+import jakarta.persistence.EntityManager;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Date;
@@ -78,7 +78,7 @@ public class AlpacaLive {
         portfolio.getSecurities().forEach(security -> {
             Position openPosition = AlpacaUtil.getOpenPosition(security.getSymbol());
             if (openPosition != null) {
-                LOG.info("\t{} : {}" + security.getSymbol(), openPosition);
+                LOG.info("\t{} : {}", security.getSymbol(), openPosition);
             }
         });
 

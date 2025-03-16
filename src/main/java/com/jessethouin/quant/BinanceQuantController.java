@@ -20,7 +20,7 @@ import reactor.core.publisher.Sinks;
 import reactor.core.publisher.Sinks.Many;
 
 import java.math.BigDecimal;
-import java.time.ZonedDateTime;
+import java.time.OffsetDateTime;
 import java.util.Date;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -52,7 +52,7 @@ public class BinanceQuantController {
         };
         GSON = new GsonBuilder()
             .addSerializationExclusionStrategy(EXCLUSION_STRATEGY)
-            .registerTypeAdapter(ZonedDateTime.class, (JsonDeserializer<ZonedDateTime>) (json, type, jsonDeserializationContext) -> ZonedDateTime.parse(json.getAsJsonPrimitive().getAsString()))
+            .registerTypeAdapter(OffsetDateTime.class, (JsonDeserializer<OffsetDateTime>) (json, _, _) -> OffsetDateTime.parse(json.getAsJsonPrimitive().getAsString()))
             .create();
     }
 

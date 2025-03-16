@@ -6,15 +6,11 @@ import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.beans.Security;
 import com.jessethouin.quant.broker.Transactions;
 import com.jessethouin.quant.broker.Util;
-import com.jessethouin.quant.conf.AssetClassType;
-import net.jacobpeterson.alpaca.model.endpoint.orders.Order;
-import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderSide;
-import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderStatus;
-import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderTimeInForce;
-import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderType;
+import net.jacobpeterson.alpaca.openapi.trader.model.*;
+import net.jacobpeterson.alpaca.openapi.trader.model.TimeInForce;
 
 import java.math.BigDecimal;
-import java.time.ZonedDateTime;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.UUID;
 
@@ -32,7 +28,7 @@ public class AlpacaTestTransactions {
 
     private static void placeTestCurrencyOrder(Currency base, Currency counter, BigDecimal qty, BigDecimal price, OrderSide orderSide) {
         if (qty.equals(BigDecimal.ZERO)) return;
-        Order order = getSampleOrder(counter.getSymbol() + base.getSymbol(), qty, price, orderSide, AssetClassType.CRYPTO);
+        Order order = getSampleOrder(counter.getSymbol() + "/" + base.getSymbol(), qty, price, orderSide, AssetClass.CRYPTO);
         processTestOrder(qty, price, new AlpacaOrder(order, base.getPortfolio()));
     }
 
@@ -46,77 +42,28 @@ public class AlpacaTestTransactions {
 
     private static void placeTestSecurityOrder(Security security, BigDecimal qty, BigDecimal price, OrderSide orderSide) {
         if (qty.equals(BigDecimal.ZERO)) return;
-        Order order = getSampleOrder(security.getSymbol(), qty, price, orderSide, AssetClassType.US_EQUITY);
+        Order order = getSampleOrder(security.getSymbol(), qty, price, orderSide, AssetClass.US_EQUITY);
         processTestOrder(qty, price, new AlpacaOrder(order, security.getPortfolio()));
     }
 
-    private static Order getSampleOrder(String symbol, BigDecimal qty, BigDecimal price, OrderSide orderSide, AssetClassType assetClass) {
-        /*
-        * String id,
-        * String clientOrderId,
-        * ZonedDateTime createdAt,
-        * ZonedDateTime updatedAt,
-        * ZonedDateTime submittedAt,
-        * ZonedDateTime filledAt,
-        * ZonedDateTime expiredAt,
-        * ZonedDateTime canceledAt,
-        * ZonedDateTime failedAt,
-        * ZonedDateTime replacedAt,
-        * String replacedBy,
-        * String replaces,
-        * String assetId,
-        * String symbol,
-        * String assetClass,
-        * String notional,
-        * String quantity,
-        * String filledQuantity,
-        * String averageFillPrice,
-        * OrderClass orderClass,
-        * OrderType type,
-        * OrderSide side,
-        * OrderTimeInForce timeInForce,
-        * String limitPrice,
-        * String stopPrice,
-        * OrderStatus status,
-        * Boolean extendedHours,
-        * ArrayList<net.jacobpeterson.alpaca.model.endpoint.orders.Order> legs,
-        * String trailPercent,
-        * String trailPrice,
-        * String highWaterMark
-        * */
-        return new Order(
-                UUID.randomUUID().toString(),
-                UUID.randomUUID().toString(),
-                ZonedDateTime.now(),
-                ZonedDateTime.now(),
-                ZonedDateTime.now(),
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                symbol,
-                assetClass.getAssetClass(),
-                null,
-                qty.toString(),
-                null,
-                null,
-                null,
-                OrderType.LIMIT,
-                orderSide,
-                OrderTimeInForce.DAY,
-                price.toString(),
-                null,
-                OrderStatus.NEW,
-                false,
-                new ArrayList<>(),
-                null,
-                null,
-                null
-        );
+    private static Order getSampleOrder(String symbol, BigDecimal qty, BigDecimal price, OrderSide orderSide, AssetClass assetClass) {
+        Order order = new Order();
+        order.setId(UUID.randomUUID().toString());
+        order.setClientOrderId(UUID.randomUUID().toString());
+        order.setCreatedAt(OffsetDateTime.now());
+        order.setUpdatedAt(OffsetDateTime.now());
+        order.setSubmittedAt(OffsetDateTime.now());
+        order.setSymbol(symbol);
+        order.setAssetClass(assetClass);
+        order.setQty(qty.toPlainString());
+        order.setSide(orderSide);
+        order.setType(OrderType.LIMIT);
+        order.setTimeInForce(TimeInForce.DAY);
+        order.setLimitPrice(price.toPlainString());
+        order.setStatus(OrderStatus.NEW);
+        order.setExtendedHours(false);
+        order.setLegs(new ArrayList<>());
+        return order;
     }
 
     private static void processTestOrder(BigDecimal qty, BigDecimal price, AlpacaOrder alpacaOrder) {
@@ -126,7 +73,7 @@ public class AlpacaTestTransactions {
         Portfolio portfolio = alpacaOrder.getPortfolio();
         portfolio.getAlpacaOrders().add(alpacaOrder);
         alpacaOrder.setStatus(OrderStatus.FILLED);
-        alpacaOrder.setFilledAt(ZonedDateTime.now());
+        alpacaOrder.setFilledAt(OffsetDateTime.now());
         alpacaOrder.setFilledQty(qty.toPlainString());
         alpacaOrder.setFilledAvgPrice(price.toPlainString());
         switch (alpacaOrder.getAssetClass()) {

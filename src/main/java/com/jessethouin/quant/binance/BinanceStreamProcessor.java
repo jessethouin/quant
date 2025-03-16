@@ -39,7 +39,7 @@ public class BinanceStreamProcessor extends StreamProcessor {
 
     public static synchronized void processRemoteOrder(ExecutionReportBinanceUserTransaction er) {
         LOG.info("Execution Report: {}", er);
-        Order order = er.toOrder();
+        Order order = er.toOrder(false);
         if (er.getCommissionAsset() == null) {
             processRemoteOrder(order);
         } else {

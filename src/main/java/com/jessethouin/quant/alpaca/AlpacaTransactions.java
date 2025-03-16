@@ -4,10 +4,7 @@ import com.jessethouin.quant.alpaca.beans.AlpacaOrder;
 import com.jessethouin.quant.alpaca.beans.repos.AlpacaOrderRepository;
 import com.jessethouin.quant.beans.Currency;
 import com.jessethouin.quant.beans.Security;
-import com.jessethouin.quant.conf.AssetClassType;
-import net.jacobpeterson.alpaca.model.endpoint.orders.Order;
-import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderSide;
-import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderTimeInForce;
+import net.jacobpeterson.alpaca.openapi.trader.model.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Component;
@@ -47,14 +44,21 @@ public class AlpacaTransactions {
         String symbol;
 
         if (security == null) {
-            symbol = counter.getSymbol() + base.getSymbol();
+            symbol = counter.getSymbol() + "/" + base.getSymbol();
         } else {
             symbol = security.getSymbol();
         }
 
         try {
-            Order order = ALPACA_ORDERS_API.requestLimitOrder(symbol, qty.doubleValue(), orderSide, OrderTimeInForce.DAY, price.doubleValue(), false);
-//            Order order = ALPACA_ORDERS_API.requestOrder(symbol, qty.doubleValue(), null, orderSide, OrderType.MARKET, OrderTimeInForce.DAY, null, null, null, null, null, null, OrderClass.SIMPLE, null, null, null);
+            PostOrderRequest postOrderRequest = new PostOrderRequest();
+            postOrderRequest.setType(OrderType.LIMIT);
+            postOrderRequest.setSymbol(symbol);
+            postOrderRequest.setQty(qty.toPlainString());
+            postOrderRequest.setSide(orderSide);
+            postOrderRequest.setTimeInForce(TimeInForce.DAY);
+            postOrderRequest.setLimitPrice(price.toPlainString());
+            postOrderRequest.setExtendedHours(false);
+            Order order = ALPACA_ORDERS_API.postOrder(postOrderRequest);
             if (order.getId() == null) throw new Exception("Limit Order id was null from server.");
             LOG.info("New {} order: {}", orderSide, order.toString().replace(",", ",\n\t"));
             AlpacaStreamProcessor.getOrderHistoryLookup().setOrderId(order.getId());
@@ -62,7 +66,7 @@ public class AlpacaTransactions {
         } catch (Exception e) {
             LOG.error(e.getLocalizedMessage());
         }
-        LOG.error(orderSide + " order failed: " + symbol + ", " + qty + ", " + price);
+        LOG.error("{} order failed: {}, {}, {}", orderSide, symbol, qty, price);
     }
 
     public static void updateAlpacaOrder(AlpacaOrder alpacaOrder, Order order) {
@@ -80,20 +84,20 @@ public class AlpacaTransactions {
         alpacaOrder.setReplaces(order.getReplaces());
         alpacaOrder.setAssetId(order.getAssetId());
         alpacaOrder.setSymbol(order.getSymbol());
-        alpacaOrder.setAssetClass(AssetClassType.get(order.getAssetClass()));
-        alpacaOrder.setQty(order.getQuantity());
-        alpacaOrder.setFilledQty(order.getFilledQuantity());
+        alpacaOrder.setAssetClass(order.getAssetClass());
+        alpacaOrder.setQty(order.getQty());
+        alpacaOrder.setFilledQty(order.getFilledQty());
         alpacaOrder.setType(order.getType());
         alpacaOrder.setSide(order.getSide());
         alpacaOrder.setTimeInForce(order.getTimeInForce());
         alpacaOrder.setLimitPrice(order.getLimitPrice());
         alpacaOrder.setStopPrice(order.getStopPrice());
-        alpacaOrder.setFilledAvgPrice(order.getAverageFillPrice());
+        alpacaOrder.setFilledAvgPrice(order.getFilledAvgPrice());
         alpacaOrder.setStatus(order.getStatus());
         alpacaOrder.setExtendedHours(order.getExtendedHours());
         alpacaOrder.setTrailPrice(order.getTrailPrice());
         alpacaOrder.setTrailPercent(order.getTrailPercent());
-        alpacaOrder.setHighWaterMark(order.getHighWaterMark());
+        alpacaOrder.setHighWaterMark(order.getHwm());
         alpacaOrderRepository.save(alpacaOrder);
     }
 }

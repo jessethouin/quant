@@ -66,11 +66,11 @@ public class Transactions {
 
         switch (broker) {
             case ALPACA -> {
-                LOG.debug("Placing Alpaca SELL LIMIT order for {} of {} at {}", counter.getQuantity().toPlainString(), counter.getSymbol() + base.getSymbol(), price);
+                LOG.debug("Placing Alpaca SELL LIMIT order for {} of {} at {}", counter.getQuantity().toPlainString(), counter.getSymbol() + "/" + base.getSymbol(), price);
                 AlpacaTransactions.sellCurrency(base, counter, counter.getQuantity(), price);
             }
             case ALPACA_CRYPTO_TEST -> {
-                LOG.debug("Placing Alpaca SELL LIMIT order for {} of {} at {}", counter.getQuantity().toPlainString(), counter.getSymbol() + base.getSymbol(), price);
+                LOG.debug("Placing Alpaca SELL LIMIT order for {} of {} at {}", counter.getQuantity().toPlainString(), counter.getSymbol() + "/" + base.getSymbol(), price);
                 AlpacaTestTransactions.placeTestCurrencySellOrder(base, counter, counter.getQuantity(), price);
             }
             case BINANCE -> {

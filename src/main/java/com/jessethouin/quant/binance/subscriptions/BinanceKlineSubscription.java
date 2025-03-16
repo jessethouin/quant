@@ -1,7 +1,7 @@
 package com.jessethouin.quant.binance.subscriptions;
 
 import com.jessethouin.quant.broker.Fundamental;
-import io.reactivex.disposables.Disposable;
+import io.reactivex.rxjava3.disposables.Disposable;
 import lombok.Builder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -35,7 +35,7 @@ public class BinanceKlineSubscription implements Disposable, Runnable {
             return;
         try {
             BinanceKline binanceKline = BINANCE_MARKET_DATA_SERVICE.lastKline(fundamental.getCurrencyPair(), KlineInterval.m1);
-            fundamental.setPrice(binanceKline.getClosePrice());
+            fundamental.setPrice(binanceKline.getClose());
             fundamental.setTimestamp(new Date(binanceKline.getCloseTime()));
             processMarketData(fundamental);
         } catch (IOException e) {

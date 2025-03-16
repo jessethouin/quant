@@ -4,7 +4,8 @@ import com.jessethouin.quant.alpaca.beans.AlpacaOrder;
 import com.jessethouin.quant.binance.beans.BinanceLimitOrder;
 import lombok.*;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
+import jakarta.persistence.Table;
 import java.util.HashSet;
 import java.util.Set;
 

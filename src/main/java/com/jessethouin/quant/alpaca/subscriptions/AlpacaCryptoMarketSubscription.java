@@ -6,11 +6,11 @@ import com.jessethouin.quant.conf.Instrument;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Singular;
-import net.jacobpeterson.alpaca.model.endpoint.marketdata.crypto.common.enums.Exchange;
-import net.jacobpeterson.alpaca.model.endpoint.marketdata.crypto.realtime.bar.CryptoBarMessage;
-import net.jacobpeterson.alpaca.model.endpoint.marketdata.crypto.realtime.quote.CryptoQuoteMessage;
-import net.jacobpeterson.alpaca.model.endpoint.marketdata.crypto.realtime.trade.CryptoTradeMessage;
-import net.jacobpeterson.alpaca.websocket.marketdata.MarketDataListener;
+import net.jacobpeterson.alpaca.model.websocket.marketdata.streams.crypto.model.bar.CryptoBarMessage;
+import net.jacobpeterson.alpaca.model.websocket.marketdata.streams.crypto.model.quote.CryptoQuoteMessage;
+import net.jacobpeterson.alpaca.model.websocket.marketdata.streams.crypto.model.trade.CryptoTradeMessage;
+import net.jacobpeterson.alpaca.websocket.marketdata.streams.crypto.CryptoMarketDataListener;
+import net.jacobpeterson.alpaca.websocket.marketdata.streams.crypto.CryptoMarketDataListenerAdapter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -18,6 +18,7 @@ import java.math.BigDecimal;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 
 import static com.jessethouin.quant.alpaca.config.AlpacaApiServices.ALPACA_CRYPTO_STREAMING_API;
 import static com.jessethouin.quant.common.StreamProcessor.processMarketData;
@@ -32,55 +33,53 @@ public class AlpacaCryptoMarketSubscription {
     boolean bars;
 
     public void subscribe() {
-        MarketDataListener marketDataListener = (messageType, message) -> {
+        CryptoMarketDataListener marketDataListener = new CryptoMarketDataListenerAdapter() {
             String counterSymbol;
             Double price;
             Date timestamp;
-            switch (messageType) {
-                case QUOTE -> {
-                    CryptoQuoteMessage quoteMessage = (CryptoQuoteMessage) message;
-                    Exchange exchange = quoteMessage.getExchange();
-                    if (!Exchange.COINBASE.equals(exchange)) return; // default-coding CBSE here to make things simple. TODO: implement an exchange property in quant.properties
-                    counterSymbol = AlpacaUtil.parseAlpacaCryptoSymbol(quoteMessage.getSymbol());
-                    price = quoteMessage.getAskPrice();
-                    timestamp = Date.from(quoteMessage.getTimestamp().toInstant());
-                    LOG.debug("===> " + messageType + " [" + DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss,SSS Z").format(quoteMessage.getTimestamp()) + "]: " + quoteMessage.getAskPrice());
-                }
-                case TRADE -> {
-                    CryptoTradeMessage tradeMessage = (CryptoTradeMessage) message;
-                    Exchange exchange = tradeMessage.getExchange();
-                    if (!Exchange.COINBASE.equals(exchange)) return; // default-coding CBSE here to make things simple. TODO: implement an exchange property in quant.properties
-                    counterSymbol = AlpacaUtil.parseAlpacaCryptoSymbol(tradeMessage.getSymbol());
-                    price = tradeMessage.getPrice();
-                    timestamp = Date.from(tradeMessage.getTimestamp().toInstant());
-                    LOG.debug("===> " + messageType + " [" + DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss,SSS Z").format(tradeMessage.getTimestamp()) + "]: " + tradeMessage.getPrice());
-                }
-                case BAR -> {
-                    CryptoBarMessage barMessage = (CryptoBarMessage) message;
-                    Exchange exchange = barMessage.getExchange();
-                    if (!Exchange.COINBASE.equals(exchange)) return; // default-coding CBSE here to make things simple. TODO: implement an exchange property in quant.properties
-                    counterSymbol = AlpacaUtil.parseAlpacaCryptoSymbol(barMessage.getSymbol());
-                    price = barMessage.getClose();
-                    timestamp = Date.from(barMessage.getTimestamp().toInstant());
-                    LOG.debug("{} ===> {} [{}]: {}", exchange.value(), messageType, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss,SSS Z").format(barMessage.getTimestamp()), price);
-                }
-                case SUBSCRIPTION, SUCCESS, ERROR -> {
-                    LOG.info("===> " + messageType + " [" + message.toString() + "]");
-                    return;
-                }
-                default -> throw new IllegalArgumentException("Unknown messageType in AlpacaCryptoMarketSubscription.subscribe()");
+
+            @Override
+            public void onQuote(CryptoQuoteMessage quoteMessage) {
+                counterSymbol = AlpacaUtil.parseAlpacaCryptoSymbol(quoteMessage.getSymbol());
+                price = quoteMessage.getAskPrice();
+                timestamp = Date.from(quoteMessage.getTimestamp().toInstant());
+                LOG.debug("===> " + quoteMessage.getMessageType() + " [" + DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss,SSS Z").format(quoteMessage.getTimestamp()) + "]: " + price);
+                processCryptoMarketData();
             }
-            fundamentals.stream().filter(f -> f.getCounterCurrency().getSymbol().equals(counterSymbol)).findFirst().ifPresent(fundamental -> {
-                fundamental.setPrice(BigDecimal.valueOf(price));
-                fundamental.setTimestamp(timestamp);
-                processMarketData(fundamental);
-            });
+
+            @Override
+            public void onTrade(CryptoTradeMessage tradeMessage) {
+                counterSymbol = AlpacaUtil.parseAlpacaCryptoSymbol(tradeMessage.getSymbol());
+                price = tradeMessage.getPrice();
+                timestamp = Date.from(tradeMessage.getTimestamp().toInstant());
+                LOG.debug("===> " + tradeMessage.getMessageType() + " [" + DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss,SSS Z").format(tradeMessage.getTimestamp()) + "]: " + price);
+                processCryptoMarketData();
+            }
+
+            @Override
+            public void onMinuteBar(CryptoBarMessage barMessage) {
+                counterSymbol = AlpacaUtil.parseAlpacaCryptoSymbol(barMessage.getSymbol());
+                price = barMessage.getClose();
+                timestamp = Date.from(barMessage.getTimestamp().toInstant());
+                LOG.debug("===> {} [{}]: {}", barMessage.getMessageType(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss,SSS Z").format(barMessage.getTimestamp()), price);
+                processCryptoMarketData();
+            }
+
+            private void processCryptoMarketData() {
+                fundamentals.stream().filter(f -> f.getCounterCurrency().getSymbol().equals(counterSymbol)).findFirst().ifPresent(fundamental -> {
+                    fundamental.setPrice(BigDecimal.valueOf(price));
+                    fundamental.setTimestamp(timestamp);
+                    processMarketData(fundamental);
+                });
+            }
         };
 
         ALPACA_CRYPTO_STREAMING_API.setListener(marketDataListener);
         fundamentals.stream().filter(fundamental -> fundamental.getInstrument().equals(Instrument.CRYPTO)).forEach(fundamental -> {
-            List<String> currencies = List.of(fundamental.getCounterCurrency().getSymbol() + fundamental.getBaseCurrency().getSymbol());
-            ALPACA_CRYPTO_STREAMING_API.subscribe(trades ? currencies : null, quotes ? currencies : null, bars ? currencies : null);
+            Set<String> currencies = Set.of(fundamental.getCounterCurrency().getSymbol() + "/" + fundamental.getBaseCurrency().getSymbol());
+            if (trades) ALPACA_CRYPTO_STREAMING_API.setTradeSubscriptions(currencies);
+            if (quotes) ALPACA_CRYPTO_STREAMING_API.setQuoteSubscriptions(currencies);
+            if (bars) ALPACA_CRYPTO_STREAMING_API.setMinuteBarSubscriptions(currencies);
         });
     }
 }

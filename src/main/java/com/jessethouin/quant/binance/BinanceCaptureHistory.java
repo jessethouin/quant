@@ -42,18 +42,18 @@ public class BinanceCaptureHistory {
                     for (long i = qty; i > -1; i -= MINUTES.toMillis(500)) {
                         long e = start + Math.min(MINUTES.toMillis(500), i);
                         BINANCE_MARKET_DATA_SERVICE.klines(currencyPair, KlineInterval.m1, 500, start, e).forEach(binanceKline -> {
-                            TradeHistory tradeHistory = TradeHistory.builder().timestamp(new Date(binanceKline.getCloseTime())).ma1(BigDecimal.ZERO).ma2(BigDecimal.ZERO).l(BigDecimal.ZERO).h(BigDecimal.ZERO).p(binanceKline.getClosePrice()).build();
+                            TradeHistory tradeHistory = TradeHistory.builder().timestamp(new Date(binanceKline.getCloseTime())).ma1(BigDecimal.ZERO).ma2(BigDecimal.ZERO).l(BigDecimal.ZERO).h(BigDecimal.ZERO).p(binanceKline.getClose()).build();
                             tradeHistories.add(tradeHistory);
                         });
                         start = e + 1;
                     }
                 }
                 case TRADE -> {
-                    final BinanceAggTrades aggTrade = BINANCE_MARKET_DATA_SERVICE.aggTrades(currencyPair, null, CONFIG.getBacktestStart().getTime(), CONFIG.getBacktestEnd().getTime(), 1).get(0);
+                    final BinanceAggTrades aggTrade = BINANCE_MARKET_DATA_SERVICE.aggTradesAllProducts(currencyPair, null, CONFIG.getBacktestStart().getTime(), CONFIG.getBacktestEnd().getTime(), 1).getFirst();
                     AtomicLong tradeId = new AtomicLong(aggTrade.aggregateTradeId);
                     AtomicLong tradeTime = new AtomicLong(aggTrade.timestamp);
                     while (tradeTime.get() < CONFIG.getBacktestEnd().getTime()) {
-                        BINANCE_MARKET_DATA_SERVICE.aggTrades(currencyPair, tradeId.get(), null, null, 1000).forEach(binanceAggTrades -> {
+                        BINANCE_MARKET_DATA_SERVICE.aggTradesAllProducts(currencyPair, tradeId.get(), null, null, 1000).forEach(binanceAggTrades -> {
                             TradeHistory tradeHistory = TradeHistory.builder().timestamp(binanceAggTrades.getTimestamp()).ma1(BigDecimal.ZERO).ma2(BigDecimal.ZERO).l(BigDecimal.ZERO).h(BigDecimal.ZERO).p(binanceAggTrades.price).build();
                             tradeId.set(tradeHistory.getTradeId());
                             tradeTime.set(tradeHistory.getTimestamp().getTime());
@@ -62,14 +62,14 @@ public class BinanceCaptureHistory {
                     }
                 }
                 case TICKER -> {
-                    final List<BinanceAggTrades> aggTrades = BINANCE_MARKET_DATA_SERVICE.aggTrades(currencyPair, null, CONFIG.getBacktestStart().getTime(), CONFIG.getBacktestStart().getTime() + 500, 1000);
-                    final BinanceAggTrades aggTrade = aggTrades.get(0);
+                    final List<BinanceAggTrades> aggTrades = BINANCE_MARKET_DATA_SERVICE.aggTradesAllProducts(currencyPair, null, CONFIG.getBacktestStart().getTime(), CONFIG.getBacktestStart().getTime() + 500, 1000);
+                    final BinanceAggTrades aggTrade = aggTrades.getFirst();
                     final AtomicLong aggregateTradeId = new AtomicLong(aggTrade.aggregateTradeId);
                     final AtomicLong tradeTime = new AtomicLong(aggTrade.timestamp);
                     final AtomicLong tickerTime = new AtomicLong(aggTrade.timestamp + (1000L - (aggTrade.timestamp % 1000L)));
                     final AtomicReference<BinanceAggTrades> previousAggTrades = new AtomicReference<>();
                     while (tickerTime.get() < CONFIG.getBacktestEnd().getTime()) {
-                        BINANCE_MARKET_DATA_SERVICE.aggTrades(currencyPair, aggregateTradeId.get(), null, null, 1000).forEach(binanceAggTrades -> {
+                        BINANCE_MARKET_DATA_SERVICE.aggTradesAllProducts(currencyPair, aggregateTradeId.get(), null, null, 1000).forEach(binanceAggTrades -> {
                             if (binanceAggTrades.timestamp < tickerTime.get()) {
                                 previousAggTrades.set(binanceAggTrades);
                                 return;
