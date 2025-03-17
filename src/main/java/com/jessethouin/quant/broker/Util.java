@@ -37,8 +37,13 @@ public class Util {
         holdings.updateAndGet(v -> v.add(currency.getQuantity()));
         portfolio.getSecurities().stream()
                 .filter(security -> security.getCurrency().equals(currency))
-                .forEach(security ->
-                        holdings.updateAndGet(v -> v.add(security.getSecurityPosition().getQuantity().multiply(security.getSecurityPosition().getPrice()))));
+                .forEach(security -> {
+                    BigDecimal quantity = security.getSecurityPosition().getQuantity();
+                    BigDecimal positionPrice = security.getSecurityPosition().getPrice();
+                    if (quantity != null && positionPrice != null) {
+                        holdings.updateAndGet(v -> v.add(quantity.multiply(positionPrice)));
+                    }
+                });
         return holdings.get();
     }
 
@@ -152,6 +157,11 @@ public class Util {
                     security.setSymbol(t);
                     security.setCurrency(currency);
                     security.setPortfolio(portfolio);
+                    SecurityPosition securityPosition = security.getSecurityPosition();
+                    securityPosition.setOpened(new Date());
+                    securityPosition.setPrice(BigDecimal.ZERO);
+                    securityPosition.setQuantity(BigDecimal.ZERO);
+                    securityPosition.setSecurity(security);
                     portfolio.getSecurities().add(security);
                 });
             }

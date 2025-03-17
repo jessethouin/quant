@@ -26,6 +26,6 @@ public class AlpacaTestTradeUpdatesSubscription {
                 .get()
                 .retrieve()
                 .bodyToFlux(Order.class)
-                .subscribe(AlpacaStreamProcessor::processRemoteOrder, _ -> LOG.error("Error in test order subscription"));
+                .subscribe(AlpacaStreamProcessor::processRemoteOrder, throwable -> LOG.error("Error in test order subscription", throwable));
     }
 }
