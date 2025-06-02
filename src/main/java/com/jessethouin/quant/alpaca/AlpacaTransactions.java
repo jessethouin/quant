@@ -42,11 +42,14 @@ public class AlpacaTransactions {
         if (qty.compareTo(BigDecimal.ZERO) == 0 || qty.equals(BigDecimal.ZERO)) return;
 
         String symbol;
+        TimeInForce timeInForce;
 
         if (security == null) {
             symbol = counter.getSymbol() + "/" + base.getSymbol();
+            timeInForce = TimeInForce.GTC;
         } else {
             symbol = security.getSymbol();
+            timeInForce = TimeInForce.DAY;
         }
 
         try {
@@ -55,7 +58,7 @@ public class AlpacaTransactions {
             postOrderRequest.setSymbol(symbol);
             postOrderRequest.setQty(qty.toPlainString());
             postOrderRequest.setSide(orderSide);
-            postOrderRequest.setTimeInForce(TimeInForce.DAY);
+            postOrderRequest.setTimeInForce(timeInForce);
             postOrderRequest.setLimitPrice(price.toPlainString());
             postOrderRequest.setExtendedHours(false);
             Order order = ALPACA_ORDERS_API.postOrder(postOrderRequest);

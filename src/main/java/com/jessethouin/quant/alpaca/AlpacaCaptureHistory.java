@@ -16,6 +16,7 @@ import java.util.Date;
 import java.util.List;
 
 import static com.jessethouin.quant.alpaca.config.AlpacaApiServices.ALPACA_CRYPTO_API;
+import static com.jessethouin.quant.alpaca.config.AlpacaApiServices.ALPACA_STOCK_API;
 import static com.jessethouin.quant.conf.Config.CONFIG;
 
 @Component
@@ -27,7 +28,7 @@ public class AlpacaCaptureHistory {
         AlpacaCaptureHistory.tradeHistoryRepository = tradeHistoryRepository;
     }
 
-    public void doCapture() {
+    public void doCryptoCapture() {
         try {
             List<TradeHistory> tradeHistories = new ArrayList<>();
 
@@ -70,6 +71,60 @@ public class AlpacaCaptureHistory {
                         cryptoTradesResponse.getTrades()
                                 .forEach((_, cryptoTradeList) -> cryptoTradeList.forEach(cryptoTrade -> {
                                     TradeHistory tradeHistory = TradeHistory.builder().timestamp(Date.from(cryptoTrade.getT().toInstant())).ma1(BigDecimal.ZERO).ma2(BigDecimal.ZERO).l(BigDecimal.ZERO).h(BigDecimal.ZERO).p(BigDecimal.valueOf(cryptoTrade.getP())).build();
+                                    tradeHistories.add(tradeHistory);
+                                }));
+                    } while (nextPageToken != null);
+                }
+            }
+            tradeHistoryRepository.saveAll(tradeHistories);
+        } catch (Exception e) {
+            LOG.error(e.getMessage());
+        }
+    }
+
+    public void doStockCapture() {
+        try {
+            List<TradeHistory> tradeHistories = new ArrayList<>();
+
+            switch (CONFIG.getDataFeed()) {
+                case BAR -> {
+                    long start = CONFIG.getBacktestStart().getTime();
+                    long end = CONFIG.getBacktestEnd().getTime();
+                    String nextPageToken = null;
+                    do {
+                        StockBarsResp stockBarsResp = ALPACA_STOCK_API.stockBars("AAPL", "1Min", OffsetDateTime.ofInstant(Instant.ofEpochMilli(start), ZoneId.systemDefault()), OffsetDateTime.ofInstant(Instant.ofEpochMilli(end), ZoneId.systemDefault()), null, null, null, StockFeed.IEX, "USD", nextPageToken, Sort.ASC);
+                        nextPageToken = stockBarsResp.getNextPageToken();
+                        stockBarsResp.getBars()
+                                .forEach((_, stockBarList) -> stockBarList.forEach(stockBar -> {
+                                    TradeHistory tradeHistory = TradeHistory.builder().timestamp(Date.from(stockBar.getT().toInstant())).ma1(BigDecimal.ZERO).ma2(BigDecimal.ZERO).l(BigDecimal.ZERO).h(BigDecimal.ZERO).p(BigDecimal.valueOf(stockBar.getC())).build();
+                                    tradeHistories.add(tradeHistory);
+                                }));
+                    } while (nextPageToken != null);
+                }
+                case QUOTE -> {
+                    long start = CONFIG.getBacktestStart().getTime();
+                    long end = CONFIG.getBacktestEnd().getTime();
+                    String nextPageToken = null;
+                    do {
+                        StockQuotesResp stockQuotesResp = ALPACA_STOCK_API.stockQuotes("AAPL", OffsetDateTime.ofInstant(Instant.ofEpochMilli(start), ZoneId.systemDefault()), OffsetDateTime.ofInstant(Instant.ofEpochMilli(end), ZoneId.systemDefault()), 10000L, null, StockFeed.IEX, "USD", nextPageToken, Sort.ASC);
+                        nextPageToken = stockQuotesResp.getNextPageToken();
+                        stockQuotesResp.getQuotes()
+                                .forEach((_, stockQuoteList) -> stockQuoteList.forEach(stockQuote -> {
+                                    TradeHistory tradeHistory = TradeHistory.builder().timestamp(Date.from(stockQuote.getT().toInstant())).ma1(BigDecimal.ZERO).ma2(BigDecimal.ZERO).l(BigDecimal.ZERO).h(BigDecimal.ZERO).p(BigDecimal.valueOf(stockQuote.getAp())).build();
+                                    tradeHistories.add(tradeHistory);
+                                }));
+                    } while (nextPageToken != null);
+                }
+                case TRADE -> {
+                    long start = CONFIG.getBacktestStart().getTime();
+                    long end = CONFIG.getBacktestEnd().getTime();
+                    String nextPageToken = null;
+                    do {
+                        StockTradesResp stockTradesResp = ALPACA_STOCK_API.stockTrades("AAPL", OffsetDateTime.ofInstant(Instant.ofEpochMilli(start), ZoneId.systemDefault()), OffsetDateTime.ofInstant(Instant.ofEpochMilli(end), ZoneId.systemDefault()), 10000L, null, StockFeed.IEX, "USD", nextPageToken, Sort.ASC);
+                        nextPageToken = stockTradesResp.getNextPageToken();
+                        stockTradesResp.getTrades()
+                                .forEach((_, stockTradeList) -> stockTradeList.forEach(stockTrade -> {
+                                    TradeHistory tradeHistory = TradeHistory.builder().timestamp(Date.from(stockTrade.getT().toInstant())).ma1(BigDecimal.ZERO).ma2(BigDecimal.ZERO).l(BigDecimal.ZERO).h(BigDecimal.ZERO).p(BigDecimal.valueOf(stockTrade.getP())).build();
                                     tradeHistories.add(tradeHistory);
                                 }));
                     } while (nextPageToken != null);

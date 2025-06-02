@@ -105,7 +105,7 @@ public class BacktestParameterCombos extends AbstractBacktest {
         bestv = BACKTEST_RESULTS_QUEUE.stream().max(Comparator.comparing(BacktestParameterResults::getValue)).orElse(BacktestParameterResults.builder().value(BigDecimal.ZERO).build());
         LOG.info(MessageFormat.format("\n\nThe best combination of parameters is\n\t{0}\nwith a value of ${1}\n", bestv, bestv.getValue()));
 
-        persistComboResults();
+//        persistComboResults();
         logMarketChange(INTRADAY_PRICES.getLast(), INTRADAY_PRICES.getFirst(), LOG);
 
         watch.stop();
@@ -142,7 +142,7 @@ public class BacktestParameterCombos extends AbstractBacktest {
         int longLookback = minMALookback;
         while (longLookback <= maxMALookback) {
 //            shortLookback = minMALookback;
-            shortLookback = Math.max(minMALookback, longLookback - 2); //having a difference of more than x has not proven to be profitable
+            shortLookback = Math.max(minMALookback, longLookback - 5); //having a difference of more than x has not proven to be profitable
             while (shortLookback < longLookback) { // there's no need to test equal short and long tail MAs because they will never separate or converge. That's why this is < and not <=.
                 getRiskCombos(buyStrategyType, sellStrategyType, riskMax, riskIncrement, shortLookback, longLookback, allowance);
                 shortLookback++;

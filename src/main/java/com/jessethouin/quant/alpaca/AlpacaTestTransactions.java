@@ -108,11 +108,11 @@ public class AlpacaTestTransactions {
 
         if (alpacaOrder.getSide().equals(OrderSide.BUY)) {
             Transactions.adjustSecurityPosition(security, filledQty, filledAvgPrice);
-            Util.debit(security.getCurrency(), filledQty.multiply(filledAvgPrice).negate(), "Buying Alpaca Security", alpacaOrder.getId());
+            Util.debit(security.getCurrency(), filledQty.multiply(filledAvgPrice), "Buying Alpaca Security", alpacaOrder.getId());
         }
         if (alpacaOrder.getSide().equals(OrderSide.SELL)) {
             Util.credit(security.getCurrency(), filledQty.multiply(filledAvgPrice), "Selling Alpaca Security", alpacaOrder.getId());
-            Transactions.adjustSecurityPosition(security, filledQty, filledAvgPrice);
+            Transactions.adjustSecurityPosition(security, filledQty.negate(), filledAvgPrice);
         }
     }
 }

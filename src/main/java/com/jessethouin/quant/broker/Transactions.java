@@ -23,6 +23,7 @@ public class Transactions {
         if (qty.equals(BigDecimal.ZERO) || qty.compareTo(BigDecimal.ZERO) == 0) return;
 
         if (security != null) {
+            price = price.setScale(2, RoundingMode.HALF_UP);
             placeSecurityBuyOrder(broker, security, qty, price);
         } else {
             placeCurrencyBuyOrder(broker, base, counter, qty, price);
@@ -87,7 +88,7 @@ public class Transactions {
     }
 
     private static void placeSecurityBuyOrder(Broker broker, Security security, BigDecimal qty, BigDecimal price) {
-        LOG.trace("Create buy order for " + qty + " " + security.getSymbol() + " at " + price);
+        LOG.info("Create buy order for {} {} at {}", qty, security.getSymbol(), price);
 
         switch (broker) {
             case ALPACA -> AlpacaTransactions.buySecurity(security, qty, price);
@@ -99,6 +100,8 @@ public class Transactions {
     private static boolean placeSecuritySellOrder(Broker broker, Security security, BigDecimal price) {
         BigDecimal sellQty = security.getSecurityPosition().getQuantity();
         if (sellQty.equals(BigDecimal.ZERO)) return false;
+
+        LOG.info("Create sell order for {} {} at {}", sellQty, security.getSymbol(), price);
 
         switch (broker) {
             case ALPACA -> AlpacaTransactions.sellSecurity(security, sellQty, price);
@@ -124,8 +127,11 @@ public class Transactions {
         } else {
             BigDecimal currentQty = securityPosition.getQuantity();
             BigDecimal currentPrice = securityPosition.getPrice();
-            // ((current price * current quantity) + (new price * new quantity)) / (current quantity + new quantity)
-            BigDecimal newPrice = ((currentPrice.multiply(currentQty)).add(price.multiply(qty))).divide(currentQty.add(qty), RoundingMode.HALF_UP);
+            BigDecimal newPrice = BigDecimal.ZERO;
+            if (currentQty.add(qty).compareTo(BigDecimal.ZERO) > 0) {
+                // ((current price * current quantity) + (new price * new quantity)) / (current quantity + new quantity)
+                newPrice = ((currentPrice.multiply(currentQty)).add(price.multiply(qty))).divide(currentQty.add(qty), RoundingMode.HALF_UP);
+            }
             securityPosition.setQuantity(securityPosition.getQuantity().add(qty));
             securityPosition.setPrice(newPrice);
         }

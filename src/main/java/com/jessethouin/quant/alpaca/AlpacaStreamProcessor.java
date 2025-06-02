@@ -110,6 +110,7 @@ public class AlpacaStreamProcessor extends StreamProcessor {
 
     private static void processRemoteSecurityOrder(AlpacaOrder alpacaOrder, Security security, BigDecimal limitPrice, BigDecimal bidAskQty, BigDecimal filledQty, BigDecimal filledAvgPrice) {
         switch (alpacaOrder.getStatus()) {
+            case PENDING_NEW -> LOG.info("Pending new Alpaca Security order {}.", alpacaOrder.getId());
             case NEW, ACCEPTED -> {
                 if (security.getCurrency().getCurrencyLedgers().stream().noneMatch(currencyLedger -> alpacaOrder.getId().equals(currencyLedger.getOrderId()))) {
                     switch (alpacaOrder.getSide()) {
