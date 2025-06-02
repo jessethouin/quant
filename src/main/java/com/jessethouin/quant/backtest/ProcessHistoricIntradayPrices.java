@@ -10,7 +10,7 @@ import com.jessethouin.quant.conf.BuyStrategyType;
 import com.jessethouin.quant.conf.Config;
 import com.jessethouin.quant.conf.CurrencyType;
 import com.jessethouin.quant.conf.SellStrategyType;
-import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderSide;
+import net.jacobpeterson.alpaca.openapi.trader.model.OrderSide;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.knowm.xchange.dto.Order;
@@ -54,7 +54,7 @@ public class ProcessHistoricIntradayPrices implements Runnable {
         config.setAllowance(allowance);
 
         Portfolio portfolio = Util.createPortfolio();
-        BigDecimal price = INTRADAY_PRICES.get(0);
+        BigDecimal price = INTRADAY_PRICES.getFirst();
         BigDecimal shortMAValue = BigDecimal.ZERO;
         BigDecimal longMAValue = BigDecimal.ZERO;
 

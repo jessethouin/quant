@@ -84,19 +84,19 @@ public class Config {
             setRecalibrateHours(Integer.parseInt(prop.getProperty("recalibrateHours")));
 
             String securitiesProperty = prop.getProperty("securities");
-            if (securitiesProperty.length() > 0 )
+            if (!securitiesProperty.isEmpty())
                 setSecurities(Stream.of(securitiesProperty.split(",", -1)).collect(Collectors.toList()));
             else
                 setSecurities(List.of());
 
             String fiatCurrenciesProperty = prop.getProperty("fiatCurrencies");
-            if (fiatCurrenciesProperty.length() > 0)
+            if (!fiatCurrenciesProperty.isEmpty())
                 setFiatCurrencies(Stream.of(fiatCurrenciesProperty.split(",", -1)).collect(Collectors.toList()));
             else
                 setFiatCurrencies(List.of());
 
             String cryptoCurrenciesProperty = prop.getProperty("cryptoCurrencies");
-            if (cryptoCurrenciesProperty.length() > 0)
+            if (!cryptoCurrenciesProperty.isEmpty())
                 setCryptoCurrencies(Stream.of(cryptoCurrenciesProperty.split(",", -1)).collect(Collectors.toList()));
             else
                 setCryptoCurrencies(List.of());
@@ -106,7 +106,7 @@ public class Config {
             setTriggerBuy(false);
             setTriggerSell(false);
         } catch (IOException e) {
-            LOG.error("Unable to read properties file: " + e.getLocalizedMessage());
+            LOG.error("Unable to read properties file: {}", e.getLocalizedMessage());
         }
     }
 

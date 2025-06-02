@@ -15,6 +15,7 @@ import org.knowm.xchange.binance.service.BinanceMarketDataService;
 import org.knowm.xchange.binance.service.BinanceTradeService;
 import org.knowm.xchange.currency.CurrencyPair;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
@@ -37,8 +38,13 @@ public class BinanceExchangeServices {
     static {
         /* REST API Exchange */
         BINANCE_EXCHANGE = (BinanceExchange) ExchangeFactory.INSTANCE.createExchange(configureExchangeSpec(new BinanceExchange().getDefaultExchangeSpecification()));
-        BINANCE_EXCHANGE_INFO = BINANCE_EXCHANGE.getExchangeInfo();
         BINANCE_MARKET_DATA_SERVICE = (BinanceMarketDataService) BINANCE_EXCHANGE.getMarketDataService();
+        try {
+            BINANCE_EXCHANGE_INFO = BINANCE_MARKET_DATA_SERVICE.getExchangeInfo();
+        } catch (IOException e) {
+            // ugh I hate this
+            throw new RuntimeException(e);
+        }
         BINANCE_TRADE_SERVICE = (BinanceTradeService) BINANCE_EXCHANGE.getTradeService();
         BINANCE_ACCOUNT_SERVICE = (BinanceAccountService) BINANCE_EXCHANGE.getAccountService();
 

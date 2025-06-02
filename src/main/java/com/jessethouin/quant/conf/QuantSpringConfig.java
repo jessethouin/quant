@@ -1,7 +1,8 @@
 package com.jessethouin.quant.conf;
 
-import net.jacobpeterson.alpaca.model.endpoint.orders.Order;
+import net.jacobpeterson.alpaca.openapi.trader.model.Order;
 import org.knowm.xchange.dto.trade.LimitOrder;
+import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
@@ -10,7 +11,8 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 
 @Configuration
-@EnableJpaRepositories("com.jessethouin.quant")
+@EnableJpaRepositories("com.jessethouin.quant.*")
+@EntityScan("com.jessethouin.quant.*")
 public class QuantSpringConfig {
     private static final String BINANCE_LIMIT_ORDER_API = "http://localhost:8080/binance/limitOrder";
     private static final String BINANCE_STREAMING_LIMIT_ORDERS_API = "http://localhost:8080/binance/streamingLimitOrders";

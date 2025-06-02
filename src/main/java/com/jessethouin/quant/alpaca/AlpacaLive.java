@@ -6,7 +6,9 @@ import com.jessethouin.quant.alpaca.subscriptions.AlpacaTestTradeUpdatesSubscrip
 import com.jessethouin.quant.alpaca.subscriptions.AlpacaTradeUpdatesSubscription;
 import com.jessethouin.quant.beans.Currency;
 import com.jessethouin.quant.beans.Portfolio;
+import com.jessethouin.quant.beans.repos.OrderHistoryLookupRepository;
 import com.jessethouin.quant.beans.repos.PortfolioRepository;
+import com.jessethouin.quant.beans.repos.TradeHistoryRepository;
 import com.jessethouin.quant.broker.Fundamental;
 import com.jessethouin.quant.broker.Util;
 import com.jessethouin.quant.conf.Broker;
@@ -14,7 +16,7 @@ import com.jessethouin.quant.conf.CurrencyType;
 import com.jessethouin.quant.conf.DataFeed;
 import com.jessethouin.quant.conf.Instrument;
 import lombok.Getter;
-import net.jacobpeterson.alpaca.model.endpoint.positions.Position;
+import net.jacobpeterson.alpaca.openapi.trader.model.Position;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.lang.NonNull;
@@ -28,7 +30,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import reactor.core.Disposable;
 import reactor.core.Disposables;
 
-import javax.persistence.EntityManager;
+import jakarta.persistence.EntityManager;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Date;
@@ -48,17 +50,24 @@ public class AlpacaLive {
     private final List<Fundamental> fundamentalList = new ArrayList<>();
     private final PlatformTransactionManager transactionManager;
     private final PortfolioRepository portfolioRepository;
+    private final OrderHistoryLookupRepository orderHistoryLookupRepository;
+    private final TradeHistoryRepository tradeHistoryRepository;
     private TransactionTemplate transactionTemplate;
     private final EntityManager entityManager;
 
-    public AlpacaLive(PortfolioRepository portfolioRepository, PlatformTransactionManager transactionManager, EntityManager entityManager, AlpacaTestTradeUpdatesSubscription alpacaTestTradeUpdatesSubscription) {
+    public AlpacaLive(PortfolioRepository portfolioRepository, PlatformTransactionManager transactionManager, OrderHistoryLookupRepository orderHistoryLookupRepository, EntityManager entityManager, AlpacaTestTradeUpdatesSubscription alpacaTestTradeUpdatesSubscription, TradeHistoryRepository tradeHistoryRepository) {
         this.portfolioRepository = portfolioRepository;
         this.transactionManager = transactionManager;
+        this.orderHistoryLookupRepository = orderHistoryLookupRepository;
         this.entityManager = entityManager;
         this.alpacaTestTradeUpdatesSubscription = alpacaTestTradeUpdatesSubscription;
+        this.tradeHistoryRepository = tradeHistoryRepository;
     }
 
     public void doLive() {
+        orderHistoryLookupRepository.deleteAll();
+        tradeHistoryRepository.deleteAll();
+
         long start = new Date().getTime();
         CONFIG.setBacktestStart(new Date(start - Duration.ofHours(CONFIG.getRecalibrateHours()).toMillis()));
         CONFIG.setBacktestEnd(new Date(start));
@@ -78,7 +87,7 @@ public class AlpacaLive {
         portfolio.getSecurities().forEach(security -> {
             Position openPosition = AlpacaUtil.getOpenPosition(security.getSymbol());
             if (openPosition != null) {
-                LOG.info("\t{} : {}" + security.getSymbol(), openPosition);
+                LOG.info("\t{} : {}", security.getSymbol(), openPosition);
             }
         });
 

@@ -12,7 +12,7 @@ import com.jessethouin.quant.broker.Util;
 import com.jessethouin.quant.common.StreamProcessor;
 import com.jessethouin.quant.conf.CurrencyType;
 import lombok.Getter;
-import net.jacobpeterson.alpaca.model.endpoint.orders.Order;
+import net.jacobpeterson.alpaca.openapi.trader.model.Order;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -110,6 +110,7 @@ public class AlpacaStreamProcessor extends StreamProcessor {
 
     private static void processRemoteSecurityOrder(AlpacaOrder alpacaOrder, Security security, BigDecimal limitPrice, BigDecimal bidAskQty, BigDecimal filledQty, BigDecimal filledAvgPrice) {
         switch (alpacaOrder.getStatus()) {
+            case PENDING_NEW -> LOG.info("Pending new Alpaca Security order {}.", alpacaOrder.getId());
             case NEW, ACCEPTED -> {
                 if (security.getCurrency().getCurrencyLedgers().stream().noneMatch(currencyLedger -> alpacaOrder.getId().equals(currencyLedger.getOrderId()))) {
                     switch (alpacaOrder.getSide()) {

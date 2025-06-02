@@ -43,7 +43,7 @@ public class BacktestStaticParameters extends AbstractBacktest {
 
         BigDecimal shortMAValue = BigDecimal.ZERO;
         BigDecimal longMAValue = BigDecimal.ZERO;
-        BigDecimal price = intradayPrices.get(0);
+        BigDecimal price = intradayPrices.getFirst();
         BigDecimal previousValue = BigDecimal.ZERO;
 
         Portfolio portfolio = Util.createPortfolio();
@@ -84,7 +84,7 @@ public class BacktestStaticParameters extends AbstractBacktest {
             previousValue = stopLoss(price, previousValue, c);
         }
 
-        super.logMarketChange(intradayPrices.get(intradayPrices.size() - 1), intradayPrices.get(0), LOG);
+        super.logMarketChange(intradayPrices.getLast(), intradayPrices.getFirst(), LOG);
 
         switch (CONFIG.getBroker()) {
             case ALPACA_SECURITY_TEST -> LOG.info(c.getSecurity().getSecurityPosition().getPrice() + ", " + c.getSecurity().getSecurityPosition().getQuantity() + " : " + c.getSecurity().getSecurityPosition().getPrice().multiply(c.getSecurity().getSecurityPosition().getQuantity()));

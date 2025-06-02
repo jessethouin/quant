@@ -4,10 +4,7 @@ import com.google.gson.*;
 import com.jessethouin.quant.alpaca.AlpacaLive;
 import com.jessethouin.quant.beans.repos.PortfolioRepository;
 import com.jessethouin.quant.db.Exclude;
-import net.jacobpeterson.alpaca.model.endpoint.orders.Order;
-import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderSide;
-import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderStatus;
-import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderType;
+import net.jacobpeterson.alpaca.openapi.trader.model.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.http.HttpStatus;
@@ -17,8 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
+import java.time.OffsetDateTime;
 import java.util.Date;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -48,10 +44,9 @@ public class AlpacaQuantController {
                 return field.getAnnotation(Exclude.class) != null;
             }
         };
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy - HH:mm:ss Z");
         GSON = new GsonBuilder()
                 .addSerializationExclusionStrategy(EXCLUSION_STRATEGY)
-                .registerTypeAdapter(ZonedDateTime.class, (JsonDeserializer<ZonedDateTime>) (json, type, jsonDeserializationContext) -> ZonedDateTime.parse(json.getAsJsonPrimitive().getAsString()))
+                .registerTypeAdapter(OffsetDateTime.class, (JsonDeserializer<OffsetDateTime>) (json, _, _) -> OffsetDateTime.parse(json.getAsJsonPrimitive().getAsString()))
                 .create();
     }
 
@@ -116,16 +111,16 @@ public class AlpacaQuantController {
 
         Order order = new Order();
         order.setType(OrderType.fromValue(type.getAsString()));
-        order.setAssetClass(assetClass.getAsString());
+        order.setAssetClass(AssetClass.fromValue(assetClass.getAsString()));
         order.setSymbol(symbol.getAsString());
         order.setSide(OrderSide.fromValue(side.getAsString()));
         order.setId(String.valueOf(new Date().getTime()));
         order.setLimitPrice(limitPrice.getAsString());
-        order.setQuantity(qty.getAsString());
-        order.setFilledQuantity(filledQty.getAsString());
-        order.setSubmittedAt(ZonedDateTime.now());
+        order.setQty(qty.getAsString());
+        order.setFilledQty(filledQty.getAsString());
+        order.setSubmittedAt(OffsetDateTime.now());
         order.setStatus(OrderStatus.fromValue(status.getAsString()));
-        order.setAverageFillPrice(filledAvgPrice.getAsString());
+        order.setFilledAvgPrice(filledAvgPrice.getAsString());
         fillTestOrders(order);
 
         return ResponseEntity.ok(order.getId());
@@ -143,8 +138,8 @@ public class AlpacaQuantController {
             @Override
             public void run() {
                 order.setStatus(OrderStatus.FILLED);
-                order.setAverageFillPrice("1");
-                order.setFilledQuantity(order.getQuantity());
+                order.setFilledAvgPrice("1");
+                order.setFilledQty(order.getQty());
 
                 alpacaSink.tryEmitNext(order);
             }

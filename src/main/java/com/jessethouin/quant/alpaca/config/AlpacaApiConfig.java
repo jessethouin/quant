@@ -3,8 +3,8 @@ package com.jessethouin.quant.alpaca.config;
 import com.jessethouin.quant.binance.config.BinanceApiConfig;
 import lombok.Getter;
 import lombok.Setter;
-import net.jacobpeterson.alpaca.model.properties.DataAPIType;
-import net.jacobpeterson.alpaca.model.properties.EndpointAPIType;
+import net.jacobpeterson.alpaca.model.util.apitype.MarketDataWebsocketSourceType;
+import net.jacobpeterson.alpaca.model.util.apitype.TraderAPIEndpointType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -18,8 +18,8 @@ import java.util.Properties;
 public class AlpacaApiConfig {
     private static final Logger LOG = LogManager.getLogger(BinanceApiConfig.class);
     InputStream inputStream;
-    EndpointAPIType endpointApiType;
-    DataAPIType dataApiType;
+    TraderAPIEndpointType endpointApiType;
+    MarketDataWebsocketSourceType dataApiType;
     String userAgent;
     String keyId;
     String secretKey;
@@ -34,8 +34,8 @@ public class AlpacaApiConfig {
             } else {
                 throw new FileNotFoundException("Property file '" + propFileName + "' not found in the classpath.");
             }
-            setEndpointApiType(EndpointAPIType.fromValue(prop.getProperty("endpoint_api_type")));
-            setDataApiType(DataAPIType.fromValue(prop.getProperty("data_api_type")));
+            setEndpointApiType(TraderAPIEndpointType.fromValue(prop.getProperty("endpoint_api_type")));
+            setDataApiType(MarketDataWebsocketSourceType.fromValue(prop.getProperty("data_api_type")));
             setUserAgent(prop.getProperty("user_agent"));
             setKeyId(prop.getProperty("key_id"));
             setSecretKey(prop.getProperty("secret_key"));

@@ -67,7 +67,8 @@ public abstract class AbstractBacktest {
         else return;
 
         switch (CONFIG.getBroker()) {
-            case ALPACA, ALPACA_SECURITY_TEST, ALPACA_CRYPTO_TEST: alpacaCaptureHistory.doCapture();
+            case ALPACA_CRYPTO_TEST: alpacaCaptureHistory.doCryptoCapture();
+            case ALPACA, ALPACA_SECURITY_TEST: alpacaCaptureHistory.doStockCapture();
             case BINANCE, BINANCE_TEST: binanceCaptureHistory.doCapture();
         }
     }

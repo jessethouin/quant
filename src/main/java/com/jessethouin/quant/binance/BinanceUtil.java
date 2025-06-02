@@ -6,11 +6,10 @@ import com.jessethouin.quant.broker.Util;
 import com.jessethouin.quant.conf.CurrencyType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.knowm.xchange.binance.dto.meta.exchangeinfo.Filter;
-import org.knowm.xchange.binance.dto.meta.exchangeinfo.Symbol;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.account.Fee;
 import org.knowm.xchange.exceptions.CurrencyPairNotValidException;
+import org.knowm.xchange.instrument.Instrument;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -19,7 +18,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static com.jessethouin.quant.binance.config.BinanceExchangeServices.*;
 import static com.jessethouin.quant.conf.Config.CONFIG;
@@ -45,20 +43,19 @@ public class BinanceUtil {
     }
 
     /*
-    * https://github.com/jaggedsoft/php-binance-api/issues/205
-    *
-    * minQty is the minimum amount you can order (quantity)
-    * minNotional is the minimum value of your order. (price * quantity)
-    * 
-    * */
+     * https://github.com/jaggedsoft/php-binance-api/issues/205
+     *
+     * minQty is the minimum amount you can order (quantity)
+     * minNotional is the minimum value of your order. (price * quantity)
+     *
+     * */
     public static BigDecimal getMinTrade(CurrencyPair currencyPair) {
         BigDecimal[] minTrade = {BigDecimal.ZERO};
-        Symbol[] symbols = BINANCE_EXCHANGE_INFO.getSymbols();
-        List<Symbol> symbolList = Arrays.stream(symbols).filter(symbol -> symbol.getBaseAsset().equals(currencyPair.base.getSymbol()) && symbol.getQuoteAsset().equals(currencyPair.counter.getSymbol())).collect(Collectors.toList());
-        symbolList.forEach(symbol -> {
-            List<Filter> filters = Arrays.stream(symbol.getFilters()).filter(filter -> filter.getFilterType().equals("MIN_NOTIONAL")).toList();
-            filters.forEach(filter -> minTrade[0] = new BigDecimal(filter.getMinNotional()));
-        });
+        BINANCE_EXCHANGE_INFO.getSymbols().stream()
+                .filter(symbol -> symbol.getBaseAsset().equals(currencyPair.base.getSymbol()) && symbol.getQuoteAsset().equals(currencyPair.counter.getSymbol()))
+                .forEach(symbol -> Arrays.stream(symbol.getFilters())
+                        .filter(filter -> filter.getFilterType().equals("MIN_NOTIONAL"))
+                        .forEach(filter -> minTrade[0] = new BigDecimal(filter.getMinNotional())));
         return minTrade[0];
     }
 
@@ -87,7 +84,7 @@ public class BinanceUtil {
     public static void showWallets() {
         try {
             StringBuilder sb = new StringBuilder();
-            BINANCE_ACCOUNT_SERVICE.getAccountInfo().getWallets().forEach((s, w) -> {
+            BINANCE_ACCOUNT_SERVICE.getAccountInfo().getWallets().forEach((_, w) -> {
                 w.getBalances().forEach((c, b) -> {
                     if (b.getTotal().compareTo(BigDecimal.ZERO) > 0) {
                         sb.append(System.lineSeparator());
@@ -106,11 +103,11 @@ public class BinanceUtil {
 
     public static void showTradingFees(Portfolio portfolio) {
         try {
-            Map<CurrencyPair, Fee> dynamicTradingFees = BINANCE_ACCOUNT_SERVICE.getDynamicTradingFees();
-            dynamicTradingFees.forEach((c, f) -> {
-                if (portfolio.getCurrencies().stream().anyMatch(currency -> c.base.getSymbol().equals(currency.getSymbol())) &&
-                        portfolio.getCurrencies().stream().anyMatch(currency -> c.counter.getSymbol().equals(currency.getSymbol()))) {
-                    LOG.info(c + " - m : " + f.getMakerFee() + " t : " + f.getTakerFee());
+            Map<Instrument, Fee> dynamicTradingFees = BINANCE_ACCOUNT_SERVICE.getDynamicTradingFeesByInstrument();
+            dynamicTradingFees.forEach((instrument, fee) -> {
+                if (portfolio.getCurrencies().stream().anyMatch(currency -> instrument.getBase().getSymbol().equals(currency.getSymbol())) &&
+                        portfolio.getCurrencies().stream().anyMatch(currency -> instrument.getCounter().getSymbol().equals(currency.getSymbol()))) {
+                    LOG.info(instrument + " - m : " + fee.getMakerFee() + " t : " + fee.getTakerFee());
                 }
             });
         } catch (IOException e) {
@@ -122,7 +119,7 @@ public class BinanceUtil {
         try {
             BINANCE_EXCHANGE.getTradeService().getOpenOrders().getOpenOrders().forEach(BinanceStreamProcessor::processRemoteOrder);
 
-            BINANCE_EXCHANGE.getAccountService().getAccountInfo().getWallets().forEach((s, wallet) -> wallet.getBalances().forEach((remoteCurrency, balance) -> {
+            BINANCE_EXCHANGE.getAccountService().getAccountInfo().getWallets().forEach((_, wallet) -> wallet.getBalances().forEach((remoteCurrency, balance) -> {
                 Currency currency = Util.getCurrencyFromPortfolio(remoteCurrency.getSymbol(), portfolio);
                 int diff = currency.getQuantity().compareTo(balance.getAvailable());
                 if (diff == 0) {
@@ -148,7 +145,11 @@ public class BinanceUtil {
         List<CurrencyPair> currencyPairs = new ArrayList<>();
         CONFIG.getCryptoCurrencies().forEach(base -> CONFIG.getCryptoCurrencies().forEach(counter -> {
             if (!base.equals(counter) && !currencyPairs.contains(new CurrencyPair(counter, base))) {
-                BINANCE_EXCHANGE.getExchangeSymbols().stream().filter(currencyPair -> currencyPair.base.getSymbol().equals(base) && currencyPair.counter.getSymbol().equals(counter)).forEach(currencyPairs::add);
+                BINANCE_EXCHANGE.getExchangeMetaData().getInstruments()
+                        .keySet()
+                        .stream()
+                        .filter(instrument -> instrument.getBase().getSymbol().equals(base) && instrument.getCounter().getSymbol().equals(counter))
+                        .forEach(_ -> currencyPairs.add(new CurrencyPair(counter, base)));
             }
         }));
         return currencyPairs;
