@@ -4,7 +4,6 @@ import com.jessethouin.quant.alpaca.AlpacaCaptureHistory;
 import com.jessethouin.quant.backtest.beans.repos.BacktestParameterResultsRepository;
 import com.jessethouin.quant.beans.TradeHistory;
 import com.jessethouin.quant.beans.repos.TradeHistoryRepository;
-import com.jessethouin.quant.binance.BinanceCaptureHistory;
 import com.jessethouin.quant.broker.Util;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -28,13 +27,11 @@ public abstract class AbstractBacktest {
     public static final List<BigDecimal> INTRADAY_PRICES = new ArrayList<>();
     static TradeHistoryRepository tradeHistoryRepository;
     static BacktestParameterResultsRepository backtestParameterResultsRepository;
-    static BinanceCaptureHistory binanceCaptureHistory;
     static AlpacaCaptureHistory alpacaCaptureHistory;
 
-    public AbstractBacktest(TradeHistoryRepository tradeHistoryRepository, BacktestParameterResultsRepository backtestParameterResultsRepository, BinanceCaptureHistory binanceCaptureHistory, AlpacaCaptureHistory alpacaCaptureHistory) {
+    public AbstractBacktest(TradeHistoryRepository tradeHistoryRepository, BacktestParameterResultsRepository backtestParameterResultsRepository, AlpacaCaptureHistory alpacaCaptureHistory) {
         AbstractBacktest.tradeHistoryRepository = tradeHistoryRepository;
         AbstractBacktest.backtestParameterResultsRepository = backtestParameterResultsRepository;
-        AbstractBacktest.binanceCaptureHistory = binanceCaptureHistory;
         AbstractBacktest.alpacaCaptureHistory = alpacaCaptureHistory;
     }
 
@@ -58,7 +55,7 @@ public abstract class AbstractBacktest {
 
         switch (CONFIG.getDataFeed()) {
             case TICKER -> diff = SECONDS.between(start, end);
-            case KLINE, BAR -> diff = MINUTES.between(start, end);
+            case KLINE, BAR -> diff = calculateTradingMinutes(start, end);
             default -> tradeHistoryRepository.deleteAll();
         }
 
@@ -69,7 +66,28 @@ public abstract class AbstractBacktest {
         switch (CONFIG.getBroker()) {
             case ALPACA_CRYPTO_TEST: alpacaCaptureHistory.doCryptoCapture();
             case ALPACA, ALPACA_SECURITY_TEST: alpacaCaptureHistory.doStockCapture();
-            case BINANCE, BINANCE_TEST: binanceCaptureHistory.doCapture();
         }
+    }
+
+    public long calculateTradingMinutes(LocalDateTime start, LocalDateTime end) {
+        long minutes = 0;
+        LocalDateTime current = start;
+
+        while (current.isBefore(end)) {
+            if (isWithinTradingHours(current)) {
+                minutes++;
+            }
+            current = current.plusMinutes(1);
+        }
+
+        return minutes;
+    }
+
+    private boolean isWithinTradingHours(LocalDateTime time) {
+        int hour = time.getHour();
+        int minute = time.getMinute();
+
+        if (hour < 9 || hour > 15) return false;
+        return hour != 9 || minute >= 31;
     }
 }

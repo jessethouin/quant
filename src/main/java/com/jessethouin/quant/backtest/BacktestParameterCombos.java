@@ -4,7 +4,6 @@ import com.jessethouin.quant.alpaca.AlpacaCaptureHistory;
 import com.jessethouin.quant.backtest.beans.BacktestParameterResults;
 import com.jessethouin.quant.backtest.beans.repos.BacktestParameterResultsRepository;
 import com.jessethouin.quant.beans.repos.TradeHistoryRepository;
-import com.jessethouin.quant.binance.BinanceCaptureHistory;
 import com.jessethouin.quant.conf.BuyStrategyType;
 import com.jessethouin.quant.conf.SellStrategyType;
 import org.apache.commons.lang3.time.StopWatch;
@@ -36,8 +35,8 @@ public class BacktestParameterCombos extends AbstractBacktest {
     static int count = 0;
     static boolean save = true;
 
-    public BacktestParameterCombos(TradeHistoryRepository tradeHistoryRepository, BacktestParameterResultsRepository backtestParameterResultsRepository, BinanceCaptureHistory binanceCaptureHistory, AlpacaCaptureHistory alpacaCaptureHistory) {
-        super(tradeHistoryRepository, backtestParameterResultsRepository, binanceCaptureHistory, alpacaCaptureHistory);
+    public BacktestParameterCombos(TradeHistoryRepository tradeHistoryRepository, BacktestParameterResultsRepository backtestParameterResultsRepository, AlpacaCaptureHistory alpacaCaptureHistory) {
+        super(tradeHistoryRepository, backtestParameterResultsRepository, alpacaCaptureHistory);
     }
 
     public BacktestParameterResults findBestCombo() {
@@ -142,7 +141,7 @@ public class BacktestParameterCombos extends AbstractBacktest {
         int longLookback = minMALookback;
         while (longLookback <= maxMALookback) {
 //            shortLookback = minMALookback;
-            shortLookback = Math.max(minMALookback, longLookback - 5); //having a difference of more than x has not proven to be profitable
+            shortLookback = Math.max(minMALookback, longLookback - 20); //having a difference of more than x has not proven to be profitable
             while (shortLookback < longLookback) { // there's no need to test equal short and long tail MAs because they will never separate or converge. That's why this is < and not <=.
                 getRiskCombos(buyStrategyType, sellStrategyType, riskMax, riskIncrement, shortLookback, longLookback, allowance);
                 shortLookback++;

@@ -7,3 +7,4 @@
 /src/main/resources/binance-dev.properties
 /src/main/resources/binance-prod.properties
 /src/main/resources/application.properties
+/src/main/resources/coinbase.properties

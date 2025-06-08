@@ -18,7 +18,6 @@ import java.time.Duration;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static com.jessethouin.quant.conf.Config.CONFIG;
 import static java.util.Objects.requireNonNullElse;
@@ -33,18 +32,32 @@ public class Util {
     }
 
     public static BigDecimal getPortfolioValue(Portfolio portfolio, Currency currency, BigDecimal price) {
-        AtomicReference<BigDecimal> holdings = new AtomicReference<>(BigDecimal.ZERO);
-        holdings.updateAndGet(v -> v.add(currency.getQuantity()));
-        portfolio.getSecurities().stream()
-                .filter(security -> security.getCurrency().equals(currency))
-                .forEach(security -> {
-                    BigDecimal quantity = security.getSecurityPosition().getQuantity();
-                    BigDecimal positionPrice = security.getSecurityPosition().getPrice();
-                    if (quantity != null && positionPrice != null) {
-                        holdings.updateAndGet(v -> v.add(quantity.multiply(positionPrice)));
-                    }
-                });
-        return holdings.get();
+        if (portfolio == null || currency == null || portfolio.getSecurities() == null) {
+            return BigDecimal.ZERO;
+        }
+
+        BigDecimal totalValue = BigDecimal.ZERO;
+
+        // Add currency holdings (cash position)
+        if (currency.getQuantity() != null) {
+            totalValue = totalValue.add(currency.getQuantity());
+        }
+
+        // Add securities value using the provided price
+        if (price != null) {
+            BigDecimal securitiesValue = portfolio.getSecurities().stream()
+                    .filter(security -> currency.equals(security.getCurrency()))
+                    .filter(security -> security.getSecurityPosition() != null)
+                    .map(security -> {
+                        BigDecimal quantity = security.getSecurityPosition().getQuantity();
+                        return quantity != null ? quantity.multiply(price) : BigDecimal.ZERO;
+                    })
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            totalValue = totalValue.add(securitiesValue);
+        }
+
+        return totalValue;
     }
 
     public static BigDecimal getValueAtPrice(Currency base, BigDecimal marketPrice) {
@@ -104,7 +117,7 @@ public class Util {
      */
     public static Currency getCurrencyFromPortfolio(String symbol, Portfolio portfolio) {
         switch (CONFIG.getBroker()) {
-            case COINBASE, CEXIO, BINANCE, BINANCE_TEST -> {
+            case COINBASE, CEXIO -> {
                 return getCurrencyFromPortfolio(symbol, portfolio, CurrencyType.CRYPTO);
             }
             default -> {

@@ -6,8 +6,6 @@ import com.jessethouin.quant.beans.Currency;
 import com.jessethouin.quant.beans.Portfolio;
 import com.jessethouin.quant.beans.Security;
 import com.jessethouin.quant.beans.repos.TradeHistoryRepository;
-import com.jessethouin.quant.binance.BinanceCaptureHistory;
-import com.jessethouin.quant.binance.beans.BinanceLimitOrder;
 import com.jessethouin.quant.broker.Transactions;
 import com.jessethouin.quant.broker.Util;
 import com.jessethouin.quant.calculators.Calc;
@@ -29,8 +27,8 @@ import static com.jessethouin.quant.conf.Config.CONFIG;
 public class BacktestStaticParameters extends AbstractBacktest {
     private static final Logger LOG = LogManager.getLogger(BacktestStaticParameters.class);
 
-    public BacktestStaticParameters(TradeHistoryRepository tradeHistoryRepository, BacktestParameterResultsRepository backtestParameterResultsRepository, BinanceCaptureHistory binanceCaptureHistory, AlpacaCaptureHistory alpacaCaptureHistory) {
-        super(tradeHistoryRepository, backtestParameterResultsRepository, binanceCaptureHistory, alpacaCaptureHistory);
+    public BacktestStaticParameters(TradeHistoryRepository tradeHistoryRepository, BacktestParameterResultsRepository backtestParameterResultsRepository, AlpacaCaptureHistory alpacaCaptureHistory) {
+        super(tradeHistoryRepository, backtestParameterResultsRepository, alpacaCaptureHistory);
     }
 
     public void runBacktest() {
@@ -58,11 +56,6 @@ public class BacktestStaticParameters extends AbstractBacktest {
                 Currency counter = Util.getCurrencyFromPortfolio("BTC", portfolio, CurrencyType.CRYPTO);
                 c = new Calc(base, counter, CONFIG, BigDecimal.ZERO);
             }
-            case BINANCE_TEST -> {
-                Currency base = Util.getCurrencyFromPortfolio("BTC", portfolio, CurrencyType.CRYPTO);
-                Currency counter = Util.getCurrencyFromPortfolio("USDT", portfolio, CurrencyType.CRYPTO);
-                c = new Calc(base, counter, CONFIG, BigDecimal.ZERO);
-            }
             default -> throw new IllegalStateException("Unexpected value: " + CONFIG.getBroker());
         }
 
@@ -75,8 +68,8 @@ public class BacktestStaticParameters extends AbstractBacktest {
             c.updateCalc(price, shortMAValue, longMAValue);
 
             switch (CONFIG.getBroker()) {
-                case ALPACA_SECURITY_TEST -> LOG.trace(MessageFormat.format("{8,number,000} : {0,number,00} : {5,number,000.000} : {1,number,00} : {6,number,000.000} : {7,number,000.000} : {2,number,0.00} : {3,number,0.00} : {4,number,000000.000}", CONFIG.getShortLookback(), CONFIG.getLongLookback(), CONFIG.getLowRisk(), CONFIG.getHighRisk(), Util.getPortfolioValue(portfolio, c.getSecurity().getCurrency(), price), shortMAValue, longMAValue, price, i));
-                case BINANCE_TEST, ALPACA_CRYPTO_TEST -> LOG.info("{} : ma1({}) {} : ma2({}) {} : l({}) {} : h({}) {} : p {} : v {} (base: {} counter: {})", i, CONFIG.getShortLookback(), shortMAValue, CONFIG.getLongLookback(), longMAValue, CONFIG.getLowRisk(), c.getLow(), CONFIG.getHighRisk(), c.getHigh(), price, Util.getValueAtPrice(c.getCounter(), price).add(c.getBase().getQuantity()), c.getBase().getQuantity().toPlainString(), c.getCounter().getQuantity().toPlainString());
+                case ALPACA_SECURITY_TEST -> LOG.info(MessageFormat.format("{8,number,000} : {0,number,00} : {5,number,000.000} : {1,number,00} : {6,number,000.000} : {7,number,000.000} : {2,number,0.00} : {3,number,0.00} : {4,number,000000.000}", CONFIG.getShortLookback(), CONFIG.getLongLookback(), CONFIG.getLowRisk(), CONFIG.getHighRisk(), Util.getPortfolioValue(portfolio, c.getSecurity().getCurrency(), price), shortMAValue, longMAValue, price, i));
+                case ALPACA_CRYPTO_TEST -> LOG.info("{} : ma1({}) {} : ma2({}) {} : l({}) {} : h({}) {} : p {} : v {} (base: {} counter: {})", i, CONFIG.getShortLookback(), shortMAValue, CONFIG.getLongLookback(), longMAValue, CONFIG.getLowRisk(), c.getLow(), CONFIG.getHighRisk(), c.getHigh(), price, Util.getValueAtPrice(c.getCounter(), price).add(c.getBase().getQuantity()), c.getBase().getQuantity().toPlainString(), c.getCounter().getQuantity().toPlainString());
             }
 
             c.decide();
@@ -93,18 +86,12 @@ public class BacktestStaticParameters extends AbstractBacktest {
                 LOG.info("counter: value: {}", Util.formatFiat(c.getCounter().getQuantity()));
                 LOG.info("orders : {}", portfolio.getAlpacaOrders().size());
             }
-            case BINANCE_TEST -> {
-                LOG.info("base   : value: {}", Util.formatFiat(c.getBase().getQuantity()));
-                LOG.info("counter: value: {}", Util.formatFiat(c.getCounter().getQuantity()));
-                LOG.info("orders : {}", portfolio.getBinanceLimitOrders().size());
-                LOG.info("fees   : {}", Util.formatFiat(portfolio.getBinanceLimitOrders().stream().map(BinanceLimitOrder::getCommissionAmount).reduce(BigDecimal.ZERO, BigDecimal::add).multiply(price)));
-            }
         }
 
         BigDecimal portfolioValue = BigDecimal.ZERO;
         switch (CONFIG.getBroker()) {
             case ALPACA_SECURITY_TEST -> portfolioValue = Util.getPortfolioValue(portfolio, c.getBase(), price);
-            case BINANCE_TEST, ALPACA_CRYPTO_TEST -> portfolioValue = Util.getValueAtPrice(c.getCounter(), price).add(c.getBase().getQuantity());
+            case ALPACA_CRYPTO_TEST -> portfolioValue = Util.getValueAtPrice(c.getCounter(), price).add(c.getBase().getQuantity());
         }
         LOG.info(MessageFormat.format("{0,number,00} : {1,number,00} : {2,number,0.00} : {3,number,0.00} : {4}", CONFIG.getShortLookback(), CONFIG.getLongLookback(), CONFIG.getLowRisk(), CONFIG.getHighRisk(), Util.formatFiat(portfolioValue)));
 
@@ -112,10 +99,17 @@ public class BacktestStaticParameters extends AbstractBacktest {
     }
 
     private static BigDecimal stopLoss(BigDecimal price, BigDecimal previousValue, Calc c) {
-        BigDecimal value = Util.getValueAtPrice(c.getCounter(), price).add(c.getBase().getQuantity());
+        BigDecimal value = switch (CONFIG.getBroker()) {
+            case ALPACA_SECURITY_TEST -> Util.getValueAtPrice(c.getSecurity(), price).add(c.getBase().getQuantity());
+            case ALPACA_CRYPTO_TEST -> Util.getValueAtPrice(c.getCounter(), price).add(c.getBase().getQuantity());
+            default -> throw new IllegalStateException("Unexpected value: " + CONFIG.getBroker());
+        };
         if (value.compareTo(previousValue.multiply(CONFIG.getStopLoss())) < 0) {
             LOG.warn("Something gross happened to the market or data. Invoking stop loss.");
-            Transactions.placeSellOrder(CONFIG.getBroker(), null, c.getBase(), c.getCounter(), price);
+            switch (CONFIG.getBroker()) {
+                case ALPACA_SECURITY_TEST -> Transactions.placeSellOrder(CONFIG.getBroker(), c.getSecurity(), null, null, price);
+                case ALPACA_CRYPTO_TEST -> Transactions.placeSellOrder(CONFIG.getBroker(), null, c.getBase(), c.getCounter(), price);
+            }
             System.exit(69); // NICE
         }
         return value;

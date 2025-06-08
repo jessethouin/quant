@@ -13,7 +13,6 @@ import com.jessethouin.quant.conf.SellStrategyType;
 import net.jacobpeterson.alpaca.openapi.trader.model.OrderSide;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.knowm.xchange.dto.Order;
 
 import java.math.BigDecimal;
 import java.util.Date;
@@ -69,11 +68,6 @@ public class ProcessHistoricIntradayPrices implements Runnable {
                 Currency counter = Util.getCurrencyFromPortfolio("BTC", portfolio, CurrencyType.CRYPTO);
                 c = new Calc(base, counter, CONFIG, BigDecimal.ZERO);
             }
-            case BINANCE_TEST -> {
-                Currency base = Util.getCurrencyFromPortfolio("BTC", portfolio, CurrencyType.CRYPTO);
-                Currency counter = Util.getCurrencyFromPortfolio("USDT", portfolio, CurrencyType.CRYPTO);
-                c = new Calc(base, counter, config, BigDecimal.ZERO);
-            }
             default -> throw new IllegalStateException("Unexpected value: " + config.getBroker());
         }
 
@@ -102,11 +96,6 @@ public class ProcessHistoricIntradayPrices implements Runnable {
                 portfolioValue = Util.getValueAtPrice(c.getCounter(), price).add(c.getBase().getQuantity());
                 bids = BigDecimal.valueOf(portfolio.getAlpacaOrders().stream().filter(alpacaOrder -> alpacaOrder.getSide().equals(OrderSide.BUY)).count());
                 fees = BigDecimal.ZERO; // todo: aLpAcA hAs No FeEs. :(
-            }
-            case BINANCE_TEST -> {
-                portfolioValue = Util.getValueAtPrice(c.getBase(), price).add(c.getCounter().getQuantity());
-                bids = BigDecimal.valueOf(portfolio.getBinanceLimitOrders().stream().filter(binanceLimitOrder -> binanceLimitOrder.getType().equals(Order.OrderType.BID)).count());
-                fees = portfolio.getBinanceLimitOrders().stream().map(binanceLimitOrder -> binanceLimitOrder.getCommissionAmount().multiply(binanceLimitOrder.getLimitPrice())).reduce(BigDecimal.ZERO, BigDecimal::add);
             }
             default -> {
                 portfolioValue = BigDecimal.ZERO;

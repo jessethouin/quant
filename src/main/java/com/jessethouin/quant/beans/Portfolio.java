@@ -1,7 +1,6 @@
 package com.jessethouin.quant.beans;
 
 import com.jessethouin.quant.alpaca.beans.AlpacaOrder;
-import com.jessethouin.quant.binance.beans.BinanceLimitOrder;
 import lombok.*;
 
 import jakarta.persistence.*;
@@ -23,6 +22,4 @@ public class Portfolio {
     private Set<Currency> currencies = new HashSet<>();
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "portfolio", fetch = FetchType.EAGER, orphanRemoval = true)
     private Set<AlpacaOrder> alpacaOrders = new HashSet<>();
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "portfolio", fetch = FetchType.EAGER, orphanRemoval = true)
-    private Set<BinanceLimitOrder> binanceLimitOrders = new HashSet<>();
 }

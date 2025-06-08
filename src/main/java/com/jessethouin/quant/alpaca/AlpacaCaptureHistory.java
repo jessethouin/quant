@@ -92,7 +92,9 @@ public class AlpacaCaptureHistory {
                     long end = CONFIG.getBacktestEnd().getTime();
                     String nextPageToken = null;
                     do {
-                        StockBarsResp stockBarsResp = ALPACA_STOCK_API.stockBars("AAPL", "1Min", OffsetDateTime.ofInstant(Instant.ofEpochMilli(start), ZoneId.systemDefault()), OffsetDateTime.ofInstant(Instant.ofEpochMilli(end), ZoneId.systemDefault()), null, null, null, StockFeed.IEX, "USD", nextPageToken, Sort.ASC);
+                        OffsetDateTime startInstant = OffsetDateTime.ofInstant(Instant.ofEpochMilli(start), ZoneId.systemDefault());
+                        OffsetDateTime endInstant = OffsetDateTime.ofInstant(Instant.ofEpochMilli(end), ZoneId.systemDefault());
+                        StockBarsResp stockBarsResp = ALPACA_STOCK_API.stockBars("AAPL", "1Min", startInstant, endInstant, 1000L, StockAdjustment.RAW, null, StockFeed.IEX, "USD", nextPageToken, Sort.ASC);
                         nextPageToken = stockBarsResp.getNextPageToken();
                         stockBarsResp.getBars()
                                 .forEach((_, stockBarList) -> stockBarList.forEach(stockBar -> {

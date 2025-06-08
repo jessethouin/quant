@@ -3,8 +3,6 @@ package com.jessethouin.quant;
 import com.jessethouin.quant.alpaca.AlpacaLive;
 import com.jessethouin.quant.backtest.BacktestParameterCombos;
 import com.jessethouin.quant.backtest.BacktestStaticParameters;
-import com.jessethouin.quant.binance.BinanceCaptureHistory;
-import com.jessethouin.quant.binance.BinanceLive;
 import lombok.Getter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -24,17 +22,13 @@ import static com.jessethouin.quant.conf.Config.CONFIG;
 public class QuantApplication {
     private static final Logger LOG = LogManager.getLogger(QuantApplication.class);
     private static AlpacaLive alpacaLive;
-    private static BinanceLive binanceLive;
     private static BacktestParameterCombos backtestParameterCombos;
     private static BacktestStaticParameters backtestStaticParameters;
-    private static BinanceCaptureHistory binanceCaptureHistory;
 
-    public QuantApplication(AlpacaLive alpacaLive, BinanceLive binanceLive, BacktestParameterCombos backtestParameterCombos, BacktestStaticParameters backtestStaticParameters, BinanceCaptureHistory binanceCaptureHistory) {
+    public QuantApplication(AlpacaLive alpacaLive, BacktestParameterCombos backtestParameterCombos, BacktestStaticParameters backtestStaticParameters) {
         QuantApplication.alpacaLive = alpacaLive;
-        QuantApplication.binanceLive = binanceLive;
         QuantApplication.backtestParameterCombos = backtestParameterCombos;
         QuantApplication.backtestStaticParameters = backtestStaticParameters;
-        QuantApplication.binanceCaptureHistory = binanceCaptureHistory;
     }
 
     public static void main(String[] args) {
@@ -53,9 +47,7 @@ public class QuantApplication {
                     backtestStaticParameters.runBacktest();
                 }
                 case "alpaca" -> alpacaLive.doLive();
-                case "binance" -> binanceLive.doLive();
-                case "capture" -> binanceCaptureHistory.doCapture();
-                default -> LOG.error("1st arg must be \"combos\", \"backtest\", \"paper\", or \"binance\".");
+                default -> LOG.error("1st arg must be \"combos\", \"backtest\", or \"alpaca\".");
             }
         }
     }

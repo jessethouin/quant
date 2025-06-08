@@ -1,6 +1,5 @@
 package com.jessethouin.quant.alpaca.config;
 
-import com.jessethouin.quant.binance.config.BinanceApiConfig;
 import lombok.Getter;
 import lombok.Setter;
 import net.jacobpeterson.alpaca.model.util.apitype.MarketDataWebsocketSourceType;
@@ -16,7 +15,7 @@ import java.util.Properties;
 @Getter
 @Setter
 public class AlpacaApiConfig {
-    private static final Logger LOG = LogManager.getLogger(BinanceApiConfig.class);
+    private static final Logger LOG = LogManager.getLogger(AlpacaApiConfig.class);
     InputStream inputStream;
     TraderAPIEndpointType endpointApiType;
     MarketDataWebsocketSourceType dataApiType;

@@ -145,10 +145,6 @@ public class AlpacaUtil {
     }
 
     public static String parseAlpacaCryptoSymbol(String symbol) {
-        if (symbol.endsWith("/USD")) {
-            return symbol.substring(0, symbol.length() - 4);
-        } else {
-            return symbol;
-        }
+        return symbol.replaceFirst("/?USD$", "");
     }
 }

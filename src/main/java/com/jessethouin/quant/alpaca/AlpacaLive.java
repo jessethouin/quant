@@ -109,7 +109,7 @@ public class AlpacaLive {
                 portfolio = entityManager.merge(portfolio);
             }
         });
-        // fundamental are not managed by Spring/JPA, but they have elements from the merged portfolio, which is why we have to update them manually
+        // fundamentals are not managed by Spring/JPA, but they have elements from the merged portfolio, which is why we have to update them manually
         fundamentalList.forEach(fundamental -> fundamental.update(portfolio));
     }
 

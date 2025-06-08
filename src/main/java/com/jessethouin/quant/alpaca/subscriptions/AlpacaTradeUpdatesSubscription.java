@@ -2,6 +2,7 @@ package com.jessethouin.quant.alpaca.subscriptions;
 
 import com.jessethouin.quant.alpaca.AlpacaStreamProcessor;
 import lombok.Builder;
+import net.jacobpeterson.alpaca.model.websocket.updates.model.tradeupdate.TradeUpdate;
 import net.jacobpeterson.alpaca.openapi.trader.model.Order;
 import net.jacobpeterson.alpaca.websocket.updates.UpdatesListener;
 import org.apache.logging.log4j.LogManager;
@@ -15,9 +16,10 @@ public class AlpacaTradeUpdatesSubscription {
 
     public void subscribe() {
         UpdatesListener updatesListener = tradeUpdate -> {
-            Order order = tradeUpdate.getData().getOrder();
+            TradeUpdate tradeUpdateData = tradeUpdate.getData();
+            Order order = tradeUpdateData.getOrder();
             LOG.info("Incoming order {} status {}", order.getId(), order.getStatus());
-            AlpacaStreamProcessor.processRemoteOrder(order);
+            AlpacaStreamProcessor.processRemoteOrder(order, tradeUpdateData);
         };
 
         ALPACA_STREAMING_API.setListener(updatesListener);

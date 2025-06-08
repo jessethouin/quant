@@ -12,6 +12,7 @@ import com.jessethouin.quant.broker.Util;
 import com.jessethouin.quant.common.StreamProcessor;
 import com.jessethouin.quant.conf.CurrencyType;
 import lombok.Getter;
+import net.jacobpeterson.alpaca.model.websocket.updates.model.tradeupdate.TradeUpdate;
 import net.jacobpeterson.alpaca.openapi.trader.model.Order;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.logging.log4j.LogManager;
@@ -21,6 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.Optional;
+
+import static com.jessethouin.quant.conf.Config.CONFIG;
 
 @Component
 @Transactional
@@ -38,12 +41,20 @@ public class AlpacaStreamProcessor extends StreamProcessor {
     }
 
     public static synchronized void processRemoteOrder(Order order) {
+        processRemoteOrder(order, null);
+    }
+
+    public static synchronized void processRemoteOrder(Order order, TradeUpdate tradeUpdateData) {
         AlpacaOrder alpacaOrder = reconcileRemoteOrder(order);
         Portfolio portfolio = alpacaLive.getPortfolio();
         BigDecimal limitPrice = new BigDecimal(ObjectUtils.defaultIfNull(alpacaOrder.getLimitPrice(), "0"));
         BigDecimal bidAskQty = new BigDecimal(ObjectUtils.defaultIfNull(alpacaOrder.getQty(), "0"));
         BigDecimal filledQty = new BigDecimal(ObjectUtils.defaultIfNull(alpacaOrder.getFilledQty(), "0"));
         BigDecimal filledAvgPrice = new BigDecimal(ObjectUtils.defaultIfNull(alpacaOrder.getFilledAvgPrice(), "0"));
+
+        if (tradeUpdateData != null && tradeUpdateData.getPositionQuantity() != null) {
+            filledQty = new BigDecimal(tradeUpdateData.getPositionQuantity());
+        }
 
         switch (alpacaOrder.getAssetClass()) {
             case CRYPTO -> {
@@ -62,6 +73,7 @@ public class AlpacaStreamProcessor extends StreamProcessor {
 
     private static void processRemoteCryptoOrder(AlpacaOrder alpacaOrder, Currency counter, Currency base, BigDecimal limitPrice, BigDecimal bidAskQty, BigDecimal filledQty, BigDecimal filledAvgPrice) {
         switch (alpacaOrder.getStatus()) {
+            case PENDING_NEW -> LOG.info("Pending new Alpaca Currency order {}.", alpacaOrder.getId());
             case NEW -> {
                 if (counter.getCurrencyLedgers().stream().noneMatch(currencyLedger -> alpacaOrder.getId().equals(currencyLedger.getOrderId()))) {
                     switch (alpacaOrder.getSide()) {
